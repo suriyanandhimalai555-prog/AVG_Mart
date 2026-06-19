@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  --color-royal-main: #10367D;    /* Intense Royal Blue */
+  --color-royal-dark: #0A224E;    /* Deeper Navy tone */
+  --color-gray-canvas: #EBEBEB;   /* Clean Light Gray canvas */
+  --color-lime-accent: #A5CE00;   /* Electric Lime Green */
+} 
+
+body {
+  font-family: "Poppins", sans-serif;
+}
