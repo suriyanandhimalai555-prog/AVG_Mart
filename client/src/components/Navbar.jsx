@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { Menu, X, ShoppingBag, Search, Heart, ChevronDown, ArrowRight, Sparkles, Tag, Layers, Flame, LogIn } from 'lucide-react'
 import Logo from "../assets/logo.png"
+import { Navigate, useNavigate } from 'react-router-dom'
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [isScrolled, setIsScrolled] = useState(false)
     const [activeDropdown, setActiveDropdown] = useState(null)
+    const navigate = useNavigate();
 
     // Track scrolling behavior to trigger the background morph
     useEffect(() => {
@@ -185,6 +187,7 @@ const Navbar = () => {
                     {/* DESKTOP ONLY LOGIN BUTTON */}
                     <div className="hidden md:block pointer-events-auto">
                         <button
+                            onClick={() => navigate("/login")}
                             className="group inline-flex items-center gap-3 bg-lime-accent text-royal-dark px-6 py-3 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white hover:scale-[1.04] active:scale-[0.97] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.45)]"
                         >
                             Login
@@ -250,6 +253,7 @@ const Navbar = () => {
                     
                     {/* MOBILE LOGIN TRIGGER */}
                     <button
+                        onClick={() => Navigate("/login")}
                         className="w-full group flex items-center justify-center gap-3 bg-lime-accent text-royal-dark py-3.5 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white active:scale-[0.99] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.3)]"
                     >
                         Login
