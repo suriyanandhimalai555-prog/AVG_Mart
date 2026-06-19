@@ -252,13 +252,16 @@ const Navbar = () => {
                     </div>
                     
                     {/* MOBILE LOGIN TRIGGER */}
-                    <button
+                    {/* <button
                         onClick={() => Navigate("/login")}
                         className="w-full group flex items-center justify-center gap-3 bg-lime-accent text-royal-dark py-3.5 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white active:scale-[0.99] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.3)]"
                     >
                         Login
                         <LogIn className="w-4 h-4" />
-                    </button>
+                    </button> */}
+                    <a href="/login" 
+                        className="w-full group flex items-center justify-center gap-3 bg-lime-accent text-royal-dark py-3.5 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white active:scale-[0.99] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.3)]"
+                    >Login <LogIn className="w-4 h-4" /></a>
                 </div>
             </div>
         </nav>
