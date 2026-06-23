@@ -171,15 +171,15 @@ const Navbar = () => {
                     </div>
 
                     {/* Heart Container Button */}
-                    <button className="p-2 rounded-full hover:bg-white/5 transition-all relative group text-white">
+                    {/* <button className="p-2 rounded-full hover:bg-white/5 transition-all relative group text-white">
                         <Heart className="w-4 h-4 transition-transform group-hover:scale-110" />
                         <span className="absolute -top-0.5 -right-0.5 text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-black bg-lime-accent text-royal-dark">
                             2
                         </span>
-                    </button>
+                    </button> */}
 
                     {/* Bag Actions Box Button */}
-                    <button className="p-2 rounded-full hover:bg-white/5 transition-all relative group text-white">
+                    <button onClick={() => navigate("/cart")} className="p-2 rounded-full hover:bg-white/5 transition-all relative group text-white">
                         <ShoppingBag className="w-4 h-4 transition-transform group-hover:scale-110" />
                         <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-lime-accent"></span>
                     </button>
