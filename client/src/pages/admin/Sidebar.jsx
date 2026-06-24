@@ -1,16 +1,26 @@
 import React, { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, PlusCircle, ShoppingBag, LogOut, ShieldAlert, Menu, X } from 'lucide-react'
 import Logo from "../../assets/logo.png"
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false)
+  const navigate = useNavigate()
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'Add Products', path: '/admin/products', icon: <PlusCircle className="w-5 h-5" /> },
     { name: 'Customer Orders', path: '/admin/orders', icon: <ShoppingBag className="w-5 h-5" /> },
   ]
+
+  // Handle system logout parameters instantly without alert checks
+  const handleLogout = () => {
+    // 1. Clear stored auth tokens securely
+    localStorage.removeItem('token') 
+    
+    // 2. Direct routing fallback bounce to standard storefront layout
+    navigate('/')
+  }
 
   return (
     <>
@@ -37,7 +47,6 @@ const Sidebar = () => {
       )}
 
       {/* --- MAIN SIDEBAR MODULE MATRIX CONTAINER --- */}
-      {/* Added lg:translate-x-0 explicitly below to force visibility on desktop platforms */}
       <div className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-royal-dark border-r border-white/10 h-screen flex flex-col justify-between p-6 select-none transition-transform duration-300 ease-in-out
         lg:sticky lg:top-0 lg:transform-none lg:translate-x-0
@@ -49,12 +58,10 @@ const Sidebar = () => {
           <div className="flex items-center justify-between px-2 border-b border-white/10 pb-5">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-lime-accent/10 text-lime-accent rounded-xl border border-lime-accent/20">
-                {/* <ShieldAlert className="w-5 h-5" /> */}
-                <img src={Logo} className='w-9 h-9' />
+                <img src={Logo} className='w-9 h-9' alt="Logo" />
               </div>
               <div>
                 <h1 className="font-bold text-sm tracking-wide uppercase text-gray-canvas">Admin Panel</h1>
-                {/* <p className="text-[10px] text-lime-accent font-mono tracking-widest uppercase">Admin Mode</p> */}
               </div>
             </div>
 
@@ -92,13 +99,13 @@ const Sidebar = () => {
 
         {/* TERMINAL FOOTER ACTIONS ROW */}
         <div className="border-t border-white/10 pt-4">
-          <NavLink
-            to="/"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-canvas/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-canvas/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 text-left cursor-pointer"
           >
             <LogOut className="w-5 h-5" />
-            <span>Exit Panel</span>
-          </NavLink>
+            <span>Log Out</span>
+          </button>
         </div>
       </div>
     </>

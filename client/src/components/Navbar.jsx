@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Menu, X, ShoppingBag, Search, ChevronDown, ArrowRight, Layers, LogIn, ShoppingCart, User, HelpCircle } from 'lucide-react'
+import { Menu, X, ShoppingBag, Search, ChevronDown, ArrowRight, Layers, LogIn, LogOut, ShoppingCart, User, HelpCircle } from 'lucide-react'
 import Logo from "../assets/logo.png"
 import { useNavigate } from 'react-router-dom'
 
@@ -9,6 +9,9 @@ const Navbar = () => {
     const [activeDropdown, setActiveDropdown] = useState(null)
     const navigate = useNavigate();
 
+    // Check if the user is authenticated by looking for a token
+    const isLoggedIn = !!localStorage.getItem("token");
+
     // Track scrolling behavior to trigger the background morph
     useEffect(() => {
         const handleScroll = () => {
@@ -17,6 +20,15 @@ const Navbar = () => {
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
+
+    // Logout engine handler
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("userName");
+        setIsOpen(false);
+        navigate("/"); // Redirect to home page
+    };
 
     // Restructured Premium Navlinks Configuration Matrix
     const navLinks = [
@@ -204,15 +216,25 @@ const Navbar = () => {
                         <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-lime-accent"></span>
                     </button>
                     
-                    {/* DESKTOP ONLY LOGIN BUTTON */}
+                    {/* DESKTOP DYNAMIC ACTION SWITCH TRIGGER */}
                     <div className="hidden md:block pointer-events-auto">
-                        <button
-                            onClick={() => navigate("/login")}
-                            className="group inline-flex items-center gap-3 bg-lime-accent text-royal-dark px-6 py-3 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white hover:scale-[1.04] active:scale-[0.97] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.45)] cursor-pointer"
-                        >
-                            Login
-                            <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-                        </button>
+                        {isLoggedIn ? (
+                            <button
+                                onClick={handleLogout}
+                                className="group inline-flex items-center gap-3 bg-lime-accent text-royal-dark px-6 py-3 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white hover:scale-[1.04] active:scale-[0.97] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.45)] cursor-pointer"
+                            >
+                                Logout
+                                <LogOut className="w-4 h-4" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => navigate("/login")}
+                                className="group inline-flex items-center gap-3 bg-lime-accent text-royal-dark px-6 py-3 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white hover:scale-[1.04] active:scale-[0.97] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.45)] cursor-pointer"
+                            >
+                                Login
+                                <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -252,7 +274,6 @@ const Navbar = () => {
                                         className={`space-y-4 pt-2 pl-2 overflow-hidden transition-all duration-300 ${activeDropdown === index ? 'max-h-[450px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
                                             }`}
                                     >
-                                        {/* Mobile All Products Sub-Trigger */}
                                         <div className="py-1">
                                             <button 
                                                 onClick={() => { setIsOpen(false); navigate('/allproducts'); }}
@@ -296,13 +317,22 @@ const Navbar = () => {
                         />
                     </div>
                     
-                    {/* MOBILE LOGIN TRIGGER */}
-                    <button 
-                        onClick={() => { setIsOpen(false); navigate("/login"); }}
-                        className="w-full group flex items-center justify-center gap-3 bg-lime-accent text-royal-dark py-3.5 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white active:scale-[0.99] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.3)] cursor-pointer"
-                    >
-                        Login <LogIn className="w-4 h-4" />
-                    </button>
+                    {/* MOBILE DYNAMIC ACTION TRIGGER */}
+                    {isLoggedIn ? (
+                        <button 
+                            onClick={handleLogout}
+                            className="w-full group flex items-center justify-center gap-3 bg-lime-accent text-royal-dark py-3.5 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white active:scale-[0.99] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.3)] cursor-pointer"
+                        >
+                            Logout <LogOut className="w-4 h-4" />
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={() => { setIsOpen(false); navigate("/login"); }}
+                            className="w-full group flex items-center justify-center gap-3 bg-lime-accent text-royal-dark py-3.5 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white active:scale-[0.99] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.3)] cursor-pointer"
+                        >
+                            Login <LogIn className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
             </div>
         </nav>

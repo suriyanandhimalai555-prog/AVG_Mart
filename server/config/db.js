@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Export the pool instance as a NAMED export
 export const pool = new Pool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,

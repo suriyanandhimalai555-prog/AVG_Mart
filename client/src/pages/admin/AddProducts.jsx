@@ -1,21 +1,12 @@
-import React, { useState } from 'react'
-import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star } from 'lucide-react'
+
+// Base URL mapping configuration matching your express system root path
+const API_BASE_URL = 'http://localhost:5000/api/products'
 
 const AddProducts = () => {
-  // Main state to store products list
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Classic Over-Sized Black Tee",
-      category: "t-shirt",
-      sizes: ["M", "L", "XL"],
-      description: "Premium heavy-weight cotton custom oversized streetwear fit.",
-      originalPrice: "1999",
-      offerPrice: "1499",
-      count: "45",
-      images: ["https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500"]
-    }
-  ])
+  const [products, setProducts] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
 
   // Dialog and popup controls state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -31,15 +22,40 @@ const AddProducts = () => {
   const [originalPrice, setOriginalPrice] = useState('')
   const [offerPrice, setOfferPrice] = useState('')
   const [count, setCount] = useState('')
-  const [images, setImages] = useState([]) // Stores Base64 data strings for images
+  const [isFeatured, setIsFeatured] = useState(false) // NEW STATE VARIABLE ADDED HERE
+  
+  const [images, setImages] = useState([])       
+  const [rawFiles, setRawFiles] = useState([])   
 
-  // Lists for size options
   const tshirtSizes = ['S', 'M', 'L', 'XL']
   const shoeSizes = ['7', '8', '9', '10', '11', '12']
 
-  // Read images from user device and convert them into dynamic URL strings
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const fetchProducts = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(API_BASE_URL)
+      if (response.ok) {
+        const data = await response.json()
+        setProducts(data)
+      } else {
+        console.error("Failed to sync records database stack grid setup.")
+      }
+    } catch (err) {
+      console.error("Network communication line breakdown matching data pipelines:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files)
+    if (!files.length) return
+
+    setRawFiles((prevFiles) => [...prevFiles, ...files])
     
     files.forEach((file) => {
       const reader = new FileReader()
@@ -50,12 +66,11 @@ const AddProducts = () => {
     })
   }
 
-  // Remove a selected image before saving
   const removeUploadedImage = (indexToRemove) => {
     setImages(images.filter((_, index) => index !== indexToRemove))
+    setRawFiles(rawFiles.filter((_, index) => index !== indexToRemove))
   }
 
-  // Toggle selection for size arrays
   const handleSizeToggle = (size) => {
     if (selectedSizes.includes(size)) {
       setSelectedSizes(selectedSizes.filter(s => s !== size))
@@ -64,7 +79,6 @@ const AddProducts = () => {
     }
   }
 
-  // Reset form when closing or preparing modal
   const resetForm = () => {
     setCategory('')
     setSelectedSizes([])
@@ -73,63 +87,102 @@ const AddProducts = () => {
     setOriginalPrice('')
     setOfferPrice('')
     setCount('')
+    setIsFeatured(false) // RESET FEATURED OPTION
     setImages([])
+    setRawFiles([])
     setIsEditing(false)
     setCurrentProductId(null)
   }
 
-  // Form submit function (Handles Create & Update actions)
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
-    const productPayload = {
-      id: isEditing ? currentProductId : Date.now(),
-      name,
-      category,
-      sizes: (category === 't-shirt' || category === 'shoe') ? selectedSizes : [],
-      description,
-      originalPrice,
-      offerPrice,
-      count: count || '0',
-      images: images.length > 0 ? images : ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"] 
-    }
+    const formData = new FormData()
+    formData.append('name', name)
+    formData.append('category', category)
+    formData.append('description', description)
+    formData.append('originalPrice', originalPrice)
+    formData.append('offerPrice', offerPrice)
+    formData.append('count', count || '0')
+    formData.append('isFeatured', isFeatured) // APPENDING FEATURED DATA BOOLEAN TO FORMDATA
 
-    if (isEditing) {
-      setProducts(products.map(p => p.id === currentProductId ? productPayload : p))
-    } else {
-      setProducts([...products, productPayload])
-    }
+    const applicableSizes = (category === 't-shirt' || category === 'shoe') ? selectedSizes : []
+    formData.append('sizes', JSON.stringify(applicableSizes))
 
-    setIsModalOpen(false)
-    resetForm()
+    rawFiles.forEach((file) => {
+      formData.append('productImages', file)
+    })
+
+    try {
+      let response
+      if (isEditing) {
+        response = await fetch(`${API_BASE_URL}/${currentProductId}`, {
+          method: 'PUT',
+          body: formData,
+        })
+      } else {
+        response = await fetch(API_BASE_URL, {
+          method: 'POST',
+          body: formData,
+        })
+      }
+
+      if (response.ok) {
+        setIsModalOpen(false)
+        resetForm()
+        fetchProducts() 
+      } else {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const errorData = await response.json();
+          console.error(`Error: ${errorData.message}`);
+        } else {
+          console.error(`Server returned an unexpected response status: ${response.status}`);
+        }
+      }
+    } catch (error) {
+      console.error("Submission operational runtime execution issue caught:", error)
+    }
   }
 
-  // Fill form data to trigger Edit view
   const handleEditTrigger = (product) => {
     setCurrentProductId(product.id)
     setName(product.name)
     setCategory(product.category)
-    setSelectedSizes(product.sizes)
-    setDescription(product.description)
-    setOriginalPrice(product.originalPrice)
-    setOfferPrice(product.offerPrice)
+    setSelectedSizes(product.sizes || [])
+    setDescription(product.description || '')
+    
+    setOriginalPrice(product.original_price !== undefined ? product.original_price : product.originalPrice)
+    setOfferPrice(product.offer_price !== undefined ? product.offer_price : product.offerPrice)
+    
     setCount(product.count)
-    setImages(product.images)
+    setIsFeatured(product.isFeatured || false) // BIND DATA ROW VALUES TO EDIT MODAL CHECKS
+    setImages(product.images || [])
+    setRawFiles([]) 
     setIsEditing(true)
     setIsModalOpen(true)
   }
 
-  // Delete product action
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
-      setProducts(products.filter(p => p.id !== id))
+      try {
+        const response = await fetch(`${API_BASE_URL}/${id}`, {
+          method: 'DELETE'
+        })
+        if (response.ok) {
+          fetchProducts() 
+        } else {
+          console.error("Could not process row drop execution sequence.")
+        }
+      } catch (err) {
+        console.error("Drop row request interface context error:", err)
+      }
     }
   }
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark/20 min-h-screen text-gray-canvas">
       
-      {/* HEADER CONTROLS ROW */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/10 pb-6">
         <div>
           <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider">Product Inventory</h2>
@@ -144,41 +197,48 @@ const AddProducts = () => {
         </button>
       </div>
 
-      {/* --- GRID DISPLAY LAYOUT FOR CARDS --- */}
-      {products.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-24 text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse">
+          Synchronizing Live Database Records...
+        </div>
+      ) : products.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center p-12 border border-dashed border-white/10 rounded-3xl bg-royal-main/10">
           <Layers className="w-12 h-12 text-gray-canvas/20 mb-4" />
           <p className="text-sm font-bold uppercase tracking-wider text-gray-canvas/40">No Products Found</p>
-          <p className="text-xs text-gray-canvas/30 mt-1">Click the "Add Product" button above to populate items.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
           {products.map((product) => (
             <div key={product.id} className="bg-royal-main/40 border border-white/5 rounded-2xl overflow-hidden flex flex-col justify-between backdrop-blur-sm shadow-xl hover:border-white/10 transition-all duration-300">
               
-              {/* Product Card Image Banner */}
               <div className="h-48 w-full bg-royal-dark/60 relative overflow-hidden group">
                 <img 
-                  src={product.images[0]} 
+                  src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"} 
                   alt={product.name} 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <span className="absolute top-3 left-3 text-[9px] font-black uppercase tracking-widest bg-royal-dark/90 text-lime-accent border border-white/10 px-2.5 py-1 rounded-full">
                   {product.category}
                 </span>
+
+                {/* FEATURED CARD VISUAL BADGE LAYER INDICATOR */}
+                {product.isFeatured && (
+                  <span className="absolute bottom-3 left-3 text-[9px] font-black uppercase tracking-widest bg-lime-accent text-royal-dark border border-lime-accent px-2 py-0.5 rounded flex items-center gap-1 shadow-md">
+                    <Star className="w-3 h-3 fill-royal-dark text-royal-dark" /> Featured
+                  </span>
+                )}
+
                 <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-widest bg-black/80 text-white border border-white/10 px-2.5 py-1 rounded-full flex items-center gap-1">
                   <Package className="w-3 h-3 text-lime-accent" /> Stock: {product.count}
                 </span>
               </div>
 
-              {/* Product Details Area */}
               <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                 <div className="space-y-1">
                   <h4 className="font-bold text-sm text-gray-canvas tracking-wide line-clamp-1">{product.name}</h4>
                   <p className="text-xs text-gray-canvas/50 line-clamp-2 font-medium">{product.description}</p>
                 </div>
 
-                {/* Sizing Tags Section */}
                 {product.sizes && product.sizes.length > 0 && (
                   <div className="flex flex-wrap gap-1 items-center">
                     <span className="text-[9px] font-bold tracking-wider uppercase text-gray-canvas/40 mr-1">Sizes:</span>
@@ -188,14 +248,16 @@ const AddProducts = () => {
                   </div>
                 )}
 
-                {/* Pricing Area */}
                 <div className="flex items-baseline gap-2 border-t border-white/5 pt-3">
-                  <span className="text-base font-black font-mono text-lime-accent">₹{product.offerPrice}</span>
-                  <span className="text-xs font-mono text-gray-canvas/40 line-through">₹{product.originalPrice}</span>
+                  <span className="text-base font-black font-mono text-lime-accent">
+                    ₹{product.offer_price !== undefined ? product.offer_price : product.offerPrice}
+                  </span>
+                  <span className="text-xs font-mono text-gray-canvas/40 line-through">
+                    ₹{product.original_price !== undefined ? product.original_price : product.originalPrice}
+                  </span>
                 </div>
               </div>
 
-              {/* Card Actions Footer Section */}
               <div className="px-5 pb-5 pt-2 grid grid-cols-3 gap-2 border-t border-white/5 bg-royal-dark/20">
                 <button 
                   onClick={() => setViewProduct(product)}
@@ -225,12 +287,11 @@ const AddProducts = () => {
         </div>
       )}
 
-      {/* --- ADD / EDIT PRODUCT INTERACTIVE FORM POPUP MODAL --- */}
+      {/* --- POPUP MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-royal-dark border border-white/10 w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto">
             
-            {/* Modal Heading Title */}
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-lg font-black uppercase tracking-wider text-gray-canvas flex items-center gap-2">
                 <Layers className="w-5 h-5 text-lime-accent" />
@@ -244,10 +305,8 @@ const AddProducts = () => {
               </button>
             </div>
 
-            {/* Main Form Fields */}
             <form onSubmit={handleSubmit} className="space-y-5">
               
-              {/* CATEGORY SELECT LIST DROPDOWN */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Select Category *</label>
                 <select
@@ -264,7 +323,6 @@ const AddProducts = () => {
                 </select>
               </div>
 
-              {/* SIZE CONDITIONS SECTION */}
               {category === 't-shirt' && (
                 <div className="space-y-2 animate-fadeIn">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Select Shirt Sizes</label>
@@ -309,7 +367,20 @@ const AddProducts = () => {
                 </div>
               )}
 
-              {/* CORE IDENTITY DESIGNATION INPUT ROWS */}
+              {/* NEW FEATURED PRODUCT CHECKS ROW INPUT ELEMENT HERE */}
+              <div className="flex items-center gap-3 bg-royal-main/20 border border-white/5 p-4 rounded-xl">
+                <input 
+                  type="checkbox"
+                  id="featuredCheckbox"
+                  checked={isFeatured}
+                  onChange={(e) => setIsFeatured(e.target.checked)}
+                  className="w-4 h-4 rounded accent-lime-accent bg-royal-dark border-white/10 cursor-pointer"
+                />
+                <label htmlFor="featuredCheckbox" className="text-xs font-bold uppercase tracking-wider text-gray-canvas/80 cursor-pointer select-none">
+                  Show this product in Featured Products list
+                </label>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Name *</label>
                 <input 
@@ -333,7 +404,6 @@ const AddProducts = () => {
                 />
               </div>
 
-              {/* FINANCIAL PRICING AND PRODUCT STOCK COUNT COLUMNS */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Original Price (INR) *</label>
@@ -381,7 +451,6 @@ const AddProducts = () => {
                 </div>
               </div>
 
-              {/* FILE UPLOAD INPUT FROM LOCAL DEVICE INTERFACE */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Upload Product Images *</label>
                 <div className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl bg-royal-main/20 hover:border-white/20 transition-colors relative cursor-pointer group">
@@ -394,13 +463,10 @@ const AddProducts = () => {
                   />
                   <Image className="w-8 h-8 text-gray-canvas/40 group-hover:text-lime-accent transition-colors mb-2" />
                   <span className="text-xs font-bold text-gray-canvas/70">Click to upload files from device</span>
-                  <span className="text-[10px] text-gray-canvas/40 mt-1">You can select multiple photos at once</span>
                 </div>
 
-                {/* Displaying Uploaded File Thumbnails */}
                 {images.length > 0 && (
                   <div className="pt-2">
-                    <label className="text-[9px] font-bold uppercase tracking-wider text-gray-canvas/40 block mb-2">Selected Media Previews:</label>
                     <div className="flex flex-wrap gap-2">
                       {images.map((img, idx) => (
                         <div key={idx} className="relative w-16 h-16 rounded-lg border border-white/10 overflow-hidden bg-royal-dark">
@@ -419,7 +485,6 @@ const AddProducts = () => {
                 )}
               </div>
 
-              {/* SAVE & SUBMIT TERMINAL OPERATIONS ROW */}
               <div className="border-t border-white/10 pt-5 flex items-center justify-end gap-3">
                 <button
                   type="button"
@@ -441,7 +506,7 @@ const AddProducts = () => {
         </div>
       )}
 
-      {/* --- READ-ONLY MODAL DETAIL POPUP ("VIEW" WINDOW OVERLAY) --- */}
+      {/* --- READ-ONLY VIEW WINDOW OVERLAY --- */}
       {viewProduct && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
           <div className="bg-royal-dark border border-white/10 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative space-y-6">
@@ -459,14 +524,22 @@ const AddProducts = () => {
               </button>
             </div>
 
-            {/* Media Gallery Grid */}
             <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto rounded-xl">
-              {viewProduct.images.map((img, idx) => (
+              {viewProduct.images && viewProduct.images.map((img, idx) => (
                 <img key={idx} src={img} alt={`Asset View ${idx}`} className="w-full h-32 object-cover rounded-xl border border-white/5 bg-royal-main/10" />
               ))}
             </div>
 
             <div className="space-y-4 text-xs font-medium">
+              
+              {/* DISPLAY FEATURED STATUS ON VIEW WINDOW */}
+              <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
+                <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Showcase Level:</span>
+                <span className={`font-black uppercase tracking-wider ${viewProduct.isFeatured ? 'text-lime-accent' : 'text-gray-canvas/40'}`}>
+                  {viewProduct.isFeatured ? '★ Featured Product' : 'Standard Product'}
+                </span>
+              </div>
+
               <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Category Layer:</span>
                 <span className="text-lime-accent font-black uppercase tracking-wider">{viewProduct.category}</span>
@@ -477,17 +550,6 @@ const AddProducts = () => {
                 <span className="text-white font-mono font-bold">{viewProduct.count} units</span>
               </div>
 
-              {viewProduct.sizes && viewProduct.sizes.length > 0 && (
-                <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
-                  <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Available Size Matrix:</span>
-                  <div className="flex gap-1">
-                    {viewProduct.sizes.map((sz, i) => (
-                      <span key={i} className="font-mono font-bold text-[10px] px-2 py-0.5 rounded bg-royal-dark text-gray-canvas border border-white/10">{sz}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="space-y-1.5">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Product Description:</span>
                 <p className="bg-royal-main/10 border border-white/5 p-3 rounded-xl text-gray-canvas/80 tracking-wide leading-relaxed font-normal">{viewProduct.description}</p>
@@ -496,8 +558,12 @@ const AddProducts = () => {
               <div className="flex justify-between items-center border-t border-white/10 pt-4">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Price Details:</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-lg font-black font-mono text-lime-accent">₹{viewProduct.offerPrice}</span>
-                  <span className="text-xs font-mono text-gray-canvas/40 line-through">₹{viewProduct.originalPrice}</span>
+                  <span className="text-lg font-black font-mono text-lime-accent">
+                    ₹{viewProduct.offer_price !== undefined ? viewProduct.offer_price : viewProduct.offerPrice}
+                  </span>
+                  <span className="text-xs font-mono text-gray-canvas/40 line-through">
+                    ₹{viewProduct.original_price !== undefined ? viewProduct.original_price : viewProduct.originalPrice}
+                  </span>
                 </div>
               </div>
             </div>
