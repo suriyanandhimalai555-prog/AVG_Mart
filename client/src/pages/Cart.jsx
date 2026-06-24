@@ -1,244 +1,227 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Trash2, Plus, Minus, ShoppingBag, ShieldCheck, ArrowRight, Cpu, Sparkles } from 'lucide-react'
+import { Trash2, Plus, Minus, ShoppingBag, ShieldCheck, ArrowRight, Sparkles, Calendar } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-
-// Mock initial data matching your productsData structure
-const INITIAL_CART = [
-  {
-    id: 1,
-    name: 'Matrix Phone Matte 24',
-    category: 'Core Devices',
-    price: 1249,
-    image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=600&auto=format&fit=crop',
-    quantity: 1,
-    specSelected: 'Quantum Tensor SoC'
-  },
-  {
-    id: 3,
-    name: 'Phantom Lens Gen-3 X',
-    category: 'Optics Pro',
-    price: 899,
-    image: 'https://images.unsplash.com/photo-1617005082133-548c4dd27f35?q=80&w=600&auto=format&fit=crop',
-    quantity: 2,
-    specSelected: 'f/0.95 Spectral Aperture'
-  }
-]
+import { toast } from 'react-hot-toast' // <-- Imported toast engine
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState(INITIAL_CART)
+  const [cartItems, setCartItems] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
+  const token = localStorage.getItem("token")
 
-  // Handler functions for cart adjustments
-  const updateQuantity = (id, amount) => {
-    setCartItems(prev =>
-      prev.map(item =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + amount) }
-          : item
-      )
-    )
-  }
+  useEffect(() => {
+    if (!token) {
+      toast.error("Your session has expired. Redirecting to login...", {
+        duration: 3000
+      });
+      setTimeout(() => navigate("/login"), 1500);
+      return;
+    }
 
-  const removeItem = (id) => {
-    setCartItems(prev => prev.filter(item => item.id !== id))
-  }
+    const fetchCartItemsFromDB = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/cart", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCartItems(data);
+        } else {
+          toast.error("Failed to load your shopping cart.");
+        }
+      } catch (err) {
+        console.error("Failed fetching live cart registry payload matrix:", err);
+        toast.error("Network error. Could not retrieve cart items.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Value Calculations
-  const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
-  const securityTax = subtotal > 0 ? 45 : 0 // Encrypted routing fee
-  const shipping = subtotal > 0 ? 0 : 0 // Free tier node delivery
-  const totalWeight = cartItems.reduce((acc, item) => acc + item.quantity, 0)
-  const estimatedTotal = subtotal + securityTax + shipping
+    fetchCartItemsFromDB();
+  }, [token, navigate]);
+
+  const updateQuantity = async (id, currentQty, adjustment) => {
+    const targetQty = currentQty + adjustment;
+    const toastId = toast.loading("Updating item quantity...");
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/auth/cart/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ quantity: targetQty })
+      });
+
+      if (res.ok) {
+        if (targetQty <= 0) {
+          setCartItems(prev => prev.filter(item => item.id !== id));
+          toast.success("Item removed from cart.", { id: toastId });
+        } else {
+          setCartItems(prev => prev.map(item => item.id === id ? { ...item, quantity: targetQty } : item));
+          toast.success("Cart updated successfully.", { id: toastId });
+        }
+      } else {
+        toast.error("Could not update item quantity.", { id: toastId });
+      }
+    } catch (err) {
+      console.error("Quantity sync manipulation anomaly:", err);
+      toast.error("Network problem. Cart update failed.", { id: toastId });
+    }
+  };
+
+  const removeItem = async (id) => {
+    const toastId = toast.loading("Removing item from cart...");
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/auth/cart/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setCartItems(prev => prev.filter(item => item.id !== id));
+        toast.success("Item successfully deleted.", { id: toastId });
+      } else {
+        toast.error("Could not remove the item.", { id: toastId });
+      }
+    } catch (err) {
+      console.error("Purging element route fault:", err);
+      toast.error("Network problem. Item removal failed.", { id: toastId });
+    }
+  };
+
+  // --- PAKKA 6-DAY ARITHMETIC TRACKING LAYER SYSTEM ---
+  const calculateDefaultEstimatedArrival = () => {
+    try {
+      const parsedDate = new Date();
+      parsedDate.setDate(parsedDate.getDate() + 6);
+      const targetDay = String(parsedDate.getDate()).padStart(2, '0');
+      const targetMonth = String(parsedDate.getMonth() + 1).padStart(2, '0');
+      const targetYear = parsedDate.getFullYear();
+      return `${targetDay}/${targetMonth}/${targetYear}`;
+    } catch (e) {
+      return 'Within 6 Days';
+    }
+  };
+
+  const subtotal = cartItems.reduce((acc, item) => acc + (Number(item.price) * item.quantity), 0);
 
   return (
     <>
       <Navbar />
-      <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden selection:bg-lime-accent selection:text-royal-dark">
-        
-        {/* Ambient Cyber Backgrounds */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:40px_40px]" />
-        <div className="absolute top-[-10%] left-1/4 w-[600px] h-[600px] bg-lime-accent/5 rounded-full blur-[160px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-0 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[140px] pointer-events-none" />
+      <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px]" />
 
-        <div className="max-w-7xl mx-auto relative z-10">
-          
-          {/* Header Track */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-white/5 pb-8">
-            <div className="text-left space-y-2">
-              <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] uppercase bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-lime-accent">
-                <Sparkles className="w-3 h-3 text-lime-accent" /> Security Protocol Loadout
-              </div>
-              <h1 className="text-3xl md:text-5xl font-black uppercase tracking-wider">
-                System <span className="text-lime-accent font-light">Cart</span> Manifest
-              </h1>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-lime-accent/5 rounded-full blur-[180px] pointer-events-none" />
+
+        
+        <div className="max-w-7xl mx-auto relative z-10 mt-6">
+          <div className="flex flex-col items-start space-y-2 mb-12 border-b border-white/5 pb-6">
+            <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] uppercase bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-lime-accent">
+              <Sparkles className="w-3 h-3 text-lime-accent" /> Secure Allocation Ledger
             </div>
-            <div className="text-left md:text-right">
-              <span className="text-xs text-white/40 tracking-wider uppercase font-bold">Active Allocation Matrix</span>
-              <p className="text-sm font-black text-white mt-1">
-                [{totalWeight}] Hardware {totalWeight === 1 ? 'Unit' : 'Units'} Registered
-              </p>
-            </div>
+            <h1 className="text-3xl md:text-5xl font-black uppercase tracking-wider">
+              Configuration <span className="text-lime-accent font-light">Cart</span> Loadout
+            </h1>
           </div>
 
-          {cartItems.length === 0 ? (
-            /* EMPTY STATE TERMINAL BOX */
-            <div className="border border-dashed border-white/10 bg-white/[0.02] rounded-2xl p-16 text-center max-w-2xl mx-auto space-y-6 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-              <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-white/30">
+          {isLoading ? (
+            <div className="text-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse py-20">
+              Querying localized db payload structures...
+            </div>
+          ) : cartItems.length === 0 ? (
+            <div className="border border-dashed border-white/10 bg-white/[0.01] rounded-2xl p-20 text-center space-y-6 max-w-2xl mx-auto">
+              <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-white/20">
                 <ShoppingBag className="w-6 h-6" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-lg font-black uppercase tracking-widest text-white">No Assets Provisioned</h3>
-                <p className="text-xs text-white/50 max-w-xs mx-auto leading-relaxed">
-                  Your tracking ledger is currently unallocated. Access the catalog terminal to add premium nodes.
+              <div className="space-y-1">
+                <h3 className="text-sm font-black uppercase tracking-widest text-white">Cart Ledger Empty</h3>
+                <p className="text-xs text-white/40 max-w-xs mx-auto leading-relaxed">
+                  No active resource components provisioned inside this session profile yet.
                 </p>
               </div>
-              <button
-                onClick={() => navigate('/')}
-                className="inline-flex items-center gap-2 bg-lime-accent hover:bg-lime-400 text-royal-dark px-6 py-3 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_10px_25px_rgba(165,206,0,0.2)]"
-              >
-                Open Terminal Catalog
-              </button>
+              <Link to="/products" className="inline-flex bg-lime-accent text-royal-dark text-xs font-black uppercase tracking-wider px-6 py-3 rounded-xl transition-transform hover:scale-105">
+                Browse Asset Drops
+              </Link>
             </div>
           ) : (
-            /* ACTIVE GRID LAYOUT */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
               
-              {/* CART ITEMS MATRIX ARRAY */}
               <div className="lg:col-span-8 space-y-4">
                 {cartItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group bg-gradient-to-r from-white/[0.04] to-transparent border border-white/5 hover:border-white/10 p-4 md:p-6 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all duration-300 hover:bg-white/[0.06]"
-                  >
-                    {/* Left Meta: Visual + Name Descriptor */}
-                    <div className="flex items-center gap-5 text-left flex-1">
-                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden border border-white/10 bg-black/40 flex-shrink-0 relative">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover filter contrast-110 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-royal-dark/30 to-transparent" />
+                  <div key={item.id} className="flex flex-col sm:flex-items sm:flex-row items-center justify-between gap-6 p-4 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md hover:border-white/10 transition-colors text-left">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                      <div className="w-20 h-24 rounded-xl overflow-hidden bg-black/40 border border-white/5 flex-shrink-0">
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                       </div>
-                      <div className="space-y-1 min-w-0">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-lime-accent bg-lime-accent/10 px-2 py-0.5 rounded border border-lime-accent/10">
-                          {item.category}
-                        </span>
-                        <h3 className="text-base md:text-xl font-black uppercase tracking-wide text-white truncate group-hover:text-lime-accent transition-colors pt-1">
-                          {item.name}
-                        </h3>
-                        <p className="text-[11px] text-white/40 font-medium truncate flex items-center gap-1.5">
-                          <Cpu className="w-3 h-3 text-white/30" /> Spec: {item.specSelected}
-                        </p>
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-lime-accent">{item.category}</span>
+                        <h3 className="text-base font-black uppercase tracking-wide text-white line-clamp-1">{item.name}</h3>
+                        <p className="text-xs font-mono text-white/60">₹{Number(item.price).toLocaleString('en-IN')}</p>
                       </div>
                     </div>
 
-                    {/* Right Meta: Controls + Value Calculation */}
-                    <div className="flex items-center justify-between sm:justify-end gap-8 border-t sm:border-t-0 border-white/5 pt-4 sm:pt-0">
-                      {/* Quantity Toggles Counter */}
-                      <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-1 shadow-inner">
-                        <button
-                          onClick={() => updateQuantity(item.id, -1)}
-                          className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-8 border-t sm:border-t-0 border-white/5 pt-4 sm:pt-0">
+                      <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-1">
+                        <button onClick={() => updateQuantity(item.id, item.quantity, -1)} className="p-2 hover:text-lime-accent transition-colors">
+                          <Minus className="w-3 h-3" />
                         </button>
-                        <span className="w-8 text-center text-xs font-black tracking-wide text-white">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(item.id, 1)}
-                          className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
+                        <span className="text-xs font-mono font-bold px-3 text-white">{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.id, item.quantity, 1)} className="p-2 hover:text-lime-accent transition-colors">
+                          <Plus className="w-3 h-3" />
                         </button>
                       </div>
 
-                      {/* Line Item Multiplied Evaluation */}
-                      <div className="text-right min-w-[80px]">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-white/30 block">Acquisition</span>
-                        <span className="text-base md:text-lg font-black text-white tracking-wide">
-                          ${(item.price * item.quantity).toLocaleString()}
-                        </span>
+                      <div className="text-right">
+                        <p className="text-sm font-mono font-black text-white">₹{(Number(item.price) * item.quantity).toLocaleString('en-IN')}</p>
                       </div>
 
-                      {/* Drop Node Control */}
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="p-3 rounded-xl bg-white/5 border border-white/5 text-white/40 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all group/bin"
-                      >
-                        <Trash2 className="w-4 h-4 group-hover/bin:scale-110 transition-transform" />
+                      <button onClick={() => removeItem(item.id)} className="p-2.5 bg-white/5 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 text-white/40 hover:text-red-400 rounded-xl transition-all">
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-
                   </div>
                 ))}
               </div>
 
-              {/* SUMMARY LEDGER ACCOUNTING BLOCK (Premium Glass Box) */}
-              <div className="lg:col-span-4">
-                <div className="bg-gradient-to-b from-white/[0.06] to-white/[0.01] border border-white/10 p-6 md:p-8 rounded-2xl text-left space-y-6 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-xl pointer-events-none" />
+              <div className="lg:col-span-4 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-6">
+                <h3 className="text-xs font-black uppercase tracking-widest border-b border-white/5 pb-3">Order Summary</h3>
+                
+                <div className="space-y-3 font-medium text-xs text-white/60 border-b border-white/5 pb-4">
+                  <div className="flex justify-between"><span>Total Amount</span><span className="font-mono text-white">₹{subtotal.toLocaleString('en-IN')}</span></div>
+                  <div className="flex justify-between"><span>Ecosystem Transport (Delivery)</span><span className="text-lime-accent uppercase text-[10px] font-black">Free Secure Node</span></div>
                   
-                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/5 pb-4">
-                    Manifest Pricing Ledger
-                  </h3>
-
-                  {/* Math Breakdown Row Elements */}
-                  <div className="space-y-3.5 text-xs">
-                    <div className="flex justify-between text-white/60">
-                      <span className="font-medium tracking-wide">Subtotal Net Allocation</span>
-                      <span className="font-black text-white">${subtotal.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-white/60">
-                      <span className="font-medium tracking-wide">Secure Data-Link Routing</span>
-                      <span className="font-black text-white">${securityTax}</span>
-                    </div>
-                    <div className="flex justify-between text-white/60">
-                      <span className="font-medium tracking-wide">Node Freight Despatch</span>
-                      <span className="font-black text-lime-accent uppercase tracking-wider text-[10px]">
-                        {shipping === 0 ? 'Complimentary' : `$${shipping}`}
-                      </span>
-                    </div>
-                    
-                    <hr className="border-white/5 my-2" />
-                    
-                    <div className="flex justify-between items-baseline pt-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/40">Total Valuation</span>
-                      <span className="text-3xl font-black text-white tracking-tight">
-                        ${estimatedTotal.toLocaleString()}
-                      </span>
-                    </div>
+                </div>
+                <div className="flex justify-between items-center border-white/5 text-[11px]">
+                    <span className="flex items-center gap-1 text-white/40"><Calendar className="w-3.5 h-3.5 text-lime-accent/70" /> Estimated Arrival:</span>
+                    <span className="font-mono font-bold text-lime-accent">{calculateDefaultEstimatedArrival()}</span>
                   </div>
 
-                  {/* Operational Checkout Trigger Buttons */}
-                  <div className="space-y-3 pt-2">
-                    <button
-                      onClick={() => alert('Order pipeline secure. Processing protocol configuration.')}
-                      className="w-full inline-flex items-center justify-center gap-2.5 bg-lime-accent hover:bg-lime-400 text-royal-dark px-6 py-4 font-black uppercase tracking-[0.15em] text-[11px] rounded-xl shadow-[0_10px_30px_rgba(165,206,0,0.25)] transition-all transform active:scale-[0.98] group"
-                    >
-                      Proceed to Secure Node Checkout
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                    
-                    <Link
-                      to="/"
-                      className="w-full inline-flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white px-6 py-3.5 font-bold uppercase tracking-wider text-[10px] rounded-xl transition-all text-center"
-                    >
-                      Aggregate More Assets
-                    </Link>
-                  </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs font-black uppercase tracking-wider">Total Charge Matrix</span>
+                  <span className="text-2xl font-mono font-black text-lime-accent">₹{subtotal.toLocaleString('en-IN')}</span>
+                </div>
 
-                  {/* Data Verification Badge */}
-                  <div className="flex items-center gap-2.5 text-[10px] text-white/40 pt-4 border-t border-white/5 font-medium tracking-wide">
-                    <ShieldCheck className="w-4 h-4 text-lime-accent drop-shadow-[0_0_4px_rgba(165,206,0,0.3)] flex-shrink-0" />
-                    End-to-End Encrypted Settlement Layer Active.
-                  </div>
-
+                <button 
+                  onClick={() => navigate('/checkout', { state: { subtotal } })}
+                  className="w-full inline-flex items-center justify-center gap-2.5 bg-lime-accent hover:bg-lime-400 text-royal-dark px-6 py-4 font-black uppercase tracking-[0.15em] text-[11px] rounded-xl shadow-lg transition-transform transform active:scale-95 group"
+                >
+                  Proceed to Secure Checkout
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+                
+                <div className="flex items-center gap-2.5 text-[10px] text-white/40 pt-2 font-medium tracking-wide">
+                  <ShieldCheck className="w-4 h-4 text-lime-accent" /> End-to-End Encrypted Settlement Active.
                 </div>
               </div>
 
             </div>
           )}
-
         </div>
       </div>
       <Footer />

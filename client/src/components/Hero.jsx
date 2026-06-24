@@ -245,14 +245,14 @@ const Hero = () => {
 
           {/* Call to Action Interactive Box Button */}
           <div className="pt-4 pointer-events-auto">
-            <button 
-              onClick={handleScrollDown}
+            <a href='/allproducts'
+              // onClick={handleScrollDown}
               className="group inline-flex items-center gap-3 bg-lime-accent text-royal-dark px-10 py-4 font-black tracking-widest uppercase rounded-xl text-xs hover:bg-white hover:scale-[1.04] active:scale-[0.97] transition-all duration-300 shadow-[0_10px_35px_rgba(165,206,0,0.45)]"
             >
               <ShoppingBag className="w-4 h-4" />
               Explore All Products
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-            </button>
+            </a>
           </div>
         </div>
       </div>

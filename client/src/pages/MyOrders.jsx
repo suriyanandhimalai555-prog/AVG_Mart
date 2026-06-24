@@ -1,118 +1,152 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ClipboardList, ArrowUpRight, ShieldCheck, Calendar, Package } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
-// Localized mock dataset matching your schema
-const MOCK_ORDERS = [
-  {
-    id: "AVG-9821-X6",
-    date: "June 18, 2026",
-    totalPrice: 410,
-    status: "Preparing for Dispatch",
-    items: [
-      { name: "Alpha Matrix Over-Tee", price: 85, qty: 1, image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=200&auto=format&fit=crop" },
-      { name: "Apex Stealth Boot V4", price: 310, qty: 1, image: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?q=80&w=200&auto=format&fit=crop" }
-    ]
-  },
-  {
-    id: "AVG-4412-M2",
-    date: "May 12, 2026",
-    totalPrice: 1150,
-    status: "Order Delivered",
-    items: [
-      { name: "Chrono Chronograph V2", price: 1150, qty: 1, image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=200&auto=format&fit=crop" }
-    ]
-  }
-]
-
 const MyOrders = () => {
+  const [orders, setOrders] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
+  const token = localStorage.getItem("token")
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/login')
+      return
+    }
+
+    const fetchLiveUserOrders = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/orders", {
+          headers: { "Authorization": `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setOrders(data)
+        }
+      } catch (err) {
+        console.error("Failed to fetch customer orders:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchLiveUserOrders()
+  }, [token, navigate])
+
+  // Native clean date helper function
+  const formatDate = (rawDate) => {
+    if (!rawDate) return "Recent"
+    const parsedDate = new Date(rawDate)
+    if (isNaN(parsedDate.getTime())) return rawDate
+    return parsedDate.toLocaleDateString('en-IN', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    })
+  }
 
   return (
     <>
       <Navbar />
-      <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden select-none">
-        {/* Futuristic Grid Canvas */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px]" />
-        
-        <div className="max-w-4xl mx-auto relative z-10 mt-6 space-y-10">
+      <div className="bg-royal-dark text-white min-h-screen py-24 px-4 sm:px-6 md:px-12 relative">
+        <div className="max-w-4xl mx-auto mt-6">
           
-          {/* Header */}
-          <div className="space-y-4 text-left border-b border-white/5 pb-8">
-            <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] uppercase bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-lime-accent">
-              <ClipboardList className="w-3 h-3" /> Ledger & Manifests
+          {/* Header Section */}
+          <div className="flex flex-col items-start space-y-1 mb-8 border-b border-white/5 pb-6">
+            <div className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase bg-white/5 border border-white/10 px-3 py-1 rounded-full text-lime-accent">
+              <ClipboardList className="w-3 h-3" /> Account
             </div>
-            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-wider">
+            <h1 className="text-2xl md:text-4xl font-black uppercase tracking-wide mt-2">
               My <span className="text-lime-accent font-light">Orders</span>
             </h1>
           </div>
 
-          {/* Orders Map Pipeline */}
-          <div className="space-y-6">
-            {MOCK_ORDERS.map((order) => (
-              <div
-                key={order.id}
-                onClick={() => navigate(`/orders/track/${order.id}`)}
-                className="group bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-white/10 rounded-2xl p-6 transition-all duration-500 cursor-pointer shadow-[0_20px_40px_rgba(0,0,0,0.4)] relative text-left"
-              >
-                {/* Upper Ledger Meta details */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
-                  <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
-                    <div>
-                      <span className="text-white/30 uppercase block text-[9px] font-black tracking-widest">Order ID</span>
-                      <span className="text-white font-black">{order.id}</span>
-                    </div>
-                    <div className="hidden sm:block w-px h-6 bg-white/10" />
-                    <div>
-                      <span className="text-white/30 uppercase block text-[9px] font-black tracking-widest">Timestamp</span>
-                      <span className="text-white/70 flex items-center gap-1"><Calendar className="w-3 h-3 text-lime-accent" /> {order.date}</span>
-                    </div>
-                  </div>
+          {isLoading ? (
+            <div className="text-center text-sm tracking-wider text-lime-accent uppercase animate-pulse py-20 font-mono">
+              Loading your orders...
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="border border-white/5 bg-white/[0.01] rounded-2xl p-16 text-center space-y-4 max-w-md mx-auto shadow-xl">
+              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto text-white/40">
+                <Package className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold uppercase tracking-wide text-white">No Orders Found</h3>
+                <p className="text-xs text-white/40 leading-relaxed">
+                  You haven't placed any orders yet. Once you make a purchase, it will appear right here.
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Orders Card Grid List Matrix */
+            <div className="space-y-4">
+              {orders.map((order) => (
+                <div key={order.id} className="group border border-white/5 bg-white/[0.01] rounded-xl p-5 hover:border-white/10 transition-all duration-200">
                   
-                  {/* Status Indicator Pill */}
-                  <div>
-                    <span className={`inline-block text-[10px] font-black tracking-wider uppercase px-3 py-1 rounded-md border ${
-                      order.status === 'Order Delivered' 
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                        : 'bg-lime-accent/10 border-lime-accent/20 text-lime-accent'
-                    }`}>
-                      {order.status}
-                    </span>
+                  {/* Card Header Info block */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3.5 mb-4 text-left">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-white/40">Order Identification</span>
+                      <h3 className="text-xs sm:text-sm font-bold font-mono text-lime-accent uppercase tracking-wide">{order.id}</h3>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-3 items-center">
+                      <div className="flex items-center gap-1.5 text-xs text-white/50">
+                        <Calendar className="w-3.5 h-3.5 opacity-60" />
+                        <span>{formatDate(order.created_at || order.date)}</span>
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-md border ${
+                        order.status === 'Delivered' || order.status === 'Order Delivered'
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                          : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Main Content Area: Products in Order */}
-                <div className="space-y-4">
-                  {order.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-black/40 border border-white/5 rounded-xl overflow-hidden flex-shrink-0">
-                          <img src={item.image} alt={item.name} className="w-full h-full object-cover filter grayscale contrast-125" />
+                  {/* Items list matrix ordered */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {(order.items || []).map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-3 bg-black/20 border border-white/5 p-2.5 rounded-lg">
+                        <div className="w-10 h-12 bg-black/40 border border-white/10 rounded overflow-hidden flex-shrink-0">
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                         </div>
-                        <div className="text-left">
-                          <h4 className="text-sm font-black uppercase text-white line-clamp-1">{item.name}</h4>
-                          <span className="text-[10px] font-mono text-white/40">QTY: {item.qty} × ${item.price}</span>
+                        <div className="text-left space-y-0.5">
+                          <h4 className="text-xs font-bold uppercase text-white line-clamp-1">{item.name}</h4>
+                          <span className="text-[10px] font-mono text-white/40">QTY: {item.qty} × ₹{Number(item.price).toLocaleString('en-IN')}</span>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                {/* Bottom Total Summary & Action Trigger */}
-                <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-4">
-                  <div className="flex flex-col">
-                    <span className="text-[8px] text-white/30 uppercase tracking-widest">Total Amount</span>
-                    <span className="text-xl font-black font-mono text-white">${order.totalPrice}</span>
+                  {/* Card Actions Footer block */}
+                  <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-4">
+                    <div className="flex flex-col text-left">
+                      <span className="text-[9px] text-white/40 uppercase tracking-wider">Total amount paid</span>
+                      <span className="text-base font-black font-mono text-white">₹{Number(order.totalPrice || order.total_price).toLocaleString('en-IN')}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <div className="hidden sm:inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-white/30">
+                        <ShieldCheck className="w-3.5 h-3.5 text-white/30" /> Verified Order
+                      </div>
+                      <button 
+                        onClick={() => navigate(`/orders/track/${order.id}`)}
+                        className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 rounded-lg transition-all text-lime-accent hover:text-white cursor-pointer"
+                      >
+                        Track Shipment 
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-widest uppercase text-lime-accent group-hover:text-white transition-colors">
-                    Track Order <ArrowUpRight className="w-4 h-4 bg-white/5 rounded p-0.5 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                  </div>
+
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
         </div>
       </div>

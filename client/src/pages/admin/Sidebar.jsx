@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, PlusCircle, ShoppingBag, LogOut, ShieldAlert, Menu, X } from 'lucide-react'
+import { toast } from 'react-hot-toast' // <-- Imported toast engine
 import Logo from "../../assets/logo.png"
 
 const Sidebar = () => {
@@ -13,13 +14,19 @@ const Sidebar = () => {
     { name: 'Customer Orders', path: '/admin/orders', icon: <ShoppingBag className="w-5 h-5" /> },
   ]
 
-  // Handle system logout parameters instantly without alert checks
+  // Handle system logout parameters instantly with toast feedback
   const handleLogout = () => {
-    // 1. Clear stored auth tokens securely
+    // 1. Initialize a quick status feedback toast
+    const logoutToastId = toast.loading("Terminating admin session...")
+
+    // 2. Clear stored auth tokens securely
     localStorage.removeItem('token') 
     
-    // 2. Direct routing fallback bounce to standard storefront layout
-    navigate('/')
+    // 3. Resolve success state and route back to standard storefront layout
+    setTimeout(() => {
+      toast.success("Logged out successfully.", { id: logoutToastId })
+      navigate('/')
+    }, 600)
   }
 
   return (

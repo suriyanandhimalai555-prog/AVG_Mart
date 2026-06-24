@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import Logo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
+import { toast } from 'react-hot-toast';
 
 const Login = () => {
   const cardRef = useRef(null);
@@ -82,6 +83,8 @@ const Login = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("userRole", data.user.role);
       localStorage.setItem("userName", data.user.name);
+
+      toast.success(`Welcome back, ${data.user.name || 'Operator'}!`);
 
       // 2. Perform conditional navigation based on role check
       if (data.user.role === "admin") {

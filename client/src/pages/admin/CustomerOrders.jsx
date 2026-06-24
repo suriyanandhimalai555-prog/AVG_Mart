@@ -1,54 +1,43 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Calendar, CheckCircle2, Clock, Truck, User, Mail, Phone, MapPin, Package, X, ArrowRight } from 'lucide-react'
+import { toast } from 'react-hot-toast' // <-- Imported toast framework engine
 
 const CustomerOrders = () => {
-  // Sample orders list with customer information and tracking dates
-  const [orders, setOrders] = useState([
-    {
-      id: "ORD-9831",
-      customer: "Rohan Sharma",
-      email: "rohan.sharma@email.com",
-      phone: "+91 98765 43210",
-      address: "Flat 402, Sunset Heights, HSR Layout, Bengaluru, Karnataka - 560102",
-      date: "2026-06-22",
-      items: "2x Black T-Shirt",
-      total: "₹1,499",
-      status: "Preparing",
-      timeline: {
-        preparingDate: "22/06/2026, 16:11:29",
-        dispatchedDate: null,
-        deliveredDate: null,
-        expectedDelivery: "27/06/2026"
-      }
-    },
-    {
-      id: "ORD-9830",
-      customer: "Priya Patel",
-      email: "priya.patel@email.com",
-      phone: "+91 91234 56789",
-      address: "House No. 12, Sector 15, Vasundhara, Ghaziabad, Uttar Pradesh - 201012",
-      date: "2026-06-22",
-      items: "1x Smart Sport Watch",
-      total: "₹4,299",
-      status: "Dispatched",
-      timeline: {
-        preparingDate: "21/06/2026, 09:30:15",
-        dispatchedDate: "22/06/2026, 14:20:00",
-        deliveredDate: null,
-        expectedDelivery: "25/06/2026"
-      }
-    }
-  ])
-
-  // State to check which order is open in the popup tracker
+  const [orders, setOrders] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
   
-  // State for the calendar input field
+  const [chosenStatus, setChosenStatus] = useState('')
   const [inputDate, setInputDate] = useState('')
+  const token = localStorage.getItem("token")
 
-  // Returns the style color for status tags
+  const fetchAllOrders = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/admin/orders", {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setOrders(data)
+      } else {
+        toast.error("Failed to synchronize customer orders ledger.")
+      }
+    } catch (err) {
+      console.error("Failed contacting admin backend pipeline:", err)
+      toast.error("Network error. Could not query administrative records.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchAllOrders()
+  }, [])
+
   const getStatusBadgeStyle = (status) => {
     switch (status) {
+      case 'Preparing for Dispatch':
       case 'Preparing': return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
       case 'Dispatched': return 'bg-blue-400/10 text-blue-400 border-blue-400/20'
       case 'Delivered': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -56,57 +45,97 @@ const CustomerOrders = () => {
     }
   }
 
-  // Changes date from YYYY-MM-DD format to DD/MM/YYYY format
   const formatInputDate = (dateStr) => {
     if (!dateStr) return ''
     const [year, month, day] = dateStr.split('-')
     return `${day}/${month}/${year}`
   }
 
-  // Moves the tracking status to the next step
-  const handleStatusUpdate = (e) => {
-    e.preventDefault()
-    if (!selectedOrder) return
-
-    const currentTimestamp = new Date().toLocaleString('en-GB') 
-    let nextStatus = selectedOrder.status
-    let updatedTimeline = { ...selectedOrder.timeline }
-
-    if (selectedOrder.status === 'Preparing') {
-      nextStatus = 'Dispatched'
-      updatedTimeline.dispatchedDate = currentTimestamp
-      if (inputDate) {
-        updatedTimeline.expectedDelivery = formatInputDate(inputDate)
-      }
-    } else if (selectedOrder.status === 'Dispatched') {
-      nextStatus = 'Delivered'
-      updatedTimeline.deliveredDate = currentTimestamp
-    }
-
-    // Save changes back to the list
-    const updatedOrders = orders.map((ord) => {
-      if (ord.id === selectedOrder.id) {
-        const revised = { ...ord, status: nextStatus, timeline: updatedTimeline }
-        setSelectedOrder(revised) 
-        return revised
-      }
-      return ord
-    })
-
-    setOrders(updatedOrders)
+  const handleOpenTrackingPanel = (order) => {
+    setSelectedOrder(order)
+    setChosenStatus(order.status)
     setInputDate('')
   }
 
+  const handleStatusUpdate = async (e) => {
+    e.preventDefault()
+    if (!selectedOrder) return
+
+    // Initialize async action notification layer
+    const transitionToastId = toast.loading("Updating logistics timeline matrix...")
+
+    const currentTimestamp = new Date().toLocaleString('en-GB') 
+    let payload = { status: chosenStatus }
+
+    if (chosenStatus === 'Dispatched') {
+      payload.dispatchedDate = currentTimestamp
+      if (inputDate) {
+        payload.expectedDelivery = formatInputDate(inputDate)
+      }
+    } else if (chosenStatus === 'Delivered') {
+      payload.deliveredDate = inputDate ? formatInputDate(inputDate) : currentTimestamp
+    } else if (chosenStatus === 'Preparing for Dispatch' || chosenStatus === 'Preparing') {
+      payload.preparingDate = selectedOrder.timeline?.preparingDate || currentTimestamp
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/auth/admin/orders/${selectedOrder.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (response.ok) {
+        const updatedOrders = orders.map((ord) => {
+          if (ord.id === selectedOrder.id) {
+            const revised = { 
+              ...ord, 
+              status: chosenStatus, 
+              timeline: { 
+                ...ord.timeline, 
+                preparingDate: payload.preparingDate || ord.timeline?.preparingDate,
+                dispatchedDate: payload.dispatchedDate || ord.timeline?.dispatchedDate,
+                deliveredDate: payload.deliveredDate || ord.timeline?.deliveredDate,
+                expectedDelivery: payload.expectedDelivery || ord.timeline?.expectedDelivery
+              } 
+            }
+            setSelectedOrder(revised) 
+            return revised
+          }
+          return ord
+        })
+        setOrders(updatedOrders)
+        
+        // Success state resolution
+        toast.success(`Order ${selectedOrder.id} updated to: ${chosenStatus}`, { id: transitionToastId })
+        setSelectedOrder(null)
+      } else {
+        toast.error("Failed to commit operational status changes to backend engine.", { id: transitionToastId })
+      }
+    } catch (err) {
+      console.error("Network communication error:", err)
+      toast.error("Network processing fault caught during status update execution pipeline.", { id: transitionToastId })
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="text-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse py-40 bg-royal-dark min-h-screen flex items-center justify-center">
+        Loading Admin Order Registries...
+      </div>
+    )
+  }
+
   return (
-    <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark/20 min-h-screen text-white">
-      
-      {/* HEADER SECTION */}
+    <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark min-h-screen text-white">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wider">Customer Orders</h2>
-        <p className="text-xs text-gray-400 mt-1">View incoming orders, look up customer addresses, and track delivery progress.</p>
+        <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wider text-left">Customer Orders Dashboard</h2>
+        <p className="text-xs text-gray-400 mt-1 text-left">Modify and set custom delivery dates here.</p>
       </div>
 
-      {/* ORDERS TABLE CONTAINER */}
       <div className="bg-royal-main/20 border border-white/5 rounded-2xl p-4 sm:p-6 shadow-2xl">
         <div className="overflow-x-auto rounded-xl border border-white/5 bg-royal-dark/40">
           <table className="w-full text-left border-collapse min-w-[1000px]">
@@ -124,63 +153,29 @@ const CustomerOrders = () => {
             <tbody className="divide-y divide-white/5 text-xs text-gray-200">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-royal-main/30 transition-colors">
-                  
-                  {/* Order ID */}
-                  <td className="p-4 font-mono text-lime-accent font-bold whitespace-nowrap">
-                    {order.id}
+                  <td className="p-4 font-mono text-lime-accent font-bold whitespace-nowrap text-left">{order.id}</td>
+                  <td className="p-4 space-y-1 text-left">
+                    <div className="font-bold text-white flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-gray-400" /> {order.customer}</div>
+                    <div className="text-[11px] text-gray-400 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-500" /> {order.email}</div>
+                    <div className="text-[11px] text-gray-400 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-500" /> {order.phone}</div>
                   </td>
-                  
-                  {/* Customer Info */}
-                  <td className="p-4 space-y-1">
-                    <div className="font-bold text-white flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-gray-400" /> {order.customer}
-                    </div>
-                    <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-gray-500" /> {order.email}
-                    </div>
-                    <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-gray-500" /> {order.phone}
-                    </div>
+                  <td className="p-4 text-sm font-medium text-gray-300 whitespace-normal leading-relaxed text-left">
+                    <div className="flex items-start gap-2 max-w-md"><MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" /><span>{order.address}</span></div>
                   </td>
-                  
-                  {/* Shipping Address (Shown Big and Full) */}
-                  <td className="p-4 text-sm font-medium text-gray-300 whitespace-normal leading-relaxed">
-                    <div className="flex items-start gap-2 max-w-md">
-                      <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span>{order.address}</span>
-                    </div>
+                  <td className="p-4 text-gray-300 font-semibold text-left">
+                    <div className="flex items-center gap-1.5"><Package className="w-3.5 h-3.5 text-gray-400" /> {order.items}</div>
                   </td>
-                  
-                  {/* Items Ordered */}
-                  <td className="p-4 text-gray-300 font-semibold">
-                    <div className="flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5 text-gray-400" /> {order.items}
-                    </div>
-                  </td>
-                  
-                  {/* Total Price */}
-                  <td className="p-4 font-bold text-white whitespace-nowrap">
-                    {order.total}
-                  </td>
-                  
-                  {/* Status Badge */}
+                  <td className="p-4 font-bold text-white whitespace-nowrap text-left">{order.total || `₹${order.totalPrice}`}</td>
                   <td className="p-4 text-center whitespace-nowrap">
                     <span className={`inline-block text-[10px] font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${getStatusBadgeStyle(order.status)}`}>
                       {order.status}
                     </span>
                   </td>
-
-                  {/* Tracking Button */}
                   <td className="p-4 text-center whitespace-nowrap">
-                    <button
-                      onClick={() => setSelectedOrder(order)}
-                      className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 hover:bg-emerald-500 hover:text-white transition-all cursor-pointer"
-                    >
-                      <span>Track</span>
-                      <ArrowRight className="w-3 h-3" />
+                    <button onClick={() => handleOpenTrackingPanel(order)} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 hover:bg-emerald-500 hover:text-white transition-all cursor-pointer">
+                      <span>Change Status</span><ArrowRight className="w-3 h-3" />
                     </button>
                   </td>
-
                 </tr>
               ))}
             </tbody>
@@ -188,130 +183,82 @@ const CustomerOrders = () => {
         </div>
       </div>
 
-      {/* --- ORDER LOGISTICS POPUP PANEL --- */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-royal-dark border border-white/10 w-full max-w-xl rounded-3xl p-6 shadow-2xl relative space-y-6">
-            
-            {/* Popup Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 font-mono">Order Tracking Panel</span>
-                <h3 className="text-base font-bold uppercase tracking-wider text-white">Log Details for {selectedOrder.id}</h3>
+              <div className="text-left">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 font-mono">Order Modification System</span>
+                <h3 className="text-base font-bold uppercase tracking-wider text-white">Update Status for {selectedOrder.id}</h3>
               </div>
-              <button 
-                onClick={() => { setSelectedOrder(null); setInputDate(''); }}
-                className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <button onClick={() => { setSelectedOrder(null); }} className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"><X className="w-4 h-4" /></button>
             </div>
 
-            {/* Customer Box Details inside the Popup */}
-            <div className="bg-royal-main/20 border border-white/5 rounded-2xl p-4 text-xs space-y-2">
-              <p className="font-bold uppercase tracking-wider text-[10px] text-gray-400">Shipping Details</p>
-              <p className="text-white font-bold text-sm">{selectedOrder.customer}</p>
-              <p className="text-gray-300 text-sm font-medium leading-relaxed mt-1 bg-black/20 p-2.5 rounded-xl border border-white/5">
-                {selectedOrder.address}
-              </p>
-            </div>
+            <form onSubmit={handleStatusUpdate} className="space-y-6 text-left">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">Set Log Status Matrix</label>
+                <select 
+                  value={chosenStatus} 
+                  onChange={(e) => setChosenStatus(e.target.value)}
+                  className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 cursor-pointer"
+                >
+                  <option value="Preparing for Dispatch" className="bg-royal-dark text-white">Preparing for Dispatch</option>
+                  <option value="Dispatched" className="bg-royal-dark text-white">Dispatched (In-Transit)</option>
+                  <option value="Delivered" className="bg-royal-dark text-white">Delivered (Completed)</option>
+                </select>
+              </div>
 
-            {/* --- VERTICAL TRACKING TIMELINE BAR --- */}
-            <div className="p-4 bg-royal-main/10 border border-white/5 rounded-2xl space-y-6">
-              
-              {/* Step 1: Preparing for Dispatch */}
-              <div className="flex gap-4 items-start relative">
-                <div className="absolute left-5 top-10 bottom-[-24px] w-0.5 bg-white/10" />
-                
-                <div className={`p-3 rounded-full z-10 ${
-                  selectedOrder.status === 'Preparing' || selectedOrder.status === 'Dispatched' || selectedOrder.status === 'Delivered'
-                    ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                    : 'bg-white/10 text-gray-500'
-                }`}>
-                  <Clock className="w-5 h-5" />
+              {chosenStatus === 'Dispatched' && (
+                <div className="space-y-1.5 animate-fadeIn">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">Select Expected Arrival Date</label>
+                  <input 
+                    type="date" 
+                    required 
+                    value={inputDate} 
+                    onChange={(e) => setInputDate(e.target.value)} 
+                    className="w-full max-w-xs bg-royal-main/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-400" 
+                  />
                 </div>
-                <div className="space-y-0.5 pt-1">
-                  <h4 className={`text-sm font-bold ${selectedOrder.status === 'Preparing' ? 'text-emerald-400' : 'text-white'}`}>Preparing for Dispatch</h4>
-                  <p className="text-xs text-gray-400 font-medium">{selectedOrder.timeline.preparingDate || 'Pending'}</p>
+              )}
+
+              {chosenStatus === 'Delivered' && (
+                <div className="space-y-1.5 animate-fadeIn">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">Select Final Order Delivery Date</label>
+                  <input 
+                    type="date" 
+                    required 
+                    value={inputDate} 
+                    onChange={(e) => setInputDate(e.target.value)} 
+                    className="w-full max-w-xs bg-royal-main/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-400" 
+                  />
+                </div>
+              )}
+
+              <div className="p-4 bg-royal-main/10 border border-white/5 rounded-2xl space-y-4">
+                <p className="font-bold uppercase tracking-wider text-[10px] text-gray-400">Current Saved Tracking Log Dates</p>
+                <div className="flex gap-4 items-center text-xs text-gray-300">
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  <span>Preparing: <strong>{selectedOrder.timeline?.preparingDate || 'Not Tracked'}</strong></span>
+                </div>
+                <div className="flex gap-4 items-center text-xs text-gray-300">
+                  <Truck className="w-4 h-4 text-blue-400" />
+                  <span>Dispatched: <strong>{selectedOrder.timeline?.dispatchedDate || 'Not Tracked'}</strong></span>
+                </div>
+                <div className="flex gap-4 items-center text-xs text-gray-300">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Delivered: <strong>{selectedOrder.timeline?.deliveredDate || 'Not Tracked'}</strong></span>
                 </div>
               </div>
 
-              {/* Step 2: Order Dispatched */}
-              <div className="flex gap-4 items-start relative">
-                <div className="absolute left-5 top-10 bottom-[-24px] w-0.5 bg-white/10" />
-                
-                <div className={`p-3 rounded-full z-10 ${
-                  selectedOrder.status === 'Dispatched' || selectedOrder.status === 'Delivered'
-                    ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                    : 'bg-white/10 text-gray-500'
-                }`}>
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div className="space-y-0.5 pt-1">
-                  <h4 className={`text-sm font-bold ${selectedOrder.status === 'Dispatched' ? 'text-emerald-400' : 'text-white'}`}>Order Dispatched</h4>
-                  <p className="text-xs text-gray-400 font-medium">{selectedOrder.timeline.dispatchedDate || 'Pending'}</p>
-                </div>
+              <div className="flex justify-end pt-2 border-t border-white/10">
+                <button type="submit" className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-md cursor-pointer">
+                  Save Changes & Update User
+                </button>
               </div>
-
-              {/* Step 3: Order Delivered */}
-              <div className="flex gap-4 items-start">
-                <div className={`p-3 rounded-full z-10 ${
-                  selectedOrder.status === 'Delivered'
-                    ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                    : 'bg-white/10 text-gray-500'
-                }`}>
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div className="space-y-1 pt-1 flex-1">
-                  <h4 className={`text-sm font-bold ${selectedOrder.status === 'Delivered' ? 'text-emerald-400' : 'text-white'}`}>Order Delivered</h4>
-                  <p className="text-xs text-gray-400 font-medium">{selectedOrder.timeline.deliveredDate || 'Pending'}</p>
-                  {selectedOrder.status !== 'Delivered' && (
-                    <p className="text-xs text-gray-400 font-normal pt-1">
-                      Expected Delivery Date: <strong className="text-white font-mono">{selectedOrder.timeline.expectedDelivery}</strong>
-                    </p>
-                  )}
-                </div>
-              </div>
-
-            </div>
-
-            {/* --- ACTION FORMS --- */}
-            {selectedOrder.status !== 'Delivered' && (
-              <form onSubmit={handleStatusUpdate} className="border-t border-white/10 pt-5 space-y-4">
-                
-                {/* Date Input shows up only when current status is Preparing */}
-                {selectedOrder.status === 'Preparing' && (
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">Select Delivery Date</label>
-                    <div className="relative max-w-xs flex items-center">
-                      <input 
-                        type="date"
-                        required
-                        value={inputDate}
-                        onChange={(e) => setInputDate(e.target.value)}
-                        className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 transition-colors"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Submit Action Button */}
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-md cursor-pointer"
-                  >
-                    {selectedOrder.status === 'Preparing' ? 'Mark as Dispatched' : 'Mark as Delivered'}
-                  </button>
-                </div>
-
-              </form>
-            )}
-
+            </form>
           </div>
         </div>
       )}
-
     </div>
   )
 }

@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 import Logo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
+import { toast } from 'react-hot-toast';
 
 const Signup = () => {
   const cardRef = useRef(null);
@@ -82,6 +83,8 @@ const Signup = () => {
       if (!response.ok) {
         throw new Error(data.message || "Something went wrong during signup.");
       }
+
+      toast.success("Profile created successfully! Please log in.");
 
       // Automatically send them to login page after successful registration
       navigate("/login");

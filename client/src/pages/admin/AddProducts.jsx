@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star } from 'lucide-react'
+import { toast } from 'react-hot-toast' // <-- Imported toast engine
 
 // Base URL mapping configuration matching your express system root path
 const API_BASE_URL = 'http://localhost:5000/api/products'
@@ -22,7 +23,7 @@ const AddProducts = () => {
   const [originalPrice, setOriginalPrice] = useState('')
   const [offerPrice, setOfferPrice] = useState('')
   const [count, setCount] = useState('')
-  const [isFeatured, setIsFeatured] = useState(false) // NEW STATE VARIABLE ADDED HERE
+  const [isFeatured, setIsFeatured] = useState(false)
   
   const [images, setImages] = useState([])       
   const [rawFiles, setRawFiles] = useState([])   
@@ -42,10 +43,11 @@ const AddProducts = () => {
         const data = await response.json()
         setProducts(data)
       } else {
-        console.error("Failed to sync records database stack grid setup.")
+        toast.error("Failed to sync inventory from the database.")
       }
     } catch (err) {
       console.error("Network communication line breakdown matching data pipelines:", err)
+      toast.error("Network error. Could not connect to product servers.")
     } finally {
       setIsLoading(false)
     }
@@ -64,11 +66,13 @@ const AddProducts = () => {
       }
       reader.readAsDataURL(file)
     })
+    toast.success(`${files.length} image(s) staged successfully.`)
   }
 
   const removeUploadedImage = (indexToRemove) => {
     setImages(images.filter((_, index) => index !== indexToRemove))
     setRawFiles(rawFiles.filter((_, index) => index !== indexToRemove))
+    toast.success("Image staging removed.")
   }
 
   const handleSizeToggle = (size) => {
@@ -87,7 +91,7 @@ const AddProducts = () => {
     setOriginalPrice('')
     setOfferPrice('')
     setCount('')
-    setIsFeatured(false) // RESET FEATURED OPTION
+    setIsFeatured(false)
     setImages([])
     setRawFiles([])
     setIsEditing(false)
@@ -97,6 +101,14 @@ const AddProducts = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Validate if at least one image is uploaded
+    if (images.length === 0) {
+      toast.error("Please upload at least one product image.");
+      return;
+    }
+
+    const actionToastId = toast.loading(isEditing ? "Updating product record..." : "Publishing new product...");
+    
     const formData = new FormData()
     formData.append('name', name)
     formData.append('category', category)
@@ -104,7 +116,7 @@ const AddProducts = () => {
     formData.append('originalPrice', originalPrice)
     formData.append('offerPrice', offerPrice)
     formData.append('count', count || '0')
-    formData.append('isFeatured', isFeatured) // APPENDING FEATURED DATA BOOLEAN TO FORMDATA
+    formData.append('isFeatured', isFeatured)
 
     const applicableSizes = (category === 't-shirt' || category === 'shoe') ? selectedSizes : []
     formData.append('sizes', JSON.stringify(applicableSizes))
@@ -128,6 +140,7 @@ const AddProducts = () => {
       }
 
       if (response.ok) {
+        toast.success(isEditing ? "Product updated successfully!" : "Product published successfully!", { id: actionToastId })
         setIsModalOpen(false)
         resetForm()
         fetchProducts() 
@@ -135,13 +148,14 @@ const AddProducts = () => {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const errorData = await response.json();
-          console.error(`Error: ${errorData.message}`);
+          toast.error(`Error: ${errorData.message || "Failed operation"}`, { id: actionToastId });
         } else {
-          console.error(`Server returned an unexpected response status: ${response.status}`);
+          toast.error("Server processing error. Validation failed.", { id: actionToastId });
         }
       }
     } catch (error) {
       console.error("Submission operational runtime execution issue caught:", error)
+      toast.error("Network error. Could not commit product updates.", { id: actionToastId })
     }
   }
 
@@ -156,7 +170,7 @@ const AddProducts = () => {
     setOfferPrice(product.offer_price !== undefined ? product.offer_price : product.offerPrice)
     
     setCount(product.count)
-    setIsFeatured(product.isFeatured || false) // BIND DATA ROW VALUES TO EDIT MODAL CHECKS
+    setIsFeatured(product.isFeatured || false)
     setImages(product.images || [])
     setRawFiles([]) 
     setIsEditing(true)
@@ -164,20 +178,45 @@ const AddProducts = () => {
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/${id}`, {
-          method: 'DELETE'
-        })
-        if (response.ok) {
-          fetchProducts() 
-        } else {
-          console.error("Could not process row drop execution sequence.")
-        }
-      } catch (err) {
-        console.error("Drop row request interface context error:", err)
-      }
-    }
+    // Custom functional Toast Confirmation UI instance replacing native browser window blocks
+    toast((t) => (
+      <div className="flex flex-col gap-3 text-xs p-1 text-left">
+        <p className="font-bold text-white uppercase tracking-wider">Confirm Delete Operation?</p>
+        <p className="text-white/60">Are you sure you want to permanently erase this inventory record asset?</p>
+        <div className="flex gap-2 justify-end mt-1">
+          <button 
+            onClick={() => toast.dismiss(t.id)} 
+            className="px-3 py-1.5 rounded bg-white/5 border border-white/10 text-white font-medium uppercase tracking-wider text-[10px]"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={async () => {
+              toast.dismiss(t.id);
+              const executionToastId = toast.loading("Erasing catalog entry element...");
+              try {
+                const response = await fetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                  toast.success("Product permanently removed from database log indices.", { id: executionToastId });
+                  fetchProducts();
+                } else {
+                  toast.error("Target resource drop script rejected by server.", { id: executionToastId });
+                }
+              } catch (err) {
+                toast.error("Network processing fault during removal pipeline request.", { id: executionToastId });
+              }
+            }} 
+            className="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-wider text-[10px]"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 6000,
+      position: 'top-center',
+      style: { background: '#111315', border: '1px solid rgba(255,255,255,0.1)' }
+    });
   }
 
   return (
@@ -221,7 +260,6 @@ const AddProducts = () => {
                   {product.category}
                 </span>
 
-                {/* FEATURED CARD VISUAL BADGE LAYER INDICATOR */}
                 {product.isFeatured && (
                   <span className="absolute bottom-3 left-3 text-[9px] font-black uppercase tracking-widest bg-lime-accent text-royal-dark border border-lime-accent px-2 py-0.5 rounded flex items-center gap-1 shadow-md">
                     <Star className="w-3 h-3 fill-royal-dark text-royal-dark" /> Featured
@@ -290,7 +328,7 @@ const AddProducts = () => {
       {/* --- POPUP MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-royal-dark border border-white/10 w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-royal-dark border border-white/10 w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto text-left">
             
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-lg font-black uppercase tracking-wider text-gray-canvas flex items-center gap-2">
@@ -367,7 +405,6 @@ const AddProducts = () => {
                 </div>
               )}
 
-              {/* NEW FEATURED PRODUCT CHECKS ROW INPUT ELEMENT HERE */}
               <div className="flex items-center gap-3 bg-royal-main/20 border border-white/5 p-4 rounded-xl">
                 <input 
                   type="checkbox"
@@ -474,7 +511,7 @@ const AddProducts = () => {
                           <button
                             type="button"
                             onClick={() => removeUploadedImage(idx)}
-                            className="absolute top-0.5 right-0.5 bg-black/80 hover:bg-red-500 text-white rounded-full p-0.5 transition-colors"
+                            className="absolute top-0.5 right-0.5 bg-black/80 hover:bg-red-500 text-white rounded-full p-0.5 transition-colors cursor-pointer"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -509,7 +546,7 @@ const AddProducts = () => {
       {/* --- READ-ONLY VIEW WINDOW OVERLAY --- */}
       {viewProduct && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-royal-dark border border-white/10 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative space-y-6">
+          <div className="bg-royal-dark border border-white/10 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative space-y-6 text-left">
             
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
@@ -532,7 +569,6 @@ const AddProducts = () => {
 
             <div className="space-y-4 text-xs font-medium">
               
-              {/* DISPLAY FEATURED STATUS ON VIEW WINDOW */}
               <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Showcase Level:</span>
                 <span className={`font-black uppercase tracking-wider ${viewProduct.isFeatured ? 'text-lime-accent' : 'text-gray-canvas/40'}`}>

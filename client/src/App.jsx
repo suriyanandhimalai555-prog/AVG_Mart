@@ -23,6 +23,7 @@ import CustomerOrders from './pages/admin/CustomerOrders'
 
 // Route Protection Guards
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoutes'
+import Checkout from './pages/Checkout'
 
 const App = () => {
   return (
@@ -53,6 +54,7 @@ const App = () => {
         {/* ======================================================== */}
         <Route element={<ProtectedRoute />}>
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<MyOrders />} />
           <Route path="/orders/track/:id" element={<OrderStatusDetail />} />
           <Route path="/profile" element={<Profile />} />

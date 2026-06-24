@@ -1,94 +1,123 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, SlidersHorizontal, ArrowUpRight, ShoppingBag, Eye, Sparkles, Sliders, Layers, HelpCircle } from 'lucide-react'
+import { Search, SlidersHorizontal, ArrowUpRight, ShoppingBag, Eye, Sparkles, Sliders } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { toast } from 'react-hot-toast' // <-- 1. Import toast engine
 
-// Comprehensive Premium Mock Database Matrix
-const MOCK_PRODUCTS = [
-  {
-    id: 1,
-    name: 'Alpha Matrix Over-Tee',
-    category: 'T-Shirts',
-    price: 85,
-    tag: 'Limited Drop',
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=600&auto=format&fit=crop',
-    specs: '360GSM Heavyweight Cotton'
-  },
-  {
-    id: 2,
-    name: 'Phantom Tech Runner-01',
-    category: 'Shoes',
-    price: 240,
-    tag: 'Selling Fast',
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600&auto=format&fit=crop',
-    specs: 'Nitrogen Infused Cell Sole'
-  },
-  {
-    id: 3,
-    name: 'Chrono Chronograph V2',
-    category: 'Watches',
-    price: 1150,
-    tag: 'Premium Tier',
-    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=600&auto=format&fit=crop',
-    specs: 'Titanium Shell / Sapphire Glass'
-  },
-  {
-    id: 4,
-    name: 'Tactical Modular Belt X',
-    category: 'Belts',
-    price: 110,
-    tag: 'New Era',
-    image: 'https://images.unsplash.com/photo-1624222247344-550fb8ef986d?q=80&w=600&auto=format&fit=crop',
-    specs: 'Fidlock Magnetic Buckle'
-  },
-  {
-    id: 5,
-    name: 'Cyber-Mesh Breathable Top',
-    category: 'T-Shirts',
-    price: 95,
-    tag: 'S26 Core',
-    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=600&auto=format&fit=crop',
-    specs: 'Aero-Weave Ventilation Mesh'
-  },
-  {
-    id: 6,
-    name: 'Apex Stealth Boot V4',
-    category: 'Shoes',
-    price: 310,
-    tag: 'Volt Edition',
-    image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?q=80&w=600&auto=format&fit=crop',
-    specs: 'Waterproof Kevlar Shelling'
-  }
-]
+const API_BASE_URL = 'http://localhost:5000/api/products'
 
 const AllProducts = () => {
   const navigate = useNavigate()
 
-  // State Management Systems
+  // Live Database Core States
+  const [products, setProducts] = useState([])
+  const [categoriesList, setCategoriesList] = useState(['All'])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Filtering System Management Panels
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
-  const [maxPrice, setMaxPrice] = useState(1500)
+  const [maxPrice, setMaxPrice] = useState(15000) // Adjusted ceiling bounds for INR metrics
   const [sortBy, setSortBy] = useState('featured')
 
-  // Categories extraction array
-  const categoriesList = ['All', 'T-Shirts', 'Shoes', 'Watches', 'Belts']
+  // Synchronize live inventory data array from backend database on render lifecycle mount
+  useEffect(() => {
+    const fetchAllInventoryProducts = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(API_BASE_URL)
+        if (response.ok) {
+          const data = await response.json()
+          setProducts(data)
 
-  // Core Reactive Filter Engine Mapping
+          // Dynamically gather distinct operational categories found in database loadouts
+          const distinctCategories = ['All', ...new Set(data.map(p => p.category))]
+          setCategoriesList(distinctCategories)
+
+          // Dynamically locate peak price bounds to align default slider positions comfortably
+          if (data.length > 0) {
+            const peakPrice = Math.max(...data.map(p => Number(p.offerPrice || p.originalPrice || 0)))
+            setMaxPrice(peakPrice > 0 ? peakPrice : 15000)
+          }
+        }
+      } catch (err) {
+        console.error("Failed synchronization pipeline communication with central data asset registries:", err)
+        toast.error("Failed to load inventory network ledger.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAllInventoryProducts()
+  }, [])
+
+  // Live Responsive Compute Filter Logic Layout Map Matrix
   const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            product.specs.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory
-      const matchesPrice = product.price <= maxPrice
+    return products.filter(product => {
+      const targetPrice = Number(product.offerPrice || product.originalPrice || 0)
+      
+      const matchesSearch = 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+        
+      const matchesCategory = selectedCategory === 'All' || product.category.toLowerCase() === selectedCategory.toLowerCase()
+      const matchesPrice = targetPrice <= maxPrice
 
       return matchesSearch && matchesCategory && matchesPrice
     }).sort((a, b) => {
-      if (sortBy === 'low-to-high') return a.price - b.price
-      if (sortBy === 'high-to-low') return b.price - a.price
-      return b.id - a.id // Featured fallback default
+      const priceA = Number(a.offerPrice || a.originalPrice || 0)
+      const priceB = Number(b.offerPrice || b.originalPrice || 0)
+
+      if (sortBy === 'low-to-high') return priceA - priceB
+      if (sortBy === 'high-to-low') return priceB - priceA
+      return b.id - a.id // Core sorting logic sequence layout
     })
-  }, [searchQuery, selectedCategory, maxPrice, sortBy])
+  }, [products, searchQuery, selectedCategory, maxPrice, sortBy])
+
+  const handleAddToCart = async (product, token, navigate) => {
+    if (!token) {
+      toast.error("Authentication required. Redirecting to access terminal...", {
+        duration: 3000
+      });
+      setTimeout(() => navigate("/login"), 1500);
+      return;
+    }
+
+    // Initialize loading toast while waiting for database response
+    const loadId = toast.loading("Syncing asset loadout configuration...");
+
+    try {
+      const originalPrice = Number(product.originalPrice || 0);
+      const offerPrice = Number(product.offerPrice || originalPrice);
+      
+      const response = await fetch("http://localhost:5000/api/auth/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          product_id: product.id,
+          name: product.name,
+          category: product.category,
+          price: offerPrice,
+          image: product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"
+        })
+      });
+
+      if (response.ok) {
+        toast.success(`${product.name} added to the cart!`, { id: loadId });
+      } else {
+        const errData = await response.json();
+        toast.error(`Sync failure: ${errData.message || 'Pipeline rejected target data.'}`, { id: loadId });
+      }
+    } catch (err) {
+      console.error("Cart synchronization error pipeline:", err);
+      toast.error("Network payload loss. Cart sync dropped.", { id: loadId });
+    }
+  };
 
   return (
     <>
@@ -100,12 +129,15 @@ const AllProducts = () => {
         <div className="absolute top-[5%] right-[-10%] w-[500px] h-[500px] bg-lime-accent/5 rounded-full blur-[150px] pointer-events-none" />
         <div className="absolute bottom-[20%] left-[-10%] w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[180px] pointer-events-none" />
 
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-lime-accent/5 rounded-full blur-[180px] pointer-events-none" />
+
         <div className="max-w-7xl mx-auto relative z-10 mt-6">
           
           {/* HEADER HERO BANNER TRACK */}
           <div className="space-y-4 mb-16 text-left border-b border-white/5 pb-8">
               <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] uppercase bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-lime-accent">
-                <Sparkles className="w-3 h-3 text-lime-accent" /> Asset Registry Operational
+                <Sparkles className="w-3 h-3 text-lime-accent" /> All Products
               </div>
               <h1 className="text-4xl md:text-6xl font-black uppercase tracking-wider">
                 System <span className="text-lime-accent font-light">Products</span> Catalog
@@ -118,7 +150,7 @@ const AllProducts = () => {
           {/* DYNAMIC PIPELINE CONTROL LAYER (Search, Filter Panels) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             
-            {/* LEFT FILTER BAR MODULE SHEETS (Desktop Anchor, Mobile Collapsible Grid) */}
+            {/* LEFT FILTER BAR MODULE SHEETS */}
             <div className="lg:col-span-3 space-y-8 bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md sticky top-28">
               
               <div className="flex items-center justify-between border-b border-white/5 pb-4">
@@ -126,7 +158,15 @@ const AllProducts = () => {
                   <SlidersHorizontal className="w-4 h-4 text-lime-accent" /> Filter Console
                 </div>
                 <button 
-                  onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setMaxPrice(1500); setSortBy('featured'); }}
+                  onClick={() => { 
+                    setSearchQuery(''); 
+                    setSelectedCategory('All'); 
+                    setSortBy('featured');
+                    if (products.length > 0) {
+                      const peakPrice = Math.max(...products.map(p => Number(p.offerPrice || p.originalPrice || 0)))
+                      setMaxPrice(peakPrice);
+                    }
+                  }}
                   className="text-[10px] font-bold text-white/40 hover:text-lime-accent transition-colors uppercase tracking-wider cursor-pointer"
                 >
                   Reset Ledger
@@ -162,11 +202,11 @@ const AllProducts = () => {
                           : 'bg-transparent border-transparent text-white/50 hover:bg-white/5 hover:text-white'
                       }`}
                     >
-                      <span className="tracking-wide">{cat}</span>
+                      <span className="tracking-wide capitalize">{cat}</span>
                       <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
                         selectedCategory === cat ? 'bg-lime-accent/10 border-lime-accent/20' : 'bg-white/5 border-white/5'
                       }`}>
-                        {cat === 'All' ? MOCK_PRODUCTS.length : MOCK_PRODUCTS.filter(p => p.category === cat).length}
+                        {cat === 'All' ? products.length : products.filter(p => p.category.toLowerCase() === cat.toLowerCase()).length}
                       </span>
                     </button>
                   ))}
@@ -177,20 +217,20 @@ const AllProducts = () => {
               <div className="space-y-3 text-left">
                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/50">
                   <span>Price Filter</span>
-                  <span className="text-lime-accent font-mono text-xs font-black">${maxPrice}</span>
+                  <span className="text-lime-accent font-mono text-xs font-black">₹{maxPrice}</span>
                 </div>
                 <input
                   type="range"
-                  min="50"
-                  max="1500"
-                  step="25"
+                  min="0"
+                  max="50000"
+                  step="100"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full accent-lime-accent bg-white/10 h-1 rounded-lg cursor-pointer"
                 />
                 <div className="flex justify-between text-[9px] font-mono text-white/30">
-                  <span>$50</span>
-                  <span>$1,500</span>
+                  <span>₹0</span>
+                  <span>₹50,000</span>
                 </div>
               </div>
 
@@ -202,7 +242,7 @@ const AllProducts = () => {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs font-bold text-white/70 outline-none focus:border-lime-accent transition-colors cursor-pointer"
                 >
-                  <option value="featured">All Products</option>
+                  <option value="featured">All Latest Drops</option>
                   <option value="low-to-high">Price Low to High</option>
                   <option value="high-to-low">Price High to Low</option>
                 </select>
@@ -213,13 +253,17 @@ const AllProducts = () => {
             {/* RIGHT PRODUCT GRID CONTAINER LAYOUT */}
             <div className="lg:col-span-9 space-y-6">
               
-              {/* Micro Meta Grid Data Monitor Counter */}
               <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-white/40 px-2">
                 <span>All Products</span>
                 <span>[{filteredProducts.length}] Items Showing</span>
               </div>
 
-              {filteredProducts.length === 0 ? (
+              {isLoading ? (
+                /* LOADING PLACEHOLDER LAYOUT */
+                <div className="text-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse py-32">
+                  Accessing active inventory system matrix files...
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 /* EMPTY FILTER ERROR PANEL BOX */
                 <div className="border border-dashed border-white/10 bg-white/[0.01] rounded-2xl p-20 text-center space-y-4 backdrop-blur-md">
                   <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-white/20">
@@ -233,78 +277,100 @@ const AllProducts = () => {
                   </div>
                 </div>
               ) : (
-                /* HIGHLY RESPONSIVE PREMIUM CARD MATRIX GRID */
+                /* HIGHLY RESPONSIVE PREMIUM LIVE S3 ENGINE CARD MATRIX GRID */
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      onClick={() => navigate(`/product/${product.id}`)}
-                      className="group bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-white/10 rounded-2xl p-4 transition-all duration-500 hover:bg-white/[0.05] relative overflow-hidden flex flex-col justify-between h-full cursor-pointer text-left shadow-lg"
-                    >
-                      {/* Image Frame Node Area Container */}
-                      <div className="w-full aspect-[4/5] rounded-xl overflow-hidden border border-white/5 bg-black/40 relative flex-shrink-0">
-                        <img 
-                          src={product.image} 
-                          alt={product.name} 
-                          className="w-full h-full object-cover filter contrast-110 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" 
-                        />
-                        
-                        {/* Status Float Badge Tag */}
-                        <div className="absolute top-3 left-3 inline-flex items-center text-[8px] font-black tracking-widest uppercase bg-royal-dark/90 backdrop-blur-md border border-white/10 text-lime-accent px-2.5 py-1 rounded-md">
-                          {product.tag}
-                        </div>
+                  {filteredProducts.map((product) => {
+                    const original = Number(product.originalPrice || 0)
+                    const offer = Number(product.offerPrice || original)
+                    const reduction = original - offer
 
-                        {/* Interactive Cyber Action Hover Utilities */}
-                        <div className="absolute inset-0 bg-royal-dark/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); navigate(`/product/${product.id}`); }}
-                            className="p-3 bg-white text-royal-dark rounded-xl hover:bg-lime-accent hover:scale-110 transition-all shadow-xl"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); alert('Node added to configuration layout.'); }}
-                            className="p-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-lime-accent hover:text-royal-dark hover:scale-110 transition-all shadow-xl"
-                          >
-                            <ShoppingBag className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Content Descriptor Metrics Frame Footer */}
-                      <div className="pt-4 flex flex-col justify-between flex-grow space-y-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-white/40">
-                              {product.category}
-                            </span>
-                            <span className="text-[10px] font-mono font-medium text-white/30">
-                              REF//00{product.id}
-                            </span>
-                          </div>
+                    return (
+                      <div
+                        key={product.id}
+                        onClick={() => navigate(`/product/${product.id}`)}
+                        className="group bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-white/10 rounded-2xl p-4 transition-all duration-500 hover:bg-white/[0.05] relative overflow-hidden flex flex-col justify-between h-full cursor-pointer text-left shadow-lg"
+                      >
+                        {/* Image Frame Node Area Container */}
+                        <div className="w-full aspect-[4/5] rounded-xl overflow-hidden border border-white/5 bg-black/40 relative flex-shrink-0">
+                          <img 
+                            src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover filter contrast-110 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" 
+                          />
                           
-                          <h3 className="text-base font-black uppercase tracking-wide text-white group-hover:text-lime-accent transition-colors line-clamp-1">
-                            {product.name}
-                          </h3>
-                          <p className="text-[11px] text-white/40 font-medium line-clamp-1 border-t border-white/5 pt-1.5 mt-1">
-                            {product.specs}
-                          </p>
+                          {/* Conditional Tags Status Badges */}
+                          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                            <span className="inline-flex items-center text-[8px] font-black tracking-widest uppercase bg-royal-dark/90 backdrop-blur-md border border-white/10 text-lime-accent px-2.5 py-1 rounded-md">
+                              {product.count > 0 ? 'AVAILABLE NODE' : 'SOLD OUT OUTPOST'}
+                            </span>
+                            {product.isFeatured && (
+                              <span className="inline-flex items-center text-[8px] font-black tracking-widest uppercase bg-lime-accent text-royal-dark font-black px-2.5 py-1 rounded-md shadow-md">
+                                SPOTLIGHT DROP
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Interactive Cyber Action Hover Utilities */}
+                          <div className="absolute inset-0 bg-royal-dark/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); navigate(`/product/${product.id}`); }}
+                              className="p-3 bg-white text-royal-dark rounded-xl hover:bg-lime-accent hover:scale-110 transition-all shadow-xl"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                const token = localStorage.getItem("token");
+                                handleAddToCart(product, token, navigate);
+                              }}
+                              className="p-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-lime-accent hover:text-royal-dark hover:scale-110 transition-all shadow-xl"
+                            >
+                              <ShoppingBag className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
-                        {/* Valuation Footer Line Meta */}
-                        <div className="flex items-center justify-between pt-1 border-t border-white/5">
-                          <div className="flex flex-col">
-                            <span className="text-[8px] font-bold tracking-wider uppercase text-white/30">Acquisition</span>
-                            <span className="text-lg font-black tracking-wide text-white font-mono">${product.price}</span>
+                        {/* Content Descriptor Metrics Frame Footer */}
+                        <div className="pt-4 flex flex-col justify-between flex-grow space-y-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-white/40 capitalize">
+                                {product.category}
+                              </span>
+                              <span className="text-[10px] font-mono font-medium text-white/30">
+                                MATRIX//0{product.id}
+                              </span>
+                            </div>
+                            
+                            <h3 className="text-base font-black uppercase tracking-wide text-white group-hover:text-lime-accent transition-colors line-clamp-1">
+                              {product.name}
+                            </h3>
+                            <p className="text-[11px] text-white/40 font-medium line-clamp-2 border-t border-white/5 pt-1.5 mt-1 leading-relaxed">
+                              {product.description || 'High-efficiency technical utility standard apparatus.'}
+                            </p>
                           </div>
-                          <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center group-hover:bg-lime-accent group-hover:border-lime-accent text-white/40 group-hover:text-royal-dark transition-all duration-500">
-                            <ArrowUpRight className="w-4 h-4 transform group-hover:rotate-45 transition-transform duration-300" />
+
+                          {/* Valuation Footer Line Meta */}
+                          <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                            <div className="flex flex-col">
+                              <span className="text-[8px] font-bold tracking-wider uppercase text-white/30">Acquisition</span>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-lg font-black tracking-wide text-white font-mono">₹{offer}</span>
+                                {reduction > 0 && (
+                                  <span className="text-xs line-through text-white/30 font-bold">₹{original}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center group-hover:bg-lime-accent group-hover:border-lime-accent text-white/40 group-hover:text-royal-dark transition-all duration-500">
+                              <ArrowUpRight className="w-4 h-4 transform group-hover:rotate-45 transition-transform duration-300" />
+                            </div>
                           </div>
                         </div>
+
                       </div>
-
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 

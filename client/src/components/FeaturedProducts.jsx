@@ -1,17 +1,47 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingBag, Star, ArrowRight, Heart, Sparkles, Eye } from 'lucide-react'
-import { productsData } from '../data/productsData' // Centralized dataset
+import { ShoppingBag, Star, Heart, Sparkles, Eye } from 'lucide-react'
+import { toast } from 'react-hot-toast' // <-- 1. Import toast engine
 
-const categories = ['All Assets', 'Core Devices', 'Wearables', 'Optics Pro', 'Techpacks']
+const API_BASE_URL = 'http://localhost:5000/api/products'
 
 const FeaturedProducts = () => {
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState(['All Assets'])
   const [activeTab, setActiveTab] = useState('All Assets')
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
 
+  // Fetch items instantly on layout frame render trigger lifecycle hooks
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(API_BASE_URL)
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Filter to show ONLY the products with the featured checkbox enabled
+          const featuredOnly = data.filter(product => product.isFeatured === true)
+          setProducts(featuredOnly)
+
+          // Dynamically compute layout tabs based on categories present in your live featured data
+          const distinctCategories = ['All Assets', ...new Set(featuredOnly.map(p => p.category))]
+          setCategories(distinctCategories)
+        }
+      } catch (err) {
+        console.error("Failed synchronization pipeline connection to API endpoints:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchFeaturedProducts()
+  }, [])
+
   const filteredProducts = activeTab === 'All Assets'
-    ? productsData
-    : productsData.filter(product => product.category === activeTab)
+    ? products
+    : products.filter(product => product.category.toLowerCase() === activeTab.toLowerCase())
 
   const handleMouseMove = (e) => {
     const card = e.currentTarget
@@ -29,6 +59,49 @@ const FeaturedProducts = () => {
     const card = e.currentTarget
     card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`
   }
+
+  const handleAddToCart = async (product, token, navigate) => {
+    if (!token) {
+      toast.error("Authentication required. Redirecting to access terminal...", {
+        duration: 3000
+      });
+      setTimeout(() => navigate("/login"), 1500);
+      return;
+    }
+
+    // Initialize loading toast while waiting for database response
+    const loadId = toast.loading("Syncing asset loadout configuration...");
+
+    try {
+      const originalPrice = Number(product.originalPrice || 0);
+      const offerPrice = Number(product.offerPrice || originalPrice);
+      
+      const response = await fetch("http://localhost:5000/api/auth/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          product_id: product.id,
+          name: product.name,
+          category: product.category,
+          price: offerPrice,
+          image: product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"
+        })
+      });
+
+      if (response.ok) {
+        toast.success(`${product.name} added to the cart!`, { id: loadId });
+      } else {
+        const errData = await response.json();
+        toast.error(`Sync failure: ${errData.message || 'Pipeline rejected target data.'}`, { id: loadId });
+      }
+    } catch (err) {
+      console.error("Cart synchronization error pipeline:", err);
+      toast.error("Network payload loss. Cart sync dropped.", { id: loadId });
+    }
+  };
 
   return (
     <section className="bg-royal-dark text-white py-24 px-6 md:px-12 relative overflow-hidden min-h-screen">
@@ -51,7 +124,7 @@ const FeaturedProducts = () => {
         {/* Tab Selection */}
         <div className="flex flex-wrap justify-center items-center gap-2 md:gap-3 mb-16 max-w-4xl mx-auto">
           {categories.map((tab) => {
-            const count = tab === 'All Assets' ? productsData.length : productsData.filter(p => p.category === tab).length
+            const count = tab === 'All Assets' ? products.length : products.filter(p => p.category === tab).length
             const isActive = activeTab === tab
 
             return (
@@ -64,7 +137,7 @@ const FeaturedProducts = () => {
                     : 'bg-white/5 text-white/60 border-white/5 hover:border-white/20 hover:text-white'
                 }`}
               >
-                {tab}
+                <span className="uppercase">{tab}</span>
                 <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[9px] font-bold ${
                   isActive ? 'bg-royal-dark/10 text-royal-dark' : 'bg-white/10 text-white/40 group-hover:text-white'
                 }`}>
@@ -76,113 +149,130 @@ const FeaturedProducts = () => {
         </div>
 
         {/* Products 3D Layout Array */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProducts.map((product) => {
-            const savings = product.originalPrice - product.price;
-            
-            return (
-              <div
-                key={product.id}
-                className="relative rounded-2xl group transition-all duration-300"
-                style={{ perspective: '1000px' }}
-              >
+        {isLoading ? (
+          <div className="text-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse py-20">
+            Querying active spotlight inventory arrays...
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center text-white/40 text-xs uppercase tracking-widest py-20 font-bold">
+            No featured items active inside this sector layer category at present.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredProducts.map((product) => {
+              const original = Number(product.originalPrice || 0)
+              const offer = Number(product.offerPrice || original)
+              const savings = original - offer;
+              
+              return (
                 <div
-                  onMouseMove={handleMouseMove}
-                  onMouseLeave={handleMouseLeave}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden select-none transition-all duration-150 ease-out cursor-pointer shadow-[0_15px_35px_rgba(0,0,0,0.3)] hover:border-lime-accent/40"
-                  style={{ transformStyle: 'preserve-3d' }}
+                  key={product.id}
+                  className="relative rounded-2xl group transition-all duration-300"
+                  style={{ perspective: '1000px' }}
                 >
-                  <div className={`absolute -inset-2 bg-gradient-to-br ${product.accentColor} opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl pointer-events-none`} />
-
-                  {/* Top Badges Meta */}
-                  <div className="flex items-center justify-between relative z-10 mb-4" style={{ transform: 'translateZ(30px)' }}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-black tracking-widest uppercase bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 group-hover:bg-lime-accent group-hover:text-royal-dark group-hover:border-transparent transition-colors">
-                        {product.badge}
-                      </span>
-                      {savings > 0 && (
-                        <span className="text-[9px] font-bold tracking-wider uppercase bg-red-500/20 text-red-400 px-2.5 py-1 rounded-md border border-red-500/20">
-                          Save ${savings}
-                        </span>
-                      )}
-                    </div>
-                    <button className="p-2 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-pink-500 hover:bg-white/10 transition-all">
-                      <Heart className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Core Viewport Screen Clickable Layer */}
-                  <div 
-                    className="w-full h-64 rounded-xl overflow-hidden relative mb-6 bg-black/20 flex items-center justify-center transition-all duration-500"
-                    style={{ transform: 'translateZ(45px)' }}
-                    onClick={() => navigate(`/product/${product.id}`)}
+                  <div
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden select-none transition-all duration-150 ease-out cursor-pointer shadow-[0_15px_35px_rgba(0,0,0,0.3)] hover:border-lime-accent/40"
+                    style={{ transformStyle: 'preserve-3d' }}
                   >
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover filter grayscale contrast-125 group-hover:scale-105 group-hover:grayscale-0 transition-all duration-700 ease-out"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-royal-dark/40 to-transparent" />
-                    
-                    {/* Explicit View Link Hover Trigger */}
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300">
-                      <div className="bg-lime-accent text-royal-dark px-4 py-2 rounded-xl font-black text-xs uppercase flex items-center gap-2 tracking-wider transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                        <Eye className="w-4 h-4" /> Inspect Asset Data
-                      </div>
-                    </div>
-                  </div>
+                    <div className="absolute -inset-2 bg-gradient-to-br from-lime-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl pointer-events-none" />
 
-                  {/* Text Spec Elements */}
-                  <div className="space-y-3 relative z-10 text-left" style={{ transform: 'translateZ(25px)' }}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{product.category}</span>
-                      <div className="flex items-center gap-1 bg-white/5 border border-white/5 px-2 py-0.5 rounded-md">
-                        <Star className="w-3 h-3 text-lime-accent fill-lime-accent" />
-                        <span className="text-[10px] font-black text-white">{product.rating}</span>
+                    {/* Top Badges Meta */}
+                    <div className="flex items-center justify-between relative z-10 mb-4" style={{ transform: 'translateZ(30px)' }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-black tracking-widest uppercase bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 group-hover:bg-lime-accent group-hover:text-royal-dark group-hover:border-transparent transition-colors">
+                          {product.count > 0 ? 'In Stock' : 'Sold Out'}
+                        </span>
+                        {savings > 0 && (
+                          <span className="text-[9px] font-bold tracking-wider uppercase bg-red-500/20 text-red-400 px-2.5 py-1 rounded-md border border-red-500/20">
+                            Save ₹{savings}
+                          </span>
+                        )}
                       </div>
+                      <button className="p-2 rounded-xl bg-white/5 border border-white/5 text-white/60 hover:text-pink-500 hover:bg-white/10 transition-all">
+                        <Heart className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    <h3 className="text-lg font-black uppercase tracking-wide text-white group-hover:text-lime-accent transition-colors truncate">
-                      {product.name}
-                    </h3>
-
-                    <hr className="border-white/5 my-2" />
-
-                    {/* Dual Pricing Array */}
-                    <div className="flex items-end justify-between pt-1">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-white/30">Acquisition value</span>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-xl font-black text-white tracking-wide">${product.price}</span>
-                          <span className="text-xs line-through text-white/40 font-medium">${product.originalPrice}</span>
+                    {/* Core Viewport Screen Clickable Layer */}
+                    <div 
+                      className="w-full h-64 rounded-xl overflow-hidden relative mb-6 bg-black/20 flex items-center justify-center transition-all duration-500"
+                      style={{ transform: 'translateZ(45px)' }}
+                      onClick={() => navigate(`/product/${product.id}`)}
+                    >
+                      <img
+                        src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"}
+                        alt={product.name}
+                        className="w-full h-full object-cover filter grayscale contrast-125 group-hover:scale-105 group-hover:grayscale-0 transition-all duration-700 ease-out"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-royal-dark/40 to-transparent" />
+                      
+                      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300">
+                        <div className="bg-lime-accent text-royal-dark px-4 py-2 rounded-xl font-black text-xs uppercase flex items-center gap-2 tracking-wider transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                          <Eye className="w-4 h-4" /> Inspect Asset Data
                         </div>
                       </div>
                     </div>
 
-                    {/* Action Execution Hub */}
-                    <div className="grid grid-cols-2 gap-2 mt-4" style={{ transform: 'translateZ(40px)' }}>
-                      <button 
-                        onClick={() => navigate(`/product/${product.id}`)}
-                        className="inline-flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-3 py-2.5 font-bold uppercase tracking-wider text-[10px] rounded-xl transition-all"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-lime-accent" /> Details
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); alert(`${product.name} added to security configuration loadout!`) }}
-                        className="inline-flex items-center justify-center gap-1.5 bg-white text-royal-dark hover:bg-lime-accent px-3 py-2.5 font-black uppercase tracking-wider text-[10px] rounded-xl hover:shadow-[0_4px_20px_rgba(165,206,0,0.4)] active:scale-95 transition-all duration-300"
-                      >
-                        <ShoppingBag className="w-3.5 h-3.5" /> Add To Cart
-                      </button>
+                    {/* Text Spec Elements */}
+                    <div className="space-y-3 relative z-10 text-left" style={{ transform: 'translateZ(25px)' }}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{product.category}</span>
+                        <div className="flex items-center gap-1 bg-white/5 border border-white/5 px-2 py-0.5 rounded-md">
+                          <Star className="w-3 h-3 text-lime-accent fill-lime-accent" />
+                          <span className="text-[10px] font-black text-white">4.8</span>
+                        </div>
+                      </div>
+
+                      <h3 className="text-lg font-black uppercase tracking-wide text-white group-hover:text-lime-accent transition-colors truncate">
+                        {product.name}
+                      </h3>
+
+                      <hr className="border-white/5 my-2" />
+
+                      {/* Dual Pricing Array */}
+                      <div className="flex items-end justify-between pt-1">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-white/30">Acquisition value</span>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xl font-black text-white tracking-wide">₹{offer}</span>
+                            {savings > 0 && (
+                              <span className="text-xs line-through text-white/40 font-medium">₹{original}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Execution Hub */}
+                      <div className="grid grid-cols-2 gap-2 mt-4" style={{ transform: 'translateZ(40px)' }}>
+                        <button 
+                          onClick={() => navigate(`/product/${product.id}`)}
+                          className="inline-flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-3 py-2.5 font-bold uppercase tracking-wider text-[10px] rounded-xl transition-all"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-lime-accent" /> Details
+                        </button>
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            const token = localStorage.getItem("token");
+                            handleAddToCart(product, token, navigate);
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 bg-white text-royal-dark hover:bg-lime-accent px-3 py-2.5 font-black uppercase tracking-wider text-[10px] rounded-xl hover:shadow-[0_4px_20px_rgba(165,206,0,0.4)] active:scale-95 transition-all duration-300"
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5" /> Add To Cart
+                        </button>
+                      </div>
+
                     </div>
 
+                    <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-lime-accent to-transparent opacity-0 transform scale-x-50 transition-all duration-500 group-hover:opacity-100 group-hover:scale-x-100" />
                   </div>
-
-                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-lime-accent to-transparent opacity-0 transform scale-x-50 transition-all duration-500 group-hover:opacity-100 group-hover:scale-x-100" />
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
 
       </div>
     </section>
