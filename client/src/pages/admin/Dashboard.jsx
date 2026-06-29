@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ShoppingCart, DollarSign, Clock, Truck, CheckCircle2, ArrowUpRight, RefreshCw } from 'lucide-react'
+import { ShoppingCart, DollarSign, Clock, Truck, CheckCircle2, ArrowUpRight, RefreshCw, Package } from 'lucide-react'
 
 const Dashboard = () => {
   const [orders, setOrders] = useState([])
@@ -120,6 +120,44 @@ const Dashboard = () => {
     }
   }
 
+  // --- SAFE OBJECT/STRING COMPATIBLE PARSER FOR PRODUCT BREAKDOWN ---
+  const renderProductBreakdown = (itemsData) => {
+    let finalArray = [];
+
+    if (Array.isArray(itemsData)) {
+      finalArray = itemsData;
+    } else if (typeof itemsData === 'string') {
+      try {
+        const parsed = JSON.parse(itemsData);
+        finalArray = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        return <span className="truncate">{itemsData}</span>;
+      }
+    }
+
+    if (finalArray && finalArray.length > 0) {
+      return (
+        <div className="flex flex-col gap-1 max-w-xs">
+          {finalArray.map((prod, idx) => {
+            if (!prod || typeof prod !== 'object') {
+              return <span key={idx} className="block text-white/50">{String(prod)}</span>;
+            }
+            const name = prod.name || prod.product_name || "Unknown Item";
+            const qty = prod.qty || prod.quantity || 1;
+            const size = prod.selected_size || prod.size || "";
+            return (
+              <div key={idx} className="text-white/70 truncate text-[11px] font-mono">
+                {qty}x {name} {size ? `(${size})` : ''}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return <span className="text-white/30">Package Cargo</span>;
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-10 bg-royal-dark text-white min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
@@ -192,7 +230,11 @@ const Dashboard = () => {
                       {formatOrderDate(order.created_at)}
                     </td>
                     
-                    <td className="p-4 text-white/60 max-w-xs truncate">{order.items || "Package Cargo"}</td>
+                    {/* SAFE RENDERING CELL BLOCK */}
+                    <td className="p-4 text-white/60 max-w-xs">
+                      {renderProductBreakdown(order.items)}
+                    </td>
+
                     <td className="p-4 font-mono font-bold text-white whitespace-nowrap">
                       ₹{Number(String(order.total || order.total_price || 0).replace(/[^0-9]/g, '')).toLocaleString('en-IN')}
                     </td>

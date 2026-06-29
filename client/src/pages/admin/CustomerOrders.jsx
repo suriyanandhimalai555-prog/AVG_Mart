@@ -121,6 +121,73 @@ const CustomerOrders = () => {
     }
   }
 
+  // Pure isolated rendering logic to parse strings, objects, or arrays into structured matrices cleanly
+  const renderItemsColumn = (itemsData) => {
+    let normalizedArray = [];
+
+    if (Array.isArray(itemsData)) {
+      normalizedArray = itemsData;
+    } else if (typeof itemsData === 'string') {
+      try {
+        const parsed = JSON.parse(itemsData);
+        normalizedArray = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        // Fallback for simple comma-separated or plain text values from backend
+        const inlineItems = itemsData.split(',').map(i => i.trim()).filter(Boolean);
+        return (
+          <div className="space-y-1.5 min-w-[200px]">
+            {inlineItems.map((strItem, idx) => (
+              <div key={idx} className="flex items-center gap-2 bg-white/[0.02] border border-white/5 p-2 rounded-xl text-left">
+                <Package className="w-3.5 h-3.5 text-lime-accent flex-shrink-0" />
+                <span className="font-mono text-xs text-gray-300 uppercase tracking-wide truncate">{strItem}</span>
+              </div>
+            ))}
+          </div>
+        )
+      }
+    }
+
+    if (normalizedArray && normalizedArray.length > 0) {
+      return (
+        <div className="space-y-2 min-w-[240px]">
+          {normalizedArray.map((prod, index) => {
+            if (!prod || typeof prod !== 'object') return null;
+            
+            const rawSize = prod.selected_size || prod.size || '';
+            const sizeString = typeof rawSize === 'string' ? rawSize.trim() : String(rawSize);
+
+            return (
+              <div key={index} className="flex items-center gap-2.5 bg-white/[0.02] border border-white/5 p-2 rounded-xl text-left">
+                {prod.image && (
+                  <div className="w-10 h-12 rounded-lg bg-black/40 overflow-hidden border border-white/10 flex-shrink-0">
+                    <img src={prod.image} alt={prod.name || "product"} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white text-xs truncate uppercase tracking-wide">{prod.name || prod.product_name || "Unknown Item"}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-gray-400 font-mono">Qty: {prod.qty || prod.quantity || 1}</span>
+                    {sizeString !== '' ? (
+                      <span className="text-[9px] px-1.5 py-0.5 bg-lime-accent/10 border border-lime-accent/20 text-lime-accent rounded font-mono font-black uppercase">
+                        Sz: {sizeString}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] px-1.5 py-0.5 bg-white/5 text-gray-500 rounded font-mono border border-white/5">
+                        N/A
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
+
+    return <span className="text-gray-500 font-mono text-[11px]">No items found</span>
+  }
+
   if (isLoading) {
     return (
       <div className="text-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse py-40 bg-royal-dark min-h-screen flex items-center justify-center">
@@ -144,7 +211,7 @@ const CustomerOrders = () => {
                 <th className="p-4 w-28">Order ID</th>
                 <th className="p-4 w-56">Customer Info</th>
                 <th className="p-4 min-w-[320px]">Full Shipping Address</th>
-                <th className="p-4 w-48">Items Ordered</th>
+                <th className="p-4 min-w-[260px]">Configured Items & Size Matrix</th>
                 <th className="p-4 w-28">Total Price</th>
                 <th className="p-4 w-32 text-center">Status</th>
                 <th className="p-4 w-24 text-center">Action</th>
@@ -162,8 +229,8 @@ const CustomerOrders = () => {
                   <td className="p-4 text-sm font-medium text-gray-300 whitespace-normal leading-relaxed text-left">
                     <div className="flex items-start gap-2 max-w-md"><MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" /><span>{order.address}</span></div>
                   </td>
-                  <td className="p-4 text-gray-300 font-semibold text-left">
-                    <div className="flex items-center gap-1.5"><Package className="w-3.5 h-3.5 text-gray-400" /> {order.items}</div>
+                  <td className="p-4 text-left">
+                    {renderItemsColumn(order.items)}
                   </td>
                   <td className="p-4 font-bold text-white whitespace-nowrap text-left">{order.total || `₹${order.totalPrice}`}</td>
                   <td className="p-4 text-center whitespace-nowrap">

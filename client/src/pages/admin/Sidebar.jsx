@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, PlusCircle, ShoppingBag, LogOut, ShieldAlert, Menu, X } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, ShoppingBag, LogOut, ShieldAlert, Menu, X, ShieldCheck } from 'lucide-react'
 import { toast } from 'react-hot-toast' // <-- Imported toast engine
 import Logo from "../../assets/logo.png"
 
@@ -12,6 +12,7 @@ const Sidebar = () => {
     { name: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'Add Products', path: '/admin/products', icon: <PlusCircle className="w-5 h-5" /> },
     { name: 'Customer Orders', path: '/admin/orders', icon: <ShoppingBag className="w-5 h-5" /> },
+    { name: 'Branch Admin', path: '/admin/branch-admin', icon: <ShieldCheck className="w-5 h-5" /> },
   ]
 
   // Handle system logout parameters instantly with toast feedback
@@ -35,7 +36,7 @@ const Sidebar = () => {
       <div className="lg:hidden w-full bg-royal-dark border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-5 h-5 text-lime-accent" />
-          <span className="font-bold text-xs uppercase tracking-wider text-gray-canvas">Admin Panel</span>
+          <span className="font-bold text-xs uppercase tracking-wider text-gray-canvas">Super Admin Panel</span>
         </div>
         <button 
           onClick={() => setIsOpen(true)} 
@@ -68,7 +69,7 @@ const Sidebar = () => {
                 <img src={Logo} className='w-9 h-9' alt="Logo" />
               </div>
               <div>
-                <h1 className="font-bold text-sm tracking-wide uppercase text-gray-canvas">Admin Panel</h1>
+                <h1 className="font-bold text-sm tracking-wide uppercase text-gray-canvas">Super Admin Panel</h1>
               </div>
             </div>
 

@@ -134,7 +134,12 @@ export const getAllCustomerOrders = async (req, res) => {
       SELECT o.id, o.total_price as total, o.status, o.created_at,
              u.name as customer, u.email,
              a.phone, CONCAT(a.street_name, ', ', a.landmark, ', ', a.city, ', ', a.district, ', ', a.state, ' - ', a.pincode) as address,
-             json_agg(json_build_object('name', oi.name, 'qty', oi.quantity)) as items_summary,
+             json_agg(json_build_object(
+               'name', oi.name, 
+               'qty', oi.quantity,
+               'image', oi.image,
+               'selected_size', oi.selected_size
+             )) as items_summary,
              -- Timeline properties block
              to_char(o.created_at, 'DD/MM/YYYY, HH24:MI:SS') as "preparingDate",
              o.dispatched_at as "dispatchedDate",
@@ -143,7 +148,6 @@ export const getAllCustomerOrders = async (req, res) => {
       FROM orders o
       JOIN users u ON o.user_id = u.id
       JOIN order_items oi ON o.id = oi.order_id
-      -- Using a subquery or fallback to fetch tracking details cleanly
       CROSS JOIN LATERAL (
          SELECT phone, street_name, landmark, city, district, state, pincode 
          FROM addresses WHERE id = o.address_id LIMIT 1
@@ -153,10 +157,10 @@ export const getAllCustomerOrders = async (req, res) => {
     `;
     const { rows } = await pool.query(query);
     
-    // Map items string summary array format for frontend display
+    // Pass items summary down as a clean structural JSON block array
     const formattedRows = rows.map(row => ({
       ...row,
-      items: row.items_summary.map(i => `${i.qty}x ${i.name}`).join(', '),
+      items: row.items_summary, 
       total: `₹${Number(row.total).toLocaleString('en-IN')}`,
       timeline: {
         preparingDate: row.preparingDate,

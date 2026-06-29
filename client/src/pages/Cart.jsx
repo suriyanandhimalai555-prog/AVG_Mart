@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Trash2, Plus, Minus, ShoppingBag, ShieldCheck, ArrowRight, Sparkles, Calendar } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { toast } from 'react-hot-toast' // <-- Imported toast engine
+import { toast } from 'react-hot-toast'
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState([])
@@ -94,7 +94,6 @@ const Cart = () => {
     }
   };
 
-  // --- PAKKA 6-DAY ARITHMETIC TRACKING LAYER SYSTEM ---
   const calculateDefaultEstimatedArrival = () => {
     try {
       const parsedDate = new Date();
@@ -108,6 +107,33 @@ const Cart = () => {
     }
   };
 
+  const handleProceedToCheckout = () => {
+    // PAKKA CONFIGURATION RULE: Size verification constraints strictly enforced ONLY for clothing or shoe items
+    const invalidItem = cartItems.find(item => {
+      const itemCategory = (item.category || "").toLowerCase().trim();
+      const isSizeRequiredCategory = itemCategory === 't-shirt' || itemCategory === 'shoe';
+      const isSizeMissing = !item.selected_size || item.selected_size.trim() === '';
+      
+      return isSizeRequiredCategory && isSizeMissing;
+    });
+    
+    if (invalidItem) {
+      toast.error(`Cannot place order! Please click on "${invalidItem.name}" to assign its configuration size matrix.`, {
+        duration: 4000,
+        style: {
+          background: '#1c1c1e',
+          color: '#f87171',
+          border: '1px solid rgba(248,113,113,0.3)',
+          fontSize: '12px',
+          fontWeight: 'bold'
+        }
+      });
+      return;
+    }
+
+    navigate('/checkout', { state: { subtotal } });
+  };
+
   const subtotal = cartItems.reduce((acc, item) => acc + (Number(item.price) * item.quantity), 0);
 
   return (
@@ -115,11 +141,9 @@ const Cart = () => {
       <Navbar />
       <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px]" />
-
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:40px_40px]" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-lime-accent/5 rounded-full blur-[180px] pointer-events-none" />
 
-        
         <div className="max-w-7xl mx-auto relative z-10 mt-6">
           <div className="flex flex-col items-start space-y-2 mb-12 border-b border-white/5 pb-6">
             <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] uppercase bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-lime-accent">
@@ -153,40 +177,73 @@ const Cart = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
               
               <div className="lg:col-span-8 space-y-4">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex flex-col sm:flex-items sm:flex-row items-center justify-between gap-6 p-4 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md hover:border-white/10 transition-colors text-left">
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
-                      <div className="w-20 h-24 rounded-xl overflow-hidden bg-black/40 border border-white/5 flex-shrink-0">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                {cartItems.map((item) => {
+                  const currentCategory = (item.category || "").toLowerCase().trim();
+                  const requiresSizing = currentCategory === 't-shirt' || currentCategory === 'shoe';
+
+                  return (
+                    <div key={item.id} className="flex flex-col sm:flex-row items-center justify-between gap-6 p-4 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md hover:border-white/10 transition-colors text-left">
+                      
+                      <div 
+                        onClick={() => navigate(`/product/${item.product_id}`, { 
+                          state: { fromCartItemId: item.id, existingSize: item.selected_size, existingQty: item.quantity } 
+                        })}
+                        className="flex items-center gap-4 w-full sm:w-auto cursor-pointer group flex-1"
+                      >
+                        <div className="w-20 h-24 rounded-xl overflow-hidden bg-black/40 border border-white/5 flex-shrink-0 group-hover:border-lime-accent/40 transition-colors">
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-lime-accent group-hover:underline">
+                            {item.category} {requiresSizing && '(Click to re-configure)'}
+                          </span>
+                          <h3 className="text-base font-black uppercase tracking-wide text-white line-clamp-1 group-hover:text-lime-accent transition-colors">{item.name}</h3>
+                          
+                          {/* DYNAMIC METRIC LABELLING TRAY */}
+                          <div className="pt-0.5 pb-1">
+                            {requiresSizing ? (
+                              item.selected_size && item.selected_size.trim() !== '' ? (
+                                <span className="inline-block text-[10px] bg-lime-accent/10 text-lime-accent border border-lime-accent/20 font-mono font-bold px-2 py-0.5 rounded">
+                                  SIZE: {item.selected_size}
+                                </span>
+                              ) : (
+                                <span className="inline-block text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 font-mono font-bold px-2 py-0.5 rounded animate-pulse">
+                                  MISSING SIZE CONFIGURATION
+                                </span>
+                              )
+                            ) : (
+                              <span className="inline-block text-[10px] bg-white/5 text-gray-400 border border-white/5 font-mono px-2 py-0.5 rounded">
+                                STANDARD COMPONENT N/A
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-xs font-mono text-white/60">₹{Number(item.price).toLocaleString('en-IN')}</p>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-lime-accent">{item.category}</span>
-                        <h3 className="text-base font-black uppercase tracking-wide text-white line-clamp-1">{item.name}</h3>
-                        <p className="text-xs font-mono text-white/60">₹{Number(item.price).toLocaleString('en-IN')}</p>
+
+                      <div className="flex items-center justify-between w-full sm:w-auto gap-8 border-t sm:border-t-0 border-white/5 pt-4 sm:pt-0">
+                        <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-1">
+                          <button onClick={() => updateQuantity(item.id, item.quantity, -1)} className="p-2 hover:text-lime-accent transition-colors">
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-xs font-mono font-bold px-3 text-white">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item.id, item.quantity, 1)} className="p-2 hover:text-lime-accent transition-colors">
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-sm font-mono font-black text-white">₹{(Number(item.price) * item.quantity).toLocaleString('en-IN')}</p>
+                        </div>
+
+                        <button onClick={() => removeItem(item.id)} className="p-2.5 bg-white/5 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 text-white/40 hover:text-red-400 rounded-xl transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-between w-full sm:w-auto gap-8 border-t sm:border-t-0 border-white/5 pt-4 sm:pt-0">
-                      <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-1">
-                        <button onClick={() => updateQuantity(item.id, item.quantity, -1)} className="p-2 hover:text-lime-accent transition-colors">
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-mono font-bold px-3 text-white">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, item.quantity, 1)} className="p-2 hover:text-lime-accent transition-colors">
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="text-sm font-mono font-black text-white">₹{(Number(item.price) * item.quantity).toLocaleString('en-IN')}</p>
-                      </div>
-
-                      <button onClick={() => removeItem(item.id)} className="p-2.5 bg-white/5 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 text-white/40 hover:text-red-400 rounded-xl transition-all">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="lg:col-span-4 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-6">
@@ -195,12 +252,12 @@ const Cart = () => {
                 <div className="space-y-3 font-medium text-xs text-white/60 border-b border-white/5 pb-4">
                   <div className="flex justify-between"><span>Total Amount</span><span className="font-mono text-white">₹{subtotal.toLocaleString('en-IN')}</span></div>
                   <div className="flex justify-between"><span>Ecosystem Transport (Delivery)</span><span className="text-lime-accent uppercase text-[10px] font-black">Free Secure Node</span></div>
-                  
                 </div>
+                
                 <div className="flex justify-between items-center border-white/5 text-[11px]">
-                    <span className="flex items-center gap-1 text-white/40"><Calendar className="w-3.5 h-3.5 text-lime-accent/70" /> Estimated Arrival:</span>
-                    <span className="font-mono font-bold text-lime-accent">{calculateDefaultEstimatedArrival()}</span>
-                  </div>
+                  <span className="flex items-center gap-1 text-white/40"><Calendar className="w-3.5 h-3.5 text-lime-accent/70" /> Estimated Arrival:</span>
+                  <span className="font-mono font-bold text-lime-accent">{calculateDefaultEstimatedArrival()}</span>
+                </div>
 
                 <div className="flex justify-between items-baseline">
                   <span className="text-xs font-black uppercase tracking-wider">Total Charge Matrix</span>
@@ -208,7 +265,7 @@ const Cart = () => {
                 </div>
 
                 <button 
-                  onClick={() => navigate('/checkout', { state: { subtotal } })}
+                  onClick={handleProceedToCheckout}
                   className="w-full inline-flex items-center justify-center gap-2.5 bg-lime-accent hover:bg-lime-400 text-royal-dark px-6 py-4 font-black uppercase tracking-[0.15em] text-[11px] rounded-xl shadow-lg transition-transform transform active:scale-95 group"
                 >
                   Proceed to Secure Checkout

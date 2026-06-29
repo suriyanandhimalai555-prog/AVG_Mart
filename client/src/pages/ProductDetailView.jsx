@@ -1,22 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ShoppingBag, Star, CheckCircle2, ShieldCheck, Cpu } from 'lucide-react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { ArrowLeft, ShoppingBag, Star, ShieldCheck, Cpu } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { toast } from 'react-hot-toast' // <-- 1. Import toast engine
+import { toast } from 'react-hot-toast'
 
 const API_BASE_URL = 'http://localhost:5000/api/products'
 
 const ProductDetailView = () => {
     const { id } = useParams()
     const navigate = useNavigate()
+    const location = useLocation()
     const imageContainerRef = useRef(null)
+
+    // Extract dynamic transition state matrix if redirected explicitly from Cart.jsx
+    const fromCartItemId = location.state?.fromCartItemId || null
+    const existingSize = location.state?.existingSize || ''
+    const existingQty = location.state?.existingQty || 1
 
     const [product, setProduct] = useState(null)
     const [activeImg, setActiveImg] = useState('')
     const [isLoading, setIsLoading] = useState(true)
+    const [selectedSize, setSelectedSize] = useState('') // Tracks chosen size variation
 
-    // Fetch products and resolve parameters dynamically
+    // Automatically set size variant if navigating from an already populated cart row
+    useEffect(() => {
+        if (existingSize) {
+            setSelectedSize(existingSize)
+        }
+    }, [existingSize])
+
     useEffect(() => {
         const fetchProductData = async () => {
             setIsLoading(true)
@@ -24,7 +37,6 @@ const ProductDetailView = () => {
                 const response = await fetch(API_BASE_URL)
                 if (response.ok) {
                     const data = await response.json()
-                    // Match by URL parameters sequence string conversion 
                     const foundProduct = data.find(p => String(p.id) === String(id))
                     
                     if (foundProduct) {
@@ -66,7 +78,6 @@ const ProductDetailView = () => {
     const priceDifference = original - offer; 
     const percentSaved = original > 0 ? Math.round((priceDifference / original) * 100) : 0;
 
-    // Use product images grid sequence or provide premium defaults fallbacks
     const alternativeAngles = product.images && product.images.length > 0 
         ? product.images 
         : [product.images?.[0] || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"];
@@ -91,6 +102,20 @@ const ProductDetailView = () => {
     }
 
     const handleAddToCart = async (product, token, navigate) => {
+        // PAKKA VALIDATION LAYER: Checks if configurations exist and stops user if selection is empty
+        if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+            toast.error("Size selection required! Please select a size option variant matrix before adding to cart.", {
+                style: { 
+                    background: '#1c1c1e', 
+                    color: '#f87171', 
+                    border: '1px solid rgba(248,113,113,0.2)',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                }
+            });
+            return;
+        }
+
         if (!token) {
             toast.error("Authentication required. Redirecting to access terminal...", {
                 duration: 3000
@@ -99,7 +124,8 @@ const ProductDetailView = () => {
             return;
         }
 
-        const loadId = toast.loading("Syncing asset loadout configuration...");
+        const toastMsg = fromCartItemId ? "Modifying cart size configuration..." : "Syncing asset loadout configuration...";
+        const loadId = toast.loading(toastMsg);
 
         try {
             const originalPrice = Number(product.originalPrice || 0);
@@ -116,12 +142,27 @@ const ProductDetailView = () => {
                     name: product.name,
                     category: product.category,
                     price: offerPrice,
-                    image: product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"
+                    image: product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500",
+                    selected_size: selectedSize || '', 
+                    
+                    // Passing tracking keys parameters to safely bypass count compounding flow
+                    fromCartItemId: fromCartItemId,
+                    isSizeUpdateOnly: !!fromCartItemId,
+                    existingQty: existingQty
                 })
             });
 
             if (response.ok) {
-                toast.success(`${product.name} added to the cart!`, { id: loadId });
+                const successMsg = fromCartItemId 
+                    ? `Size safely calibrated to ${selectedSize}!` 
+                    : `${product.name} ${selectedSize ? `(Size: ${selectedSize})` : ''} configured to cart!`;
+                
+                toast.success(successMsg, { id: loadId });
+                
+                // If updated from cart interface explicitly, kick user directly back to checkout workspace
+                if (fromCartItemId) {
+                    setTimeout(() => navigate("/cart"), 1000);
+                }
             } else {
                 const errData = await response.json();
                 toast.error(`Sync failure: ${errData.message || 'Pipeline rejected target data.'}`, { id: loadId });
@@ -236,14 +277,30 @@ const ProductDetailView = () => {
                                 </p>
                             </div>
 
-                            {/* Display available sizing metrics strings if arrays are defined */}
+                            {/* SIZING INPUT TAG SELECTORS */}
                             {product.sizes && product.sizes.length > 0 && (
                                 <div className="space-y-3">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Available Configuration Matrix Size</h4>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                                        Available Configuration Matrix Size <span className="text-red-400 font-bold">*</span>
+                                    </h4>
                                     <div className="flex flex-wrap gap-2">
-                                        {product.sizes.map((sz, idx) => (
-                                            <span key={idx} className="font-mono text-xs font-black px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-lime-accent">{sz}</span>
-                                        ))}
+                                        {product.sizes.map((sz, idx) => {
+                                            const isSelected = selectedSize === sz;
+                                            return (
+                                                <button 
+                                                    key={idx} 
+                                                    type="button"
+                                                    onClick={() => setSelectedSize(sz)}
+                                                    className={`font-mono text-xs font-black px-4 py-2.5 rounded-xl border transition-all duration-300 transform active:scale-95 ${
+                                                        isSelected 
+                                                            ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-[0_0_15px_rgba(165,206,0,0.35)] font-bold' 
+                                                            : 'bg-white/5 border-white/10 text-white/70 hover:border-white/30'
+                                                    }`}
+                                                >
+                                                    {sz}
+                                                </button>
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             )}
@@ -285,7 +342,13 @@ const ProductDetailView = () => {
                                                 : 'bg-white/10 text-white/30 cursor-not-allowed'
                                         }`}
                                     >
-                                        <ShoppingBag className="w-4 h-4" /> {product.count > 0 ? 'Add to Cart' : 'Out of Stock'}
+                                        <ShoppingBag className="w-4 h-4" /> 
+                                        {product.count <= 0 
+                                            ? 'Out of Stock' 
+                                            : fromCartItemId 
+                                                ? 'Update Cart Size Matrix' 
+                                                : 'Add to Cart'
+                                        }
                                     </button>
                                 </div>
 
