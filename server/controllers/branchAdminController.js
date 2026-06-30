@@ -1,0 +1,108 @@
+import BranchAdminModel from '../models/branchAdminModel.js';
+import bcrypt from 'bcrypt';
+import nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail', 
+  auth: {
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS  
+  }
+});
+
+export const createBranchAdmin = async (req, res) => {
+  try {
+    const { name, email, branch, pincodes, password } = req.body;
+
+    if (!name || !email || !branch || !pincodes || !password) {
+      return res.status(400).json({ message: "All form field vectors are strictly mandatory." });
+    }
+
+    const existingAdmin = await BranchAdminModel.findByEmail(email);
+    if (existingAdmin) {
+      return res.status(400).json({ message: "An administrator with this email target already exists." });
+    }
+
+    // 1. Generate salt and hash the password cleanly
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const nodeId = `BR-${Math.floor(100 + Math.random() * 900)}`;
+
+    // 2. SUCCESS: Saving the encrypted hash string instead of plain text!
+    const newAdmin = await BranchAdminModel.create({
+      nodeId,
+      name,
+      email,
+      branch,
+      pincodes,
+      hashedPassword: hashedPassword // 👈 Fixed
+    });
+
+    const mailOptions = {
+      from: `"Corporate Logistics Admin" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'AVG-Mart Access Admin Credentials Assigned',
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; background-color: #0d1117; color: #ffffff; border-radius: 12px;">
+          <h2 style="color: #a3e635; text-transform: uppercase;">Administrative Access Confirmed</h2>
+          <p>Hello <strong>${name}</strong>,</p>
+          <p>You have been assigned as the official branch admin for: <strong>${branch}</strong>.</p>
+          <hr style="border: 1px solid #21262d; margin: 20px 0;" />
+          <p style="font-size: 13px; color: #8b949e;">Your system access credentials are provided below:</p>
+          <div style="background-color: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d; font-family: monospace;">
+            <p style="margin: 4px 0;"><strong>System Node ID:</strong> ${nodeId}</p>
+            <p style="margin: 4px 0;"><strong>Username Email:</strong> ${email}</p>
+            <p style="margin: 4px 0;"><strong>Access Password:</strong> ${password}</p>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(201).json({ message: "Admin registered successfully. Credentials emailed.", admin: newAdmin });
+  } catch (err) {
+    console.error("Fulfillment pipeline error caught:", err);
+    res.status(500).json({ message: "Internal server processing failure down the cluster pipeline." });
+  }
+};
+
+export const getAllBranchAdmins = async (req, res) => {
+  try {
+    const administrators = await BranchAdminModel.getAll();
+    const formatted = administrators.map(a => ({
+      id: a.id,
+      nodeId: a.nodeId || a.node_id, 
+      name: a.name,
+      email: a.email,
+      branch: a.branch,
+      pincodes: a.pincodes,
+      password: a.password
+    }));
+    res.status(200).json(formatted);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Database read cluster error caught." });
+  }
+};
+
+export const updateBranchAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, branch, pincodes, password } = req.body;
+    
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const updated = await BranchAdminModel.update(id, { 
+      name, 
+      email, 
+      branch, 
+      pincodes, 
+      password: hashedPassword 
+    });
+    res.status(200).json({ message: "Configuration parameters synchronized successfully.", admin: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed updating database admin records." });
+  }
+};

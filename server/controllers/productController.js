@@ -5,14 +5,13 @@ import crypto from 'crypto';
 
 export const createProduct = async (req, res) => {
   try {
-    const { name, category, sizes, description, originalPrice, offerPrice, count, isFeatured } = req.body;
+    const { name, category, sizes, description, originalPrice, offerPrice, branchAdminPrice, count, isFeatured } = req.body;
     
     let parsedSizes = [];
     if (sizes) {
       parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
     }
 
-    // Convert stringified FormData boolean representation cleanly
     const featuredBool = isFeatured === 'true' || isFeatured === true;
 
     const uploadedImageUrls = [];
@@ -42,6 +41,7 @@ export const createProduct = async (req, res) => {
       description,
       originalPrice,
       offerPrice,
+      branchAdminPrice, // <-- Passed here
       count: count || 0,
       images: uploadedImageUrls,
       isFeatured: featuredBool
@@ -66,9 +66,10 @@ export const getAllProducts = async (req, res) => {
       description: item.description,
       originalPrice: item.original_price,
       offerPrice: item.offer_price,
+      branchAdminPrice: item.branch_admin_price, // <-- Mapped cleanly here
       count: item.count,
       images: item.images,
-      isFeatured: item.is_featured // Map database column map back cleanly
+      isFeatured: item.is_featured 
     }));
 
     return res.status(200).json(structuredData);
@@ -80,7 +81,7 @@ export const getAllProducts = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { name, category, description, originalPrice, offerPrice, count, sizes, isFeatured } = req.body;
+  const { name, category, description, originalPrice, offerPrice, branchAdminPrice, count, sizes, isFeatured } = req.body;
 
   try {
     let uploadedImageUrls = undefined;
@@ -117,6 +118,7 @@ export const updateProduct = async (req, res) => {
       description,
       originalPrice,
       offerPrice,
+      branchAdminPrice, // <-- Passed here
       count,
       images: uploadedImageUrls,
       isFeatured: featuredBool

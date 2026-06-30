@@ -12,7 +12,8 @@ const Sidebar = () => {
     { name: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'Add Products', path: '/admin/products', icon: <PlusCircle className="w-5 h-5" /> },
     { name: 'Customer Orders', path: '/admin/orders', icon: <ShoppingBag className="w-5 h-5" /> },
-    { name: 'Branch Admin', path: '/admin/branch-admin', icon: <ShieldCheck className="w-5 h-5" /> },
+    { name: 'Branch Admin', path: '/admin/create-branch-admin', icon: <ShieldCheck className="w-5 h-5" /> },
+    { name: 'Stock Request', path: '/admin/stock-request', icon: <ShieldCheck className="w-5 h-5" /> },
   ]
 
   // Handle system logout parameters instantly with toast feedback

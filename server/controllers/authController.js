@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { createUserModel, findUserByEmailModel } from "../models/userModel.js";
+import BranchAdminModel from "../models/branchAdminModel.js"; // 👈 Import branch admin model
 
 // SIGNUP CONTROLLER
 export const signup = async (req, res) => {
@@ -51,21 +52,38 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Lookup credentials
-    const user = await findUserByEmailModel(email);
+    let user = null;
+    let assignedRole = "";
+
+    // 1. Try finding account inside the standard user/admin table
+    const standardUser = await findUserByEmailModel(email);
+
+    if (standardUser) {
+      user = standardUser;
+      assignedRole = standardUser.role; // Will be "admin" or "user"
+    } else {
+      // 2. Try looking into the branch_admins table ledger
+      const branchAdmin = await BranchAdminModel.findByEmail(email);
+      if (branchAdmin) {
+        user = branchAdmin;
+        assignedRole = "branch_admin"; // 👈 Hardcode role identifier
+      }
+    }
+
+    // Guard Clause if neither table yields a matching account string
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Match stored password hash against submitted data
+    // 3. Match stored password hash against submitted string tokens
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Create secure authentication login token
+    // 4. Create secure authorization token embedded with the exact role identity
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: assignedRole },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -77,7 +95,7 @@ export const login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: assignedRole, // 👈 Returns "admin", "branch_admin", or "user"
       },
     });
   } catch (error) {

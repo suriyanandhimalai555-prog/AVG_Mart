@@ -25,6 +25,14 @@ import CustomerOrders from './pages/admin/CustomerOrders'
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoutes'
 import Checkout from './pages/Checkout'
 
+// Branch Admin Imports
+import BranchAdmin from './pages/branchAdmin/BranchAdmin'
+import BranchSidebar from './pages/branchAdmin/BranchSidebar'
+import BranchAdminDashboard from './pages/branchAdmin/BranchAdminDashboard'
+import Stock from './pages/branchAdmin/Stock'
+import RequestStock from './pages/branchAdmin/RequestStock'
+import RequestStockBranch from './pages/admin/RequestStockBranch'
+
 const App = () => {
   return (
     <div>
@@ -61,28 +69,50 @@ const App = () => {
         </Route>
 
         {/* ======================================================== */}
-        {/* SECURED ADMIN MATRIX (Must be logged in AND an admin)     */}
+        {/* SECURED SUPER ADMIN MATRIX                               */}
         {/* ======================================================== */}
         <Route element={<ProtectedRoute requiredRole="admin" />}>
-          <Route 
-            path="/admin/*" 
+          <Route
+            path="/admin/*"
             element={
               <div className="flex flex-col lg:flex-row bg-royal-dark min-h-screen text-white antialiased">
-                {/* Responsive Sidebar component */}
                 <Sidebar />
-                
-                {/* Dynamic Sub-Routing View Panel */}
                 <div className="flex-1 overflow-x-hidden bg-royal-dark/30">
                   <Routes>
-                    {/* Index redirection for cleaner navigation */}
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="products" element={<AddProducts />} />
                     <Route path="orders" element={<CustomerOrders />} />
+                    <Route path="create-branch-admin" element={<BranchAdmin />} />
+                    <Route path="stock-request" element={<RequestStockBranch />} />
                   </Routes>
                 </div>
               </div>
-            } 
+            }
+          />
+        </Route>
+
+        {/* ======================================================== */}
+        {/* SECURED BRANCH ADMIN MATRIX                              */}
+        {/* ======================================================== */}
+        <Route element={<ProtectedRoute requiredRole="branch_admin" />}>
+          <Route
+            path="/branch-admin/*"
+            element={
+              <div className="flex flex-col lg:flex-row bg-[#071640] min-h-screen text-white antialiased">
+                {/* Clean layout segmentation tailored specifically for Branch operations context */}
+                <BranchSidebar />
+
+                <div className="flex-1 overflow-x-hidden bg-white/[0.02] backdrop-blur-md p-6 lg:p-10">
+                  <Routes>
+                    <Route index element={<Navigate to="dashboard" replace />} />
+                    <Route path="dashboard" element={<BranchAdminDashboard />} />
+                    <Route path="stock" element={<Stock />} />
+                    <Route path="request-stock" element={<RequestStock />} />
+                  </Routes>
+                </div>
+              </div>
+            }
           />
         </Route>
 

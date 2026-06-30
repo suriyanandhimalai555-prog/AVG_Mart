@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star } from 'lucide-react'
-import { toast } from 'react-hot-toast' // <-- Imported toast engine
+import { toast } from 'react-hot-toast' 
 
-// Base URL mapping configuration matching your express system root path
 const API_BASE_URL = 'http://localhost:5000/api/products'
 
 const AddProducts = () => {
@@ -22,6 +21,7 @@ const AddProducts = () => {
   const [description, setDescription] = useState('')
   const [originalPrice, setOriginalPrice] = useState('')
   const [offerPrice, setOfferPrice] = useState('')
+  const [branchAdminPrice, setBranchAdminPrice] = useState('') // <-- Added state hook
   const [count, setCount] = useState('')
   const [isFeatured, setIsFeatured] = useState(false)
   
@@ -90,6 +90,7 @@ const AddProducts = () => {
     setDescription('')
     setOriginalPrice('')
     setOfferPrice('')
+    setBranchAdminPrice('') // <-- Added reset action
     setCount('')
     setIsFeatured(false)
     setImages([])
@@ -101,7 +102,6 @@ const AddProducts = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Validate if at least one image is uploaded
     if (images.length === 0) {
       toast.error("Please upload at least one product image.");
       return;
@@ -115,6 +115,7 @@ const AddProducts = () => {
     formData.append('description', description)
     formData.append('originalPrice', originalPrice)
     formData.append('offerPrice', offerPrice)
+    formData.append('branchAdminPrice', branchAdminPrice || '0') // <-- Added form append
     formData.append('count', count || '0')
     formData.append('isFeatured', isFeatured)
 
@@ -168,6 +169,7 @@ const AddProducts = () => {
     
     setOriginalPrice(product.original_price !== undefined ? product.original_price : product.originalPrice)
     setOfferPrice(product.offer_price !== undefined ? product.offer_price : product.offerPrice)
+    setBranchAdminPrice(product.branch_admin_price !== undefined ? product.branch_admin_price : product.branchAdminPrice) // <-- Map values safely
     
     setCount(product.count)
     setIsFeatured(product.isFeatured || false)
@@ -178,7 +180,6 @@ const AddProducts = () => {
   }
 
   const handleDelete = async (id) => {
-    // Custom functional Toast Confirmation UI instance replacing native browser window blocks
     toast((t) => (
       <div className="flex flex-col gap-3 text-xs p-1 text-left">
         <p className="font-bold text-white uppercase tracking-wider">Confirm Delete Operation?</p>
@@ -292,6 +293,10 @@ const AddProducts = () => {
                   </span>
                   <span className="text-xs font-mono text-gray-canvas/40 line-through">
                     ₹{product.original_price !== undefined ? product.original_price : product.originalPrice}
+                  </span>
+                  {/* Visual Reference display label inside layout grids */}
+                  <span className="text-[10px] text-gray-canvas/50 ml-auto self-center bg-white/5 px-2 py-0.5 border border-white/10 rounded">
+                    Admin: ₹{product.branch_admin_price !== undefined ? product.branch_admin_price : product.branchAdminPrice || 0}
                   </span>
                 </div>
               </div>
@@ -441,9 +446,10 @@ const AddProducts = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Grid layout blocks tracking values */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Original Price (INR) *</label>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Original Price *</label>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
                     <input 
@@ -458,7 +464,7 @@ const AddProducts = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Offer Price (INR) *</label>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Offer Price *</label>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
                     <input 
@@ -472,8 +478,24 @@ const AddProducts = () => {
                   </div>
                 </div>
 
+                {/* --- ADDED INPUT FIELD ELEMENT BLOCK --- */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Count (Stock) *</label>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Branch Admin Price *</label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
+                    <input 
+                      type="number" 
+                      required
+                      placeholder="1350" 
+                      value={branchAdminPrice}
+                      onChange={(e) => setBranchAdminPrice(e.target.value)}
+                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono font-medium text-gray-canvas focus:outline-none focus:border-lime-accent transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Stock Count *</label>
                   <div className="relative flex items-center">
                     <input 
                       type="number" 
@@ -586,6 +608,12 @@ const AddProducts = () => {
                 <span className="text-white font-mono font-bold">{viewProduct.count} units</span>
               </div>
 
+              {/* Added read-only metadata tracking layout wrapper */}
+              <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
+                <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Branch Admin Price:</span>
+                <span className="text-white font-mono font-bold">₹{viewProduct.branch_admin_price !== undefined ? viewProduct.branch_admin_price : viewProduct.branchAdminPrice || 0}</span>
+              </div>
+
               <div className="space-y-1.5">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Product Description:</span>
                 <p className="bg-royal-main/10 border border-white/5 p-3 rounded-xl text-gray-canvas/80 tracking-wide leading-relaxed font-normal">{viewProduct.description}</p>
@@ -612,4 +640,4 @@ const AddProducts = () => {
   )
 }
 
-export default AddProducts
+export default AddProducts;

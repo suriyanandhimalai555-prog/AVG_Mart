@@ -56,49 +56,43 @@ const Login = () => {
   };
 
   // BACKEND INTEGRATION SUBMIT WITH ROLE REDIRECTS
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrorMessage("");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setErrorMessage("");
 
-    try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        }),
-      });
+  try {
+    const response = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: formData.email, password: formData.password }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Invalid email or password.");
 
-      if (!response.ok) {
-        throw new Error(data.message || "Invalid email or password.");
-      }
+    // Store state keys locally
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("userRole", data.user.role);
+    localStorage.setItem("userName", data.user.name);
 
-      // 1. Save Token and User Data to localStorage
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("userRole", data.user.role);
-      localStorage.setItem("userName", data.user.name);
+    toast.success(`Welcome back, ${data.user.name || 'Operator'}!`);
 
-      toast.success(`Welcome back, ${data.user.name || 'Operator'}!`);
-
-      // 2. Perform conditional navigation based on role check
-      if (data.user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/profile");
-      }
-
-    } catch (error) {
-      setErrorMessage(error.message);
-    } finally {
-      setIsSubmitting(false);
+    // --- UPDATED ROLE REDIRECT SWITCH CONDITIONAL BLOCK ---
+    if (data.user.role === "admin") {
+      navigate("/admin/dashboard");
+    } else if (data.user.role === "branch_admin") {
+      navigate("/branch-admin/dashboard"); // 👈 Send to your branch admin workspace shell
+    } else {
+      navigate("/profile");
     }
-  };
+
+  } catch (error) {
+    setErrorMessage(error.message);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#071640] text-white flex items-center justify-center p-4 relative overflow-hidden select-none perspective-1000">
