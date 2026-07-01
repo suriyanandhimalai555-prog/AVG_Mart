@@ -16,6 +16,9 @@ const RequestStock = () => {
   const [requestedCount, setRequestedCount] = useState('')
   const [calculatedAmount, setCalculatedAmount] = useState(0)
 
+  // Extract session token
+  const token = localStorage.getItem("token")
+
   useEffect(() => {
     fetchProducts()
     fetchRequests()
@@ -36,7 +39,10 @@ const RequestStock = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch(API_PRODUCTS_URL)
+      // Products can remain public or add token if routes are protected
+      const response = await fetch(API_PRODUCTS_URL, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
       if (response.ok) {
         const data = await response.json()
         setProducts(data)
@@ -46,10 +52,15 @@ const RequestStock = () => {
     }
   }
 
+  // PAKKA FIX: Added Authorization headers to fetch only current branch requests
   const fetchRequests = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(API_REQUESTS_URL)
+      const response = await fetch(API_REQUESTS_URL, {
+        headers: { 
+          "Authorization": `Bearer ${token}` 
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setRequests(data)
@@ -65,6 +76,7 @@ const RequestStock = () => {
   const uniqueCategories = [...new Set(products.map(p => p.category))]
   const filteredProducts = products.filter(p => p.category === selectedCategory)
 
+  // PAKKA FIX: Added Authorization headers to record request under correct branch node
   const handleFormSubmit = async (e) => {
     e.preventDefault()
     if (!selectedProductId || !requestedCount || requestedCount <= 0) {
@@ -77,7 +89,10 @@ const RequestStock = () => {
     try {
       const response = await fetch(API_REQUESTS_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           productId: parseInt(selectedProductId),
           category: selectedCategory,

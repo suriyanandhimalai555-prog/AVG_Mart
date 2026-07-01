@@ -14,14 +14,22 @@ const Stock = () => {
   const [productName, setProductName] = useState('')
   const [count, setCount] = useState('')
 
+  // Get session token token references
+  const token = localStorage.getItem("token")
+
   useEffect(() => {
     fetchStock()
   }, [])
 
+  // PAKKA FIX: Pass verification headers to fetch only this specific user's stock indices
   const fetchStock = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(API_BASE_URL)
+      const response = await fetch(API_BASE_URL, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setStockItems(data)
@@ -36,6 +44,7 @@ const Stock = () => {
     }
   }
 
+  // PAKKA FIX: Pass verification headers to tie new stock item configuration to logged-in user context
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!category || !productName || count === '') {
@@ -48,7 +57,10 @@ const Stock = () => {
     try {
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           id: editingId,
           product_name: productName,
@@ -76,12 +88,18 @@ const Stock = () => {
     setCount(item.count)
   }
 
+  // PAKKA FIX: Added Authorization token checks for delete mutations
   const handleDelete = async (id) => {
     if (!window.confirm("Permanently strip this allocation item node?")) return
     const loaderId = toast.loading("Processing system removal sequence...")
 
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' })
+      const response = await fetch(`${API_BASE_URL}/${id}`, { 
+        method: 'DELETE',
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         toast.success("Entry removed from storage ledger.", { id: loaderId })
         fetchStock()

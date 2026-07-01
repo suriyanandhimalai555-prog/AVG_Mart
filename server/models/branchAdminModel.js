@@ -1,9 +1,16 @@
-import { pool } from '../config/db.js'; // 👈 Fixed: Using brackets to correctly import your named pool export
+import { pool } from '../config/db.js';
 
 const BranchAdminModel = {
+  // Find record by primary database serial ID
+  findById: async (id) => {
+    const query = 'SELECT * FROM branch_admins WHERE id = $1';
+    const { rows } = await pool.query(query, [id]);
+    return rows[0];
+  },
+
   // Check for historical duplicates prior to allocation
   findByEmail: async (email) => {
-    const query = 'SELECT * FROM branch_admins WHERE email = $1';
+    const query = 'SELECT id, node_id AS "nodeId", name, email, branch, pincodes, password, created_at FROM branch_admins WHERE email = $1';
     const { rows } = await pool.query(query, [email]);
     return rows[0];
   },

@@ -23,19 +23,17 @@ export const createBranchAdmin = async (req, res) => {
       return res.status(400).json({ message: "An administrator with this email target already exists." });
     }
 
-    // 1. Generate salt and hash the password cleanly
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const nodeId = `BR-${Math.floor(100 + Math.random() * 900)}`;
 
-    // 2. SUCCESS: Saving the encrypted hash string instead of plain text!
     const newAdmin = await BranchAdminModel.create({
       nodeId,
       name,
       email,
       branch,
       pincodes,
-      hashedPassword: hashedPassword // 👈 Fixed
+      hashedPassword: hashedPassword
     });
 
     const mailOptions = {
@@ -66,9 +64,22 @@ export const createBranchAdmin = async (req, res) => {
   }
 };
 
+// PAKKA FIX: Filter data depending on user role
 export const getAllBranchAdmins = async (req, res) => {
   try {
-    const administrators = await BranchAdminModel.getAll();
+    let administrators = [];
+    
+    // If master admin, get all nodes
+    if (req.user && req.user.role === 'admin') {
+      administrators = await BranchAdminModel.getAll();
+    } else {
+      // If branch admin, they can ONLY fetch their own profile details using token email
+      const selfAdmin = await BranchAdminModel.findByEmail(req.user.email);
+      if (selfAdmin) {
+        administrators = [selfAdmin];
+      }
+    }
+
     const formatted = administrators.map(a => ({
       id: a.id,
       nodeId: a.nodeId || a.node_id, 
@@ -78,6 +89,7 @@ export const getAllBranchAdmins = async (req, res) => {
       pincodes: a.pincodes,
       password: a.password
     }));
+
     res.status(200).json(formatted);
   } catch (err) {
     console.error(err);
@@ -85,11 +97,20 @@ export const getAllBranchAdmins = async (req, res) => {
   }
 };
 
+// PAKKA FIX: Prevent branch admins from updating other admins' profiles
 export const updateBranchAdmin = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, email, branch, pincodes, password } = req.body;
     
+    // Authorization Check: If not a master admin, check if the ID matches their own ID
+    if (req.user && req.user.role !== 'admin') {
+      const targetAdmin = await BranchAdminModel.findById(id);
+      if (!targetAdmin || targetAdmin.email !== req.user.email) {
+        return res.status(403).json({ message: "Unauthorized action. You can only modify your own profile configuration." });
+      }
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -100,6 +121,7 @@ export const updateBranchAdmin = async (req, res) => {
       pincodes, 
       password: hashedPassword 
     });
+
     res.status(200).json({ message: "Configuration parameters synchronized successfully.", admin: updated });
   } catch (err) {
     console.error(err);

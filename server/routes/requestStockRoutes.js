@@ -1,15 +1,12 @@
 import express from 'express';
 import { createRequest, getAllRequests, updateRequestStatus } from '../controllers/stockRequestController.js';
+import { verifyToken } from '../middleware/authMiddleware.js'; // 👈 Import auth middleware
 
 const router = express.Router();
 
-// Matches: POST http://localhost:5000/api/branch-stock/stock-requests
-router.post('/stock-requests', createRequest);
-
-// Matches: GET http://localhost:5000/api/branch-stock/stock-requests
-router.get('/stock-requests', getAllRequests);
-
-// Matches: PUT http://localhost:5000/api/branch-stock/stock-requests/:id/status
-router.put('/stock-requests/:id/status', updateRequestStatus);
+// Apply verifyToken middleware to secure all resource access channels
+router.post('/stock-requests', verifyToken, createRequest);
+router.get('/stock-requests', verifyToken, getAllRequests);
+router.put('/stock-requests/:id/status', verifyToken, updateRequestStatus);
 
 export default router;
