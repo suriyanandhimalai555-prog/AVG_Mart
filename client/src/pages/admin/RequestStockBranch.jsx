@@ -8,17 +8,27 @@ const RequestStockBranch = () => {
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(false)
 
+  // PAKKA FIX: Retrieve authorization session token 
+  const token = localStorage.getItem("token")
+
   useEffect(() => {
     fetchBranchRequests()
   }, [])
 
+  // PAKKA FIX: Pass Token in Headers to prevent backend 500 error crashing
   const fetchBranchRequests = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(API_REQUESTS_URL)
+      const response = await fetch(API_REQUESTS_URL, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setRequests(data)
+      } else {
+        console.error("Pipeline failure server validation error.")
       }
     } catch (err) {
       console.error("Critical communications link interface breakdown error:", err)
@@ -28,12 +38,16 @@ const RequestStockBranch = () => {
     }
   }
 
+  // PAKKA FIX: Pass Token in Headers for status update actions
   const handleExecuteDecision = async (id, finalizedVerdict) => {
     const toastLoadId = toast.loading(`Registering structural decision state to '${finalizedVerdict}'...`)
     try {
       const response = await fetch(`${API_REQUESTS_URL}/${id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ status: finalizedVerdict })
       })
 
