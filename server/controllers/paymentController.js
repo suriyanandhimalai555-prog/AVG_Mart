@@ -36,7 +36,7 @@ export const createRazorpayOrder = async (req, res) => {
 };
 
 export const verifyRazorpayPayment = async (req, res) => {
-  const client = await pool.connect(); // Use a client connection for an atomic ACID transaction
+  const client = await pool.connect(); 
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, address_id, amount } = req.body;
 
@@ -60,10 +60,36 @@ export const verifyRazorpayPayment = async (req, res) => {
       return res.status(400).json({ message: "Invalid verification handshake payload data signature." });
     }
 
-    // 2. Begin transaction to write order records and clear cart state atomatically
     await client.query("BEGIN");
 
-    // Fetch the contents of the cart before clearing it
+    // Fetch the target pincode for this order using address_id
+    const addressQuery = "SELECT pincode FROM addresses WHERE id = $1 LIMIT 1;";
+    const { rows: addressRows } = await client.query(addressQuery, [address_id]);
+    
+    if (addressRows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "Delivery address node not found." });
+    }
+    const orderPincode = String(addressRows[0].pincode).trim();
+
+    // DYNAMIC MATCHING ENGINE: Find branch admin that has this pincode assigned
+    // This matches the comma-separated string formatting in your database table
+    const findBranchQuery = `
+      SELECT id, node_id FROM branch_admins 
+      WHERE pincodes LIKE $1 OR pincodes LIKE $2 OR pincodes LIKE $3 OR pincodes = $4 LIMIT 1;
+    `;
+    // Formulate padding safeguards for comma-delimited matching variants
+    const searchPatterns = [
+      `%, ${orderPincode},%`, // Middle
+      `${orderPincode},%`,    // Front
+      `%, ${orderPincode}`,   // End
+      orderPincode            // Single isolated value
+    ];
+    
+    const { rows: branchRows } = await client.query(findBranchQuery, searchPatterns);
+    const assignedBranchNodeId = branchRows.length > 0 ? branchRows[0].node_id : null;
+
+    // Fetch contents of the cart before wiping
     const cartQuery = "SELECT * FROM cart WHERE user_id = $1;";
     const { rows: cartItems } = await client.query(cartQuery, [req.user.id]);
 
@@ -72,12 +98,19 @@ export const verifyRazorpayPayment = async (req, res) => {
       return res.status(400).json({ message: "Cannot checkout an empty loadout terminal registry." });
     }
 
-    // Insert into the master orders log row
+    // Insert into master orders ledger along with its assigned branch identity trace
     const insertOrderQuery = `
-      INSERT INTO orders (id, user_id, address_id, total_price, payment_id)
-      VALUES ($1, $2, $3, $4, $5) RETURNING *;
+      INSERT INTO orders (id, user_id, address_id, total_price, payment_id, branch_node_id)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
     `;
-    await client.query(insertOrderQuery, [razorpay_order_id, req.user.id, address_id, amount, razorpay_payment_id]);
+    await client.query(insertOrderQuery, [
+      razorpay_order_id, 
+      req.user.id, 
+      address_id, 
+      amount, 
+      razorpay_payment_id, 
+      assignedBranchNodeId
+    ]);
 
     // Snapshot individual items into structural rows
     const insertItemQuery = `
@@ -93,25 +126,22 @@ export const verifyRazorpayPayment = async (req, res) => {
     await client.query(clearCartQuery, [req.user.id]);
 
     await client.query("COMMIT");
-    return res.status(200).json({ message: "Order processed and active memory array cleared cleanly." });
+    return res.status(200).json({ message: "Order processed and routed seamlessly." });
 
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Signature processing or structural DB transaction fault:", error);
+    console.error("Signature processing error:", error);
     return res.status(500).json({ message: "Failed to persist operational ledger sequences." });
   } finally {
     client.release();
   }
 };
 
-// 3. New Fetch API Controller targeting profile historical traces
-// New Fetch API Controller targeting profile historical traces
 export const getUserOrders = async (req, res) => {
   try {
     const query = `
       SELECT o.id, o.total_price as "totalPrice", o.status, o.created_at as date,
-             o.expected_delivery as "expected_delivery",
-             o.delivered_at as "delivered_at", -- ADDED THIS LINE TO FETCH COMPLETED DELIVERY DATE
+             o.expected_delivery as "expected_delivery", o.delivered_at as "delivered_at",
              json_agg(json_build_object('name', oi.name, 'price', oi.price, 'qty', oi.quantity, 'image', oi.image)) as items
       FROM orders o
       JOIN order_items oi ON o.id = oi.order_id
@@ -122,68 +152,112 @@ export const getUserOrders = async (req, res) => {
     const { rows } = await pool.query(query, [req.user.id]);
     return res.status(200).json(rows);
   } catch (error) {
-    console.error("Fetch Live Orders Error Trace:", error);
+    console.error("Fetch Live Orders Error:", error);
     return res.status(500).json({ message: "Failed retrieving order telemetry vectors." });
   }
 };
 
-// Fetch all customer orders for the Admin Panel
+// Fetch all customer orders - Dynamically filtered for Branch Admins vs Super Admin
 export const getAllCustomerOrders = async (req, res) => {
   try {
-    const query = `
-      SELECT o.id, o.total_price as total, o.status, o.created_at,
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Authentication context missing user parameters." });
+    }
+
+    const userId = req.user.id;
+
+    // 1. Recover the user email and operational role live from the users table
+    const userQuery = "SELECT email, role FROM users WHERE id = $1 LIMIT 1;";
+    const { rows: userRows } = await pool.query(userQuery, [userId]);
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "User account profile node not found." });
+    }
+
+    const userEmail = String(userRows[0].email).toLowerCase().trim();
+    const userRole = userRows[0].role; 
+
+    // 2. Check if this email exists anywhere in the branch_admins configuration table
+    const branchCheckQuery = "SELECT node_id, pincodes FROM branch_admins WHERE LOWER(TRIM(email)) = $1 LIMIT 1;";
+    const { rows: branchRows } = await pool.query(branchCheckQuery, [userEmail]);
+    
+    let isBranchAdmin = branchRows.length > 0;
+    let assignedBranchNodeId = isBranchAdmin ? branchRows[0].node_id : null;
+
+    // 3. Build the query with a CTE layout to prevent PostgreSQL column grouping conflicts
+    let query = `
+      WITH filtered_orders AS (
+        SELECT o.* FROM orders o
+        LEFT JOIN addresses a ON o.address_id = a.id
+    `;
+
+    const queryParams = [];
+
+    // 4. Apply restrictions if they are a Branch Admin and not a global super admin
+    if (isBranchAdmin && userRole !== 'admin') {
+      query += ` WHERE o.branch_node_id = $1 OR ($2 LIKE CONCAT('%', a.pincode, '%'))`;
+      queryParams.push(assignedBranchNodeId, branchRows[0].pincodes);
+    }
+
+    query += `
+      )
+      SELECT fo.id, fo.total_price as total, fo.status, fo.created_at, fo.branch_node_id,
              u.name as customer, u.email,
              a.phone, CONCAT(a.street_name, ', ', a.landmark, ', ', a.city, ', ', a.district, ', ', a.state, ' - ', a.pincode) as address,
              json_agg(json_build_object(
                'name', oi.name, 
                'qty', oi.quantity,
-               'image', oi.image,
-               'selected_size', oi.selected_size
+               'image', oi.image
              )) as items_summary,
-             -- Timeline properties block
-             to_char(o.created_at, 'DD/MM/YYYY, HH24:MI:SS') as "preparingDate",
-             o.dispatched_at as "dispatchedDate",
-             o.delivered_at as "deliveredDate",
-             o.expected_delivery as "expectedDelivery"
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      JOIN order_items oi ON o.id = oi.order_id
-      CROSS JOIN LATERAL (
-         SELECT phone, street_name, landmark, city, district, state, pincode 
-         FROM addresses WHERE id = o.address_id LIMIT 1
-      ) a
-      GROUP BY o.id, u.name, u.email, a.phone, a.street_name, a.landmark, a.city, a.district, a.state, a.pincode
-      ORDER BY o.created_at DESC;
+             to_char(fo.created_at, 'DD/MM/YYYY, HH24:MI:SS') as "preparingDate",
+             fo.dispatched_at as "dispatchedDate",
+             fo.delivered_at as "deliveredDate",
+             fo.expected_delivery as "expectedDelivery"
+      FROM filtered_orders fo
+      JOIN users u ON fo.user_id = u.id
+      JOIN order_items oi ON fo.id = oi.order_id
+      LEFT JOIN addresses a ON fo.address_id = a.id
+      GROUP BY fo.id, fo.total_price, fo.status, fo.created_at, fo.branch_node_id, fo.dispatched_at, fo.delivered_at, fo.expected_delivery,
+               u.name, u.email, a.phone, a.street_name, a.landmark, a.city, a.district, a.state, a.pincode
+      ORDER BY fo.created_at DESC;
     `;
-    const { rows } = await pool.query(query);
+
+    const { rows } = await pool.query(query, queryParams);
     
-    // Pass items summary down as a clean structural JSON block array
-    const formattedRows = rows.map(row => ({
-      ...row,
-      items: row.items_summary, 
-      total: `₹${Number(row.total).toLocaleString('en-IN')}`,
-      timeline: {
-        preparingDate: row.preparingDate,
-        dispatchedDate: row.dispatchedDate,
-        deliveredDate: row.deliveredDate,
-        expectedDelivery: row.expectedDelivery || "Not Set"
+    // 5. Build clean mapping properties to return to our front-end React interface
+    const formattedRows = rows.map(row => {
+      let numericTotal = 0;
+      if (row.total) {
+        const cleaned = String(row.total).replace(/[^\d.]/g, '');
+        numericTotal = parseFloat(cleaned) || 0;
       }
-    }));
+
+      return {
+        ...row,
+        items: row.items_summary || [], 
+        total: `₹${Number(numericTotal).toLocaleString('en-IN')}`,
+        timeline: {
+          preparingDate: row.preparingDate || "Not Available",
+          dispatchedDate: row.dispatchedDate || null,
+          deliveredDate: row.deliveredDate || null,
+          expectedDelivery: row.expectedDelivery || "Not Set"
+        }
+      };
+    });
 
     return res.status(200).json(formattedRows);
+
   } catch (error) {
-    console.error("Admin Fetch Orders Error Trace:", error);
+    console.error("CRITICAL SQL EXECUTION ERROR TRACE:", error);
     return res.status(500).json({ message: "Failed retrieving marketplace master registry." });
   }
 };
 
-// Update order status workflow increments from Admin UI
 export const updateOrderStatusByAdmin = async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status, expectedDelivery, dispatchedDate, deliveredDate } = req.body;
 
-    // Dynamically construct update vector based on workflow progression
     let updateQuery = `UPDATE orders SET status = $1`;
     const queryParams = [status];
 
@@ -203,7 +277,6 @@ export const updateOrderStatusByAdmin = async (req, res) => {
     updateQuery += ` WHERE id = $${queryParams.length + 1} RETURNING *;`;
     queryParams.push(orderId);
 
-    // Assuming pool or client is imported from db configuration
     const { rows } = await pool.query(updateQuery, queryParams);
     
     if (rows.length === 0) {

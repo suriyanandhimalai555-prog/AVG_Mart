@@ -32,6 +32,7 @@ import BranchAdminDashboard from './pages/branchAdmin/BranchAdminDashboard'
 import Stock from './pages/branchAdmin/Stock'
 import RequestStock from './pages/branchAdmin/RequestStock'
 import RequestStockBranch from './pages/admin/RequestStockBranch'
+import BranchOrders from './pages/branchAdmin/BranchOrders'
 
 const App = () => {
   return (
@@ -108,6 +109,7 @@ const App = () => {
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<BranchAdminDashboard />} />
                     <Route path="stock" element={<Stock />} />
+                    <Route path="orders" element={<BranchOrders />} />
                     <Route path="request-stock" element={<RequestStock />} />
                   </Routes>
                 </div>
