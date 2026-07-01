@@ -4,7 +4,8 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from './routes/productRoutes.js';
 import branchAdminRoutes from './routes/branchAdminRoutes.js';
-import requeststockRoutes from './routes/requestStockRoutes.js'; // Import clean module
+import stockRoutes from './routes/stockRoutes.js';             // 👈 Actual Stock Management
+import requeststockRoutes from './routes/requestStockRoutes.js'; // 👈 Stock Requests Management
 
 dotenv.config();
 
@@ -23,8 +24,9 @@ app.use("/api/auth", authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/auth/admin', branchAdminRoutes);
 
-// Fix: Mount cleanly onto a base stock prefix path
-app.use('/api/branch-stock', requeststockRoutes);
+// PAKKA ROUTING SEPARATION FIX
+app.use('/api/branch-stock', stockRoutes);                    // 👈 Handles get, add, update, delete stock entries
+app.use('/api/stock-requests', requeststockRoutes);            // 👈 Handles request allocations cleanly
 
 // Root path test
 app.get("/", (req, res) => {

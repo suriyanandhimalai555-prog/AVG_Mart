@@ -3,7 +3,7 @@ import { Layers, Package, Send, Clock, CheckCircle2, XCircle } from 'lucide-reac
 import { toast } from 'react-hot-toast'
 
 const API_PRODUCTS_URL = 'http://localhost:5000/api/products'
-const API_REQUESTS_URL = 'http://localhost:5000/api/branch-stock/stock-requests'
+const API_REQUESTS_URL = 'http://localhost:5000/api/stock-requests/stock-requests'
 
 const RequestStock = () => {
   const [products, setProducts] = useState([])
