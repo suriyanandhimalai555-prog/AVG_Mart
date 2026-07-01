@@ -12,7 +12,7 @@ const BranchSidebar = () => {
   const menuItems = [
     { name: 'Dashboard', path: '/branch-admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'Branch Orders', path: '/branch-admin/orders', icon: <ShoppingBag className="w-5 h-5" /> },
-    { name: 'Deliveries', path: '/branch-admin/deliveries', icon: <Truck className="w-5 h-5" /> },
+    // { name: 'Deliveries', path: '/branch-admin/deliveries', icon: <Truck className="w-5 h-5" /> },
     { name: 'Stock', path: '/branch-admin/stock', icon: <Package className="w-5 h-5" /> },
     { name: 'Request Stock', path: '/branch-admin/request-stock', icon: <PackagePlus className="w-5 h-5" /> },
   ]
