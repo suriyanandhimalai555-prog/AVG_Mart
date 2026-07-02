@@ -160,96 +160,149 @@ export const getUserOrders = async (req, res) => {
 // Fetch all customer orders - Dynamically filtered for Branch Admins vs Super Admin
 export const getAllCustomerOrders = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Authentication context missing user parameters." });
+
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Unauthorized"
+      });
     }
 
-    const userId = req.user.id;
+    let isAdmin = false;
+    let isBranchAdmin = false;
+    let branchNodeId = null;
+    let branchPincodes = null;
 
-    // 1. Recover the user email and operational role live from the users table
-    const userQuery = "SELECT email, role FROM users WHERE id = $1 LIMIT 1;";
-    const { rows: userRows } = await pool.query(userQuery, [userId]);
-
-    if (userRows.length === 0) {
-      return res.status(404).json({ message: "User account profile node not found." });
+    // MASTER ADMIN
+    if (req.user.role === "admin") {
+      isAdmin = true;
     }
 
-    const userEmail = String(userRows[0].email).toLowerCase().trim();
-    const userRole = userRows[0].role; 
+    // BRANCH ADMIN
+    if (req.user.role === "branch_admin") {
 
-    // 2. Check if this email exists anywhere in the branch_admins configuration table
-    const branchCheckQuery = "SELECT node_id, pincodes FROM branch_admins WHERE LOWER(TRIM(email)) = $1 LIMIT 1;";
-    const { rows: branchRows } = await pool.query(branchCheckQuery, [userEmail]);
-    
-    let isBranchAdmin = branchRows.length > 0;
-    let assignedBranchNodeId = isBranchAdmin ? branchRows[0].node_id : null;
+      isBranchAdmin = true;
 
-    // 3. Build the query with a CTE layout to prevent PostgreSQL column grouping conflicts
+      const { rows } = await pool.query(
+        `
+        SELECT
+        node_id,
+        pincodes
+        FROM branch_admins
+        WHERE id=$1
+        LIMIT 1
+        `,
+        [req.user.id]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({
+          message: "Branch admin not found."
+        });
+      }
+
+      branchNodeId = rows[0].node_id;
+      branchPincodes = rows[0].pincodes;
+    }
+
     let query = `
-      WITH filtered_orders AS (
-        SELECT o.* FROM orders o
-        LEFT JOIN addresses a ON o.address_id = a.id
+      SELECT
+        o.id,
+        o.total_price,
+        o.status,
+        o.created_at,
+        o.branch_node_id,
+
+        u.name AS customer,
+        u.email,
+
+        a.phone,
+
+        CONCAT(
+          a.street_name, ', ',
+          a.landmark, ', ',
+          a.city, ', ',
+          a.district, ', ',
+          a.state, ' - ',
+          a.pincode
+        ) AS address,
+
+        json_agg(
+          json_build_object(
+            'name',oi.name,
+            'qty',oi.quantity,
+            'image',oi.image
+          )
+        ) AS items
+
+      FROM orders o
+
+      JOIN users u
+      ON u.id=o.user_id
+
+      JOIN addresses a
+      ON a.id=o.address_id
+
+      JOIN order_items oi
+      ON oi.order_id=o.id
     `;
 
-    const queryParams = [];
+    const params = [];
 
-    // 4. Apply restrictions if they are a Branch Admin and not a global super admin
-    if (isBranchAdmin && userRole !== 'admin') {
-      query += ` WHERE o.branch_node_id = $1 OR ($2 LIKE CONCAT('%', a.pincode, '%'))`;
-      queryParams.push(assignedBranchNodeId, branchRows[0].pincodes);
+    if (isBranchAdmin) {
+
+      query += `
+      WHERE
+      o.branch_node_id=$1
+      OR
+      $2 LIKE '%'||a.pincode||'%'
+      `;
+
+      params.push(branchNodeId);
+      params.push(branchPincodes);
     }
 
     query += `
-      )
-      SELECT fo.id, fo.total_price as total, fo.status, fo.created_at, fo.branch_node_id,
-             u.name as customer, u.email,
-             a.phone, CONCAT(a.street_name, ', ', a.landmark, ', ', a.city, ', ', a.district, ', ', a.state, ' - ', a.pincode) as address,
-             json_agg(json_build_object(
-               'name', oi.name, 
-               'qty', oi.quantity,
-               'image', oi.image
-             )) as items_summary,
-             to_char(fo.created_at, 'DD/MM/YYYY, HH24:MI:SS') as "preparingDate",
-             fo.dispatched_at as "dispatchedDate",
-             fo.delivered_at as "deliveredDate",
-             fo.expected_delivery as "expectedDelivery"
-      FROM filtered_orders fo
-      JOIN users u ON fo.user_id = u.id
-      JOIN order_items oi ON fo.id = oi.order_id
-      LEFT JOIN addresses a ON fo.address_id = a.id
-      GROUP BY fo.id, fo.total_price, fo.status, fo.created_at, fo.branch_node_id, fo.dispatched_at, fo.delivered_at, fo.expected_delivery,
-               u.name, u.email, a.phone, a.street_name, a.landmark, a.city, a.district, a.state, a.pincode
-      ORDER BY fo.created_at DESC;
+      GROUP BY
+      o.id,
+      u.name,
+      u.email,
+      a.phone,
+      a.street_name,
+      a.landmark,
+      a.city,
+      a.district,
+      a.state,
+      a.pincode
+
+      ORDER BY o.created_at DESC
     `;
 
-    const { rows } = await pool.query(query, queryParams);
-    
-    // 5. Build clean mapping properties to return to our front-end React interface
-    const formattedRows = rows.map(row => {
-      let numericTotal = 0;
-      if (row.total) {
-        const cleaned = String(row.total).replace(/[^\d.]/g, '');
-        numericTotal = parseFloat(cleaned) || 0;
-      }
+    const { rows } = await pool.query(query, params);
 
-      return {
-        ...row,
-        items: row.items_summary || [], 
-        total: `₹${Number(numericTotal).toLocaleString('en-IN')}`,
-        timeline: {
-          preparingDate: row.preparingDate || "Not Available",
-          dispatchedDate: row.dispatchedDate || null,
-          deliveredDate: row.deliveredDate || null,
-          expectedDelivery: row.expectedDelivery || "Not Set"
-        }
-      };
+    const formatted = rows.map(order => ({
+      id: order.id,
+      customer: order.customer,
+      email: order.email,
+      phone: order.phone,
+      address: order.address,
+      status: order.status,
+      total: `₹${Number(order.total_price).toFixed(2)}`,
+      items: order.items,
+      timeline: {
+        preparingDate: order.created_at
+      }
+    }));
+
+    return res.json(formatted);
+
+  } catch (err) {
+
+    console.error(err);
+
+    return res.status(500).json({
+      message: err.message
     });
 
-    return res.status(200).json(formattedRows);
-
-  } catch (error) {
-    console.error("CRITICAL SQL EXECUTION ERROR TRACE:", error);
-    return res.status(500).json({ message: "Failed retrieving marketplace master registry." });
   }
 };
 
