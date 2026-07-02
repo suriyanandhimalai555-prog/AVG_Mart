@@ -67,33 +67,34 @@ export const createBranchAdmin = async (req, res) => {
 // PAKKA FIX: Filter data depending on user role
 export const getAllBranchAdmins = async (req, res) => {
   try {
-    let administrators = [];
-    
-    // If master admin, get all nodes
-    if (req.user && req.user.role === 'admin') {
-      administrators = await BranchAdminModel.getAll();
-    } else {
-      // If branch admin, they can ONLY fetch their own profile details using token email
-      const selfAdmin = await BranchAdminModel.findByEmail(req.user.email);
-      if (selfAdmin) {
-        administrators = [selfAdmin];
-      }
+
+    if (req.user.role === "admin") {
+      const admins = await BranchAdminModel.getAll();
+      return res.status(200).json(admins);
     }
 
-    const formatted = administrators.map(a => ({
-      id: a.id,
-      nodeId: a.nodeId || a.node_id, 
-      name: a.name,
-      email: a.email,
-      branch: a.branch,
-      pincodes: a.pincodes,
-      password: a.password
-    }));
+    if (req.user.role === "branch_admin") {
 
-    res.status(200).json(formatted);
+      const admin = await BranchAdminModel.findById(req.user.id);
+
+      if (!admin) {
+        return res.status(404).json({
+          message: "Branch admin not found."
+        });
+      }
+
+      return res.status(200).json(admin);
+    }
+
+    return res.status(403).json({
+      message: "Unauthorized"
+    });
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Database read cluster error caught." });
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
   }
 };
 
