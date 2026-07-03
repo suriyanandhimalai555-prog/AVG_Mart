@@ -8,14 +8,12 @@ const RequestStockBranch = () => {
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(false)
 
-  // PAKKA FIX: Retrieve authorization session token 
   const token = localStorage.getItem("token")
 
   useEffect(() => {
     fetchBranchRequests()
   }, [])
 
-  // PAKKA FIX: Pass Token in Headers to prevent backend 500 error crashing
   const fetchBranchRequests = async () => {
     setIsLoading(true)
     try {
@@ -38,7 +36,6 @@ const RequestStockBranch = () => {
     }
   }
 
-  // PAKKA FIX: Pass Token in Headers for status update actions
   const handleExecuteDecision = async (id, finalizedVerdict) => {
     const toastLoadId = toast.loading(`Registering structural decision state to '${finalizedVerdict}'...`)
     try {
@@ -53,7 +50,7 @@ const RequestStockBranch = () => {
 
       if (response.ok) {
         toast.success(`Request Order Index Ref ID: #${id} marked as ${finalizedVerdict}!`, { id: toastLoadId })
-        fetchBranchRequests() // Refresh data arrays instantly
+        fetchBranchRequests() 
       } else {
         toast.error("Server instance rejected configuration state validation schema mapping logs.", { id: toastLoadId })
       }
@@ -90,6 +87,8 @@ const RequestStockBranch = () => {
               <thead>
                 <tr className="bg-royal-dark/60 border-b border-white/5 text-[10px] font-black uppercase tracking-wider text-gray-canvas/50">
                   <th className="p-4">Ref Ticket</th>
+                  {/* ADDED: Branch column header */}
+                  <th className="p-4">Originating Branch</th>
                   <th className="p-4">Target Product Metadata</th>
                   <th className="p-4">Category Node</th>
                   <th className="p-4">Requested Volume</th>
@@ -102,6 +101,14 @@ const RequestStockBranch = () => {
                 {requests.map((reqItem) => (
                   <tr key={reqItem.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="p-4 font-mono text-lime-accent/70">#STK-{reqItem.id}</td>
+                    
+                    {/* ADDED: Branch cell rendering */}
+                    <td className="p-4">
+                      <span className="px-2 py-1 bg-white/5 border border-white/10 rounded-md font-bold text-lime-400 uppercase tracking-wide">
+                        {reqItem.branch_name || 'Unknown Branch'}
+                      </span>
+                    </td>
+
                     <td className="p-4">
                       <div>
                         <p className="font-bold text-white">{reqItem.product_name || `Deleted Product Asset`}</p>
