@@ -6,12 +6,11 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true)
   const token = localStorage.getItem("token")
 
-  // --- NATIVE TIMESTAMP FORMATTING UTILITY ---
+  // --- DATE FORMATTING UTILITY ---
   const formatOrderDate = (rawDateString) => {
     if (!rawDateString) return "Recent Order"
     try {
       const dateObj = new Date(rawDateString)
-      // Check if Date parse returned a valid structure
       if (isNaN(dateObj.getTime())) return rawDateString
 
       return dateObj.toLocaleDateString('en-IN', {
@@ -27,7 +26,7 @@ const Dashboard = () => {
     }
   }
 
-  // --- FETCH LIVE ORDERS FROM BACKEND REGISTRY ---
+  // --- FETCH ORDERS ---
   const fetchAllAdminOrders = async () => {
     setIsLoading(true)
     try {
@@ -41,7 +40,7 @@ const Dashboard = () => {
         useMockData()
       }
     } catch (err) {
-      console.error("Backend telemetry connection fault:", err)
+      console.error("Error connecting to backend server:", err)
       useMockData()
     } finally {
       setIsLoading(false)
@@ -50,9 +49,9 @@ const Dashboard = () => {
 
   const useMockData = () => {
     setOrders([
-      { id: "ORD-9831", customer: "Rohan Sharma", created_at: "2026-06-22T10:15:00.000Z", items: "2x Black T-Shirt", total: "1499", status: "Preparing" },
-      { id: "ORD-9830", customer: "Priya Patel", created_at: "2026-06-22T08:30:00.000Z", items: "1x Smart Sport Watch", total: "4299", status: "Dispatched" },
-      { id: "ORD-9829", customer: "Anand Kumar", created_at: "2026-06-21T14:45:00.000Z", items: "1x Premium Leather Belt", total: "999", status: "Delivered" }
+      { id: "ORD-9831", customer: "Rohan Sharma", created_at: "2026-06-22T10:15:00.000Z", items: "2x Black T-Shirt", total: "1499.00", status: "Preparing" },
+      { id: "ORD-9830", customer: "Priya Patel", created_at: "2026-06-22T08:30:00.000Z", items: "1x Smart Sport Watch", total: "4299.00", status: "Dispatched" },
+      { id: "ORD-9829", customer: "Anand Kumar", created_at: "2026-06-21T14:45:00.000Z", items: "1x Premium Leather Belt", total: "999.00", status: "Delivered" }
     ])
   }
 
@@ -60,7 +59,7 @@ const Dashboard = () => {
     fetchAllAdminOrders()
   }, [token])
 
-  // --- MUTATE STATUS STATE ENGINE ---
+  // --- UPDATE ORDER STATUS ---
   const handleUpdateStatus = async (id, currentStatus) => {
     let nextStatus = "Preparing"
     if (currentStatus === "Preparing" || currentStatus === "Preparing for Dispatch") nextStatus = "Dispatched"
@@ -83,23 +82,28 @@ const Dashboard = () => {
         setOrders(prev => prev.map(order => order.id === id ? { ...order, status: nextStatus } : order))
       }
     } catch (err) {
-      console.error("Pipeline shift failure:", err)
+      console.error("Error updating order status:", err)
       setOrders(prev => prev.map(order => order.id === id ? { ...order, status: nextStatus } : order))
     }
   }
 
-  // --- REAL-TIME ANALYTIC COMPILATION MATRIX ---
+  // --- ANALYTICS COMPILATION ---
   const totalOrdersCount = orders.length
-  const totalRevenueSum = orders.reduce((acc, curr) => acc + Number(String(curr.total || curr.total_price || 0).replace(/[^0-9]/g, '')), 0)
   
-  // Handles variant casing/naming maps cleanly
+  // FIXED: Keeps the decimal point safely intact using [^0-9.]
+  const totalRevenueSum = orders.reduce((acc, curr) => {
+    const rawPrice = curr.total || curr.total_price || 0
+    const sanitizedPrice = Number(String(rawPrice).replace(/[^0-9.]/g, ''))
+    return acc + (isNaN(sanitizedPrice) ? 0 : sanitizedPrice)
+  }, 0)
+  
   const preparingCount = orders.filter(o => o.status === "Preparing" || o.status === "Preparing for Dispatch").length
   const dispatchedCount = orders.filter(o => o.status === "Dispatched" || o.status === "Order Dispatched").length
   const deliveredCount = orders.filter(o => o.status === "Delivered" || o.status === "Order Delivered").length
 
   const stats = [
     { title: "Total Orders", value: totalOrdersCount.toLocaleString('en-IN'), icon: <ShoppingCart className="w-5 h-5" />, color: "border-white/20 text-white bg-white/5" },
-    { title: "Total Revenue", value: `₹${totalRevenueSum.toLocaleString('en-IN')}`, icon: <DollarSign className="w-5 h-5" />, color: "border-lime-accent/20 text-lime-accent bg-lime-accent/5" },
+    { title: "Total Revenue", value: `₹${totalRevenueSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: <DollarSign className="w-5 h-5" />, color: "border-lime-accent/20 text-lime-accent bg-lime-accent/5" },
     { title: "Preparing", value: preparingCount, icon: <Clock className="w-5 h-5" />, color: "border-amber-500/20 text-amber-400 bg-amber-500/5" },
     { title: "Dispatched", value: dispatchedCount, icon: <Truck className="w-5 h-5" />, color: "border-blue-400/20 text-blue-400 bg-blue-400/5" },
     { title: "Delivered", value: deliveredCount, icon: <CheckCircle2 className="w-5 h-5" />, color: "border-lime-accent/20 text-lime-accent bg-lime-accent/5" },
@@ -120,7 +124,7 @@ const Dashboard = () => {
     }
   }
 
-  // --- SAFE OBJECT/STRING COMPATIBLE PARSER FOR PRODUCT BREAKDOWN ---
+  // --- RENDERING CELL BLOCK FOR PRODUCT BREAKDOWN ---
   const renderProductBreakdown = (itemsData) => {
     let finalArray = [];
 
@@ -137,7 +141,7 @@ const Dashboard = () => {
 
     if (finalArray && finalArray.length > 0) {
       return (
-        <div className="flex flex-col gap-1 max-w-xs">
+        <div className="flex flex-col gap-1 max-w-xs text-left">
           {finalArray.map((prod, idx) => {
             if (!prod || typeof prod !== 'object') {
               return <span key={idx} className="block text-white/50">{String(prod)}</span>;
@@ -155,7 +159,7 @@ const Dashboard = () => {
       );
     }
 
-    return <span className="text-white/30">Package Cargo</span>;
+    return <span className="text-white/30">No items listed</span>;
   }
 
   return (
@@ -163,21 +167,21 @@ const Dashboard = () => {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
       
       {/* Layout Greeting Block */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/5 pb-6">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/5 pb-6 text-left">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white">Admin Dashboard</h2>
-          <p className="text-xs text-white/50 font-medium mt-1">Real-time storefront telemetry, fulfillment pipelines, and financial status tracking.</p>
+          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white"><span className='text-lime-400'>Admin</span> Dashboard</h2>
+          <p className="text-xs text-white/50 font-medium mt-1">Track storefront sales, delivery status, and incoming orders in real-time.</p>
         </div>
         <button 
           onClick={fetchAllAdminOrders} 
           className="inline-flex items-center gap-2 self-start sm:self-center text-[10px] font-black uppercase tracking-wider bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2.5 rounded-xl transition-all cursor-pointer"
         >
-          <RefreshCw className="w-3 h-3" /> Sync Registry Matrix
+          <RefreshCw className="w-3 h-3" /> Refresh Dashboard
         </button>
       </div>
 
-      {/* Analytics Card Metrics Configuration Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 relative z-10">
+      {/* Analytics Card Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 relative z-10 text-left">
         {stats.map((stat, i) => (
           <div key={i} className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 backdrop-blur-md shadow-xl hover:border-white/10 transition-colors">
             <div className="flex items-center justify-between gap-2">
@@ -191,20 +195,20 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Customer Registry Board wrapper */}
-      <div className="bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl space-y-6 relative z-10 backdrop-blur-md">
+      {/* Recent Orders Board */}
+      <div className="bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl space-y-6 relative z-10 backdrop-blur-md text-left">
         <div>
           <h3 className="text-base sm:text-lg font-black tracking-wide uppercase text-white">Recent Customer Orders</h3>
-          <p className="text-xs text-white/40 mt-0.5">Live feed tracking standard customer purchase workflows. Click status badge to advance route lifecycle.</p>
+          <p className="text-xs text-white/40 mt-0.5">Live view of incoming customer orders. Click the status badge to update delivery progress.</p>
         </div>
 
         {isLoading ? (
           <div className="text-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse py-20">
-            Parsing localized cluster registry payloads...
+            Loading order details...
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-20 text-xs font-mono tracking-widest text-white/30 uppercase border border-dashed border-white/10 rounded-xl">
-            No active transaction logs mapped to database links
+            No active orders found in the database
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-white/5">
@@ -214,42 +218,48 @@ const Dashboard = () => {
                   <th className="p-4">Order ID</th>
                   <th className="p-4">Customer</th>
                   <th className="p-4">Date Ordered</th>
-                  <th className="p-4">Product Breakdown</th>
+                  <th className="p-4">Items Ordered</th>
                   <th className="p-4">Total Value</th>
-                  <th className="p-4 text-center">Fulfillment Status</th>
+                  <th className="p-4 text-center">Update Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs font-medium text-white/80">
-                {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-white/[0.01] transition-colors">
-                    <td className="p-4 font-mono text-lime-accent font-bold whitespace-nowrap">{order.id}</td>
-                    <td className="p-4 text-white font-bold whitespace-nowrap">{order.customer || "Muthu V"}</td>
-                    
-                    {/* RUNNING CLEAN NATIVE DATE PARSER VECTOR */}
-                    <td className="p-4 text-white/50 whitespace-nowrap font-mono">
-                      {formatOrderDate(order.created_at)}
-                    </td>
-                    
-                    {/* SAFE RENDERING CELL BLOCK */}
-                    <td className="p-4 text-white/60 max-w-xs">
-                      {renderProductBreakdown(order.items)}
-                    </td>
+                {orders.map((order) => {
+                  // FIXED: Keep the decimal points clean here too
+                  const rawRowPrice = order.total || order.total_price || 0
+                  const parsedRowPrice = Number(String(rawRowPrice).replace(/[^0-9.]/g, ''))
+                  const formattedRowPrice = isNaN(parsedRowPrice) ? "0.00" : parsedRowPrice.toFixed(2)
 
-                    <td className="p-4 font-mono font-bold text-white whitespace-nowrap">
-                      ₹{Number(String(order.total || order.total_price || 0).replace(/[^0-9]/g, '')).toLocaleString('en-IN')}
-                    </td>
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <button 
-                        onClick={() => handleUpdateStatus(order.id, order.status)}
-                        disabled={order.status === "Delivered" || order.status === "Order Delivered"}
-                        className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider border px-3 py-1.5 rounded-full transition-all cursor-pointer ${getStatusStyle(order.status)}`}
-                      >
-                        {order.status}
-                        {order.status !== "Delivered" && order.status !== "Order Delivered" && <ArrowUpRight className="w-2.5 h-2.5 opacity-60" />}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                  return (
+                    <tr key={order.id} className="hover:bg-white/[0.01] transition-colors">
+                      <td className="p-4 font-mono text-lime-accent font-bold whitespace-nowrap">{order.id}</td>
+                      <td className="p-4 text-white font-bold whitespace-nowrap">{order.customer || "Customer"}</td>
+                      
+                      <td className="p-4 text-white/50 whitespace-nowrap font-mono">
+                        {formatOrderDate(order.created_at)}
+                      </td>
+                      
+                      <td className="p-4 text-white/60 max-w-xs">
+                        {renderProductBreakdown(order.items)}
+                      </td>
+
+                      <td className="p-4 font-mono font-bold text-white whitespace-nowrap">
+                        {/* Safe rendering of formatted string with decimal fallback */}
+                        {String(rawRowPrice).startsWith('₹') ? rawRowPrice : `₹${formattedRowPrice}`}
+                      </td>
+                      <td className="p-4 text-center whitespace-nowrap">
+                        <button 
+                          onClick={() => handleUpdateStatus(order.id, order.status)}
+                          disabled={order.status === "Delivered" || order.status === "Order Delivered"}
+                          className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider border px-3 py-1.5 rounded-full transition-all cursor-pointer ${getStatusStyle(order.status)}`}
+                        >
+                          {order.status}
+                          {order.status !== "Delivered" && order.status !== "Order Delivered" && <ArrowUpRight className="w-2.5 h-2.5 opacity-60" />}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

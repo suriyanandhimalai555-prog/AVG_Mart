@@ -225,7 +225,7 @@ const AddProducts = () => {
       
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/10 pb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider">Product Inventory</h2>
+          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider"><span className='text-lime-400'>Product</span> Inventory</h2>
           <p className="text-xs text-gray-canvas/50 font-medium mt-1">Manage, modify, and add your new store products.</p>
         </div>
         <button

@@ -144,7 +144,7 @@ const BranchAdmin = () => {
       {/* Control Title Block Layout Grid */}
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/5 pb-6">
         <div className="text-left">
-          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white">Branch Admin Registry</h2>
+          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white">Create <span className='text-lime-400'>Branch</span> Admin</h2>
           <p className="text-xs text-white/50 font-medium mt-1">Configure structural logistics access, assign local fulfillment sectors, and track serviceable postal codes.</p>
         </div>
         <button 
@@ -158,7 +158,7 @@ const BranchAdmin = () => {
       {/* Master Node Data Registry Table */}
       <div className="bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 relative z-10 backdrop-blur-md">
         <div className="text-left">
-          <h3 className="text-sm font-black tracking-wide uppercase text-white">Active Node Administrators</h3>
+          <h3 className="text-sm font-black tracking-wide uppercase text-white">Active Branch Admin</h3>
           <p className="text-[11px] text-white/40 mt-0.5">Live routing terminal matrices containing systemic logistical coverage scopes inside PostgreSQL.</p>
         </div>
 

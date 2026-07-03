@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, CheckCircle2, Clock, Truck, User, Mail, Phone, MapPin, Package, X, ArrowRight } from 'lucide-react'
-import { toast } from 'react-hot-toast' // <-- Imported toast framework engine
+import { createPortal } from 'react-dom'
+import { Calendar, CheckCircle2, Clock, Truck, User, Mail, Phone, MapPin, Package, X, ArrowRight, Eye } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 
 const CustomerOrders = () => {
   const [orders, setOrders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [viewingItemsOrder, setViewingItemsOrder] = useState(null)
+  const [viewingAddressOrder, setViewingAddressOrder] = useState(null)
   
   const [chosenStatus, setChosenStatus] = useState('')
   const [inputDate, setInputDate] = useState('')
@@ -61,9 +64,7 @@ const CustomerOrders = () => {
     e.preventDefault()
     if (!selectedOrder) return
 
-    // Initialize async action notification layer
     const transitionToastId = toast.loading("Updating logistics timeline matrix...")
-
     const currentTimestamp = new Date().toLocaleString('en-GB') 
     let payload = { status: chosenStatus }
 
@@ -108,8 +109,6 @@ const CustomerOrders = () => {
           return ord
         })
         setOrders(updatedOrders)
-        
-        // Success state resolution
         toast.success(`Order ${selectedOrder.id} updated to: ${chosenStatus}`, { id: transitionToastId })
         setSelectedOrder(null)
       } else {
@@ -121,71 +120,17 @@ const CustomerOrders = () => {
     }
   }
 
-  // Pure isolated rendering logic to parse strings, objects, or arrays into structured matrices cleanly
-  const renderItemsColumn = (itemsData) => {
-    let normalizedArray = [];
-
-    if (Array.isArray(itemsData)) {
-      normalizedArray = itemsData;
-    } else if (typeof itemsData === 'string') {
+  const getNormalizedItems = (itemsData) => {
+    if (Array.isArray(itemsData)) return itemsData
+    if (typeof itemsData === 'string') {
       try {
-        const parsed = JSON.parse(itemsData);
-        normalizedArray = Array.isArray(parsed) ? parsed : [parsed];
+        const parsed = JSON.parse(itemsData)
+        return Array.isArray(parsed) ? parsed : [parsed]
       } catch (e) {
-        // Fallback for simple comma-separated or plain text values from backend
-        const inlineItems = itemsData.split(',').map(i => i.trim()).filter(Boolean);
-        return (
-          <div className="space-y-1.5 min-w-[200px]">
-            {inlineItems.map((strItem, idx) => (
-              <div key={idx} className="flex items-center gap-2 bg-white/[0.02] border border-white/5 p-2 rounded-xl text-left">
-                <Package className="w-3.5 h-3.5 text-lime-accent flex-shrink-0" />
-                <span className="font-mono text-xs text-gray-300 uppercase tracking-wide truncate">{strItem}</span>
-              </div>
-            ))}
-          </div>
-        )
+        return itemsData.split(',').map(i => ({ name: i.trim(), qty: 1 }))
       }
     }
-
-    if (normalizedArray && normalizedArray.length > 0) {
-      return (
-        <div className="space-y-2 min-w-[240px]">
-          {normalizedArray.map((prod, index) => {
-            if (!prod || typeof prod !== 'object') return null;
-            
-            const rawSize = prod.selected_size || prod.size || '';
-            const sizeString = typeof rawSize === 'string' ? rawSize.trim() : String(rawSize);
-
-            return (
-              <div key={index} className="flex items-center gap-2.5 bg-white/[0.02] border border-white/5 p-2 rounded-xl text-left">
-                {prod.image && (
-                  <div className="w-10 h-12 rounded-lg bg-black/40 overflow-hidden border border-white/10 flex-shrink-0">
-                    <img src={prod.image} alt={prod.name || "product"} className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white text-xs truncate uppercase tracking-wide">{prod.name || prod.product_name || "Unknown Item"}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-gray-400 font-mono">Qty: {prod.qty || prod.quantity || 1}</span>
-                    {sizeString !== '' ? (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-lime-accent/10 border border-lime-accent/20 text-lime-accent rounded font-mono font-black uppercase">
-                        Sz: {sizeString}
-                      </span>
-                    ) : (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-white/5 text-gray-500 rounded font-mono border border-white/5">
-                        N/A
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )
-    }
-
-    return <span className="text-gray-500 font-mono text-[11px]">No items found</span>
+    return []
   }
 
   if (isLoading) {
@@ -196,63 +141,210 @@ const CustomerOrders = () => {
     )
   }
 
+  // Common Tailwind custom scrollbar design utility class string
+  const customScrollbarClasses = "scrollbar-none [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
+
   return (
-    <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark min-h-screen text-white">
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wider text-left">Customer Orders Dashboard</h2>
-        <p className="text-xs text-gray-400 mt-1 text-left">Modify and set custom delivery dates here.</p>
+    <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark min-h-screen text-white relative">
+      <div className="relative z-10 text-left border-b border-white/5 pb-6">
+        <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white"><span className='text-lime-400'>Customer</span> Orders</h2>
+        <p className="text-xs text-gray-400 mt-1">Modify logistics tracking pipelines and manage global shipping logs maps.</p>
       </div>
 
-      <div className="bg-royal-main/20 border border-white/5 rounded-2xl p-4 sm:p-6 shadow-2xl">
-        <div className="overflow-x-auto rounded-xl border border-white/5 bg-royal-dark/40">
+      <div className="bg-royal-main/20 border border-white/5 rounded-2xl p-4 sm:p-6 shadow-2xl relative z-10 backdrop-blur-md text-left">
+        {/* Horizontal table element styling with sleek WebKit override configurations */}
+        <div className={`overflow-x-auto rounded-xl border border-white/5 bg-royal-dark/40 pb-2 ${customScrollbarClasses}`}>
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
               <tr className="border-b border-white/10 bg-royal-dark text-[11px] font-bold uppercase tracking-wider text-gray-400">
                 <th className="p-4 w-28">Order ID</th>
                 <th className="p-4 w-56">Customer Info</th>
-                <th className="p-4 min-w-[320px]">Full Shipping Address</th>
-                <th className="p-4 min-w-[260px]">Configured Items & Size Matrix</th>
+                <th className="p-4 min-w-[240px]">Full Shipping Address</th>
+                <th className="p-4 min-w-[240px]">Products Ordered</th>
                 <th className="p-4 w-28">Total Price</th>
                 <th className="p-4 w-32 text-center">Status</th>
                 <th className="p-4 w-24 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-xs text-gray-200">
-              {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-royal-main/30 transition-colors">
-                  <td className="p-4 font-mono text-lime-accent font-bold whitespace-nowrap text-left">{order.id}</td>
-                  <td className="p-4 space-y-1 text-left">
-                    <div className="font-bold text-white flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-gray-400" /> {order.customer}</div>
-                    <div className="text-[11px] text-gray-400 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-500" /> {order.email}</div>
-                    <div className="text-[11px] text-gray-400 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-500" /> {order.phone}</div>
-                  </td>
-                  <td className="p-4 text-sm font-medium text-gray-300 whitespace-normal leading-relaxed text-left">
-                    <div className="flex items-start gap-2 max-w-md"><MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" /><span>{order.address}</span></div>
-                  </td>
-                  <td className="p-4 text-left">
-                    {renderItemsColumn(order.items)}
-                  </td>
-                  <td className="p-4 font-bold text-white whitespace-nowrap text-left">{order.total || `₹${order.totalPrice}`}</td>
-                  <td className="p-4 text-center whitespace-nowrap">
-                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${getStatusBadgeStyle(order.status)}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="p-4 text-center whitespace-nowrap">
-                    <button onClick={() => handleOpenTrackingPanel(order)} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 hover:bg-emerald-500 hover:text-white transition-all cursor-pointer">
-                      <span>Change Status</span><ArrowRight className="w-3 h-3" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {orders.map((order) => {
+                const normalizedItems = getNormalizedItems(order.items);
+                return (
+                  <tr key={order.id} className="hover:bg-royal-main/30 transition-colors">
+                    <td className="p-4 font-mono text-lime-accent font-bold whitespace-nowrap text-left">{order.id}</td>
+                    <td className="p-4 space-y-1 text-left">
+                      <div className="font-bold text-white flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-gray-400" /> {order.customer}</div>
+                      <div className="text-[11px] text-gray-400 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-500" /> {order.email}</div>
+                      <div className="text-[11px] text-gray-400 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-500" /> {order.phone}</div>
+                    </td>
+                    <td className="p-4">
+                      <button 
+                        onClick={() => setViewingAddressOrder(order)}
+                        className="inline-flex items-center gap-2 text-left group bg-white/5 border border-white/5 hover:border-white/10 px-3 py-2 rounded-xl transition-all cursor-pointer w-full max-w-[220px]"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                        <span className="text-[11px] leading-relaxed text-gray-300 truncate flex-1 group-hover:text-white">
+                          {order.address || 'No Address Mapped'}
+                        </span>
+                        <Eye className="w-3.5 h-3.5 text-white/20 group-hover:text-emerald-400 flex-shrink-0 transition-colors" />
+                      </button>
+                    </td>
+                    <td className="p-4">
+                      {normalizedItems.length > 0 ? (
+                        <button 
+                          onClick={() => setViewingItemsOrder(order)}
+                          className="inline-flex items-center gap-2 text-left group bg-white/5 border border-white/5 hover:border-white/10 px-3 py-2 rounded-xl transition-all cursor-pointer max-w-[200px]"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white group-hover:text-emerald-400 font-bold text-[11px] truncate uppercase tracking-wide">
+                              {normalizedItems[0]?.name || "View Items"}
+                            </p>
+                            <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                              {normalizedItems.length > 1 ? `+ ${normalizedItems.length - 1} more items` : '1 Item listed'}
+                            </p>
+                          </div>
+                          <Eye className="w-3.5 h-3.5 text-white/40 group-hover:text-emerald-400 flex-shrink-0 transition-colors" />
+                        </button>
+                      ) : (
+                        <span className="text-gray-500 font-mono text-[11px]">No items listed</span>
+                      )}
+                    </td>
+                    <td className="p-4 font-bold text-white whitespace-nowrap text-left">{order.total || `₹${order.totalPrice}`}</td>
+                    <td className="p-4 text-center whitespace-nowrap">
+                      <span className={`inline-block text-[10px] font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${getStatusBadgeStyle(order.status)}`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center whitespace-nowrap">
+                      <button onClick={() => handleOpenTrackingPanel(order)} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 hover:bg-emerald-500 hover:text-white transition-all cursor-pointer">
+                        <span>Change Status</span><ArrowRight className="w-3 h-3" />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-royal-dark border border-white/10 w-full max-w-xl rounded-3xl p-6 shadow-2xl relative space-y-6">
+      {/* PORTAL POPUP 1: CLEAN VIEW PRODUCTS MANIFEST BREAKDOWN */}
+      {viewingItemsOrder && createPortal(
+        <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+          <div className="bg-royal-dark border border-white/10 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative space-y-6 text-white">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div className="text-left">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 font-mono">Manifest Basket Overview</span>
+                <h3 className="text-lg font-black uppercase tracking-tight text-white mt-0.5">Items in Order #{viewingItemsOrder.id}</h3>
+              </div>
+              <button 
+                onClick={() => setViewingItemsOrder(null)} 
+                className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className={`space-y-4 max-h-[60vh] overflow-y-auto pr-1 ${customScrollbarClasses}`}>
+              {getNormalizedItems(viewingItemsOrder.items).map((prod, index) => {
+                const sizeString = String(prod.selected_size || prod.size || '').trim();
+                return (
+                  <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.01] text-left">
+                    <div className="flex items-start gap-4">
+                      {prod.image ? (
+                        <div className="w-16 h-20 rounded-xl bg-black/40 overflow-hidden border border-white/10 flex-shrink-0">
+                          <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 flex-shrink-0">
+                          <Package className="w-6 h-6 text-white/20" />
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-black uppercase tracking-wide text-white leading-snug">
+                          {prod.name || prod.product_name || "Unknown Item"}
+                        </h4>
+                        <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-gray-400">
+                          <span>Quantity Requested: <strong className="text-emerald-400 font-bold text-sm">{prod.qty || prod.quantity || 1}</strong></span>
+                          {sizeString && (
+                            <span className="text-[10px] px-2 py-0.5 bg-white/5 border border-white/10 text-white font-black rounded uppercase">
+                              Size: {sizeString}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/5 p-4 rounded-xl flex items-center justify-between font-mono text-xs">
+              <span className="text-gray-400 uppercase font-bold">Total Order Cost:</span>
+              <span className="text-base text-white font-black">{viewingItemsOrder.total || `₹${viewingItemsOrder.totalPrice || 0}`}</span>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* PORTAL POPUP 2: BIG CLEAR SHIPPING ADDRESS POPUP */}
+      {viewingAddressOrder && createPortal(
+        <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+          <div className="bg-royal-dark border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative space-y-5 text-white">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div className="text-left">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 font-mono">Logistics Mapping Location</span>
+                <h3 className="text-lg font-black uppercase tracking-tight text-white mt-0.5">Delivery Address</h3>
+              </div>
+              <button 
+                onClick={() => setViewingAddressOrder(null)} 
+                className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 rounded-xl border border-white/5 bg-white/[0.02] text-left space-y-4">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div className="space-y-1 flex-1">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-gray-500 block">Full Shipping Destination</span>
+                  <p className="text-sm font-medium text-gray-200 leading-relaxed font-mono select-all">
+                    {viewingAddressOrder.address || 'No destination address specified.'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="border-t border-white/5 pt-3 grid grid-cols-2 gap-4 font-mono text-[11px]">
+                <div>
+                  <span className="text-[9px] uppercase tracking-wider text-gray-500 block">Recipient Client</span>
+                  <span className="text-white font-bold">{viewingAddressOrder.customer || 'Unknown Recipient'}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase tracking-wider text-gray-500 block">Contact Line</span>
+                  <span className="text-emerald-400 font-bold">{viewingAddressOrder.phone || 'None listed'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button 
+                onClick={() => setViewingAddressOrder(null)}
+                className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Dismiss View
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* PORTAL POPUP 3: LOGISTICS CONFIGURATION MATRIX STATUS UPDATER */}
+      {selectedOrder && createPortal(
+        <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-royal-dark border border-white/10 w-full max-w-xl rounded-3xl p-6 shadow-2xl relative space-y-6 text-white">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="text-left">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 font-mono">Order Modification System</span>
@@ -283,7 +375,7 @@ const CustomerOrders = () => {
                     required 
                     value={inputDate} 
                     onChange={(e) => setInputDate(e.target.value)} 
-                    className="w-full max-w-xs bg-royal-main/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-400" 
+                    className="w-full max-w-xs bg-royal-main/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 color-scheme-dark" 
                   />
                 </div>
               )}
@@ -296,12 +388,12 @@ const CustomerOrders = () => {
                     required 
                     value={inputDate} 
                     onChange={(e) => setInputDate(e.target.value)} 
-                    className="w-full max-w-xs bg-royal-main/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-400" 
+                    className="w-full max-w-xs bg-royal-main/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 color-scheme-dark" 
                   />
                 </div>
               )}
 
-              <div className="p-4 bg-royal-main/10 border border-white/5 rounded-2xl space-y-4">
+              <div className="p-4 bg-royal-main/10 border border-white/5 rounded-2xl space-y-4 font-mono">
                 <p className="font-bold uppercase tracking-wider text-[10px] text-gray-400">Current Saved Tracking Log Dates</p>
                 <div className="flex gap-4 items-center text-xs text-gray-300">
                   <Clock className="w-4 h-4 text-amber-400" />
@@ -324,7 +416,8 @@ const CustomerOrders = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

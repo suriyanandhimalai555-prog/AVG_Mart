@@ -66,7 +66,7 @@ const RequestStockBranch = () => {
     <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark/20 min-h-screen text-gray-canvas text-left">
       <div className="border-b border-white/10 pb-6">
         <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider flex items-center gap-2">
-          Main Admin: Branch Resource Controls Dashboard
+          <span className='text-lime-400'>Request</span> From the branch
         </h2>
         <p className="text-xs text-gray-canvas/50 font-medium mt-1">Review inbound branch logistical procurement requests, verify item cost parameters, and apply database state updates.</p>
       </div>

@@ -70,7 +70,7 @@ const App = () => {
         </Route>
 
         {/* ======================================================== */}
-        {/* SECURED SUPER ADMIN MATRIX                               */}
+        {/* SECURED SUPER ADMIN                               */}
         {/* ======================================================== */}
         <Route element={<ProtectedRoute requiredRole="admin" />}>
           <Route
@@ -94,7 +94,7 @@ const App = () => {
         </Route>
 
         {/* ======================================================== */}
-        {/* SECURED BRANCH ADMIN MATRIX                              */}
+        {/* SECURED BRANCH ADMIN                              */}
         {/* ======================================================== */}
         <Route element={<ProtectedRoute requiredRole="branch_admin" />}>
           <Route
