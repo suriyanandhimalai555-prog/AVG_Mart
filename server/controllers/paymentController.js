@@ -114,11 +114,22 @@ export const verifyRazorpayPayment = async (req, res) => {
 
     // Snapshot individual items into structural rows
     const insertItemQuery = `
-      INSERT INTO order_items (order_id, product_id, name, price, quantity, image)
-      VALUES ($1, $2, $3, $4, $5, $6);
+      INSERT INTO order_items (order_id, product_id, name, price, quantity, image, selected_size)
+      VALUES ($1, $2, $3, $4, $5, $6, $7);
     `;
     for (const item of cartItems) {
-      await client.query(insertItemQuery, [razorpay_order_id, item.product_id, item.name, item.price, item.quantity, item.image]);
+      // Capture the size parameter safely from your cart database row
+      const productSize = item.selected_size || item.size || null;
+
+      await client.query(insertItemQuery, [
+        razorpay_order_id, 
+        item.product_id, 
+        item.name, 
+        item.price, 
+        item.quantity, 
+        item.image,
+        productSize // <-- Pass it here as the 7th argument ($7)
+      ]);
     }
 
     // Clear active cart parameters completely
@@ -230,7 +241,8 @@ export const getAllCustomerOrders = async (req, res) => {
           json_build_object(
             'name',oi.name,
             'qty',oi.quantity,
-            'image',oi.image
+            'image',oi.image,
+            'size', oi.selected_size
           )
         ) AS items
 
