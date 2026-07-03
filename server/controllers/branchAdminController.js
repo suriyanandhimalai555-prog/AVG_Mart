@@ -64,7 +64,7 @@ export const createBranchAdmin = async (req, res) => {
   }
 };
 
-// PAKKA FIX: Filter data depending on user role
+// Filter data depending on user role
 export const getAllBranchAdmins = async (req, res) => {
   try {
 
@@ -98,11 +98,11 @@ export const getAllBranchAdmins = async (req, res) => {
   }
 };
 
-// PAKKA FIX: Prevent branch admins from updating other admins' profiles
+//Prevent branch admins from updating other admins' profiles (Password Update Disabled)
 export const updateBranchAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, branch, pincodes, password } = req.body;
+    const { name, email, branch, pincodes } = req.body; // <-- Omitted password destructing
     
     // Authorization Check: If not a master admin, check if the ID matches their own ID
     if (req.user && req.user.role !== 'admin') {
@@ -112,15 +112,12 @@ export const updateBranchAdmin = async (req, res) => {
       }
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
+    // Pass only the profile details to your model update query
     const updated = await BranchAdminModel.update(id, { 
       name, 
       email, 
       branch, 
-      pincodes, 
-      password: hashedPassword 
+      pincodes
     });
 
     res.status(200).json({ message: "Configuration parameters synchronized successfully.", admin: updated });

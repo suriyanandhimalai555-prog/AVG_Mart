@@ -34,15 +34,15 @@ const BranchAdminModel = {
     return rows;
   },
 
-  // Mutate an operational branch node tracking entity
-  update: async (id, { name, email, branch, pincodes, password }) => {
+  // FIXED: Changed function key name back to 'update' to match controller expectations
+  update: async (id, { name, email, branch, pincodes }) => {
     const query = `
       UPDATE branch_admins 
-      SET name = $1, email = $2, branch = $3, pincodes = $4, password = $5
-      WHERE id = $6
+      SET name = $1, email = $2, branch = $3, pincodes = $4
+      WHERE id = $5
       RETURNING id, node_id AS "nodeId", name, email, branch, pincodes, password;
     `;
-    const values = [name, email, branch, pincodes, password, id];
+    const values = [name, email, branch, pincodes, id];
     const { rows } = await pool.query(query, values);
     return rows[0];
   }

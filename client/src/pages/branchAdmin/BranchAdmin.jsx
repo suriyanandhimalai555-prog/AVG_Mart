@@ -72,7 +72,7 @@ const BranchAdmin = () => {
       email: admin.email,
       branch: admin.branch,
       pincodes: admin.pincodes,
-      password: admin.password
+      password: '' // Explicitly clear password field values when entering update configurations
     })
     setEditingId(admin.id)
     setIsModalOpen(true)
@@ -83,7 +83,9 @@ const BranchAdmin = () => {
     e.preventDefault()
     setIsSubmitting(true)
     
-    if (!formData.name || !formData.email || !formData.branch || !formData.pincodes || !formData.password) {
+    // Check if configuration parameters pass validation checks (Password is strictly optional during updates)
+    const isPasswordRequired = !editingId
+    if (!formData.name || !formData.email || !formData.branch || !formData.pincodes || (isPasswordRequired && !formData.password)) {
       toast.error("Please fill in all mandatory profile configuration fields.")
       setIsSubmitting(false)
       return
@@ -102,13 +104,19 @@ const BranchAdmin = () => {
       
       const method = editingId ? "PUT" : "POST"
 
+      // Strip password string block clean from update configurations entirely 
+      const requestBody = { ...formData }
+      if (editingId) {
+        delete requestBody.password
+      }
+
       const response = await fetch(url, {
         method: method,
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestBody)
       })
 
       const result = await response.json()
@@ -286,24 +294,26 @@ const BranchAdmin = () => {
                 </div>
               </div>
 
-              {/* Secure Password Input Vector */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/50 block">Credential Gateway Password</label>
-                <div className="relative rounded-xl border border-white/10 bg-white/5 focus-within:border-lime-accent transition-all duration-300">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
-                    <Key className="w-4 h-4" />
+              {/* Secure Password Input Vector - Rendered ONLY during profile creation */}
+              {!editingId && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/50 block">Credential Gateway Password</label>
+                  <div className="relative rounded-xl border border-white/10 bg-white/5 focus-within:border-lime-accent transition-all duration-300">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                      <Key className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Enter access authentication password tokens"
+                      className="w-full pl-10 pr-4 py-2.5 bg-transparent font-mono text-xs text-white focus:outline-none placeholder-white/20"
+                      required
+                    />
                   </div>
-                  <input
-                    type="text"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="Enter access authentication password tokens"
-                    className="w-full pl-10 pr-4 py-2.5 bg-transparent font-mono text-xs text-white focus:outline-none placeholder-white/20"
-                    required
-                  />
                 </div>
-              </div>
+              )}
 
               {/* Logistics Branch Office Input Vector */}
               <div className="space-y-1.5">
