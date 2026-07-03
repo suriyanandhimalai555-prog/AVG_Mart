@@ -157,7 +157,7 @@ const BranchAdmin = () => {
         </div>
         <button 
           onClick={handleOpenCreateModal}
-          className="inline-flex items-center gap-2 self-start sm:self-center text-[10px] font-black uppercase tracking-wider bg-lime-accent text-royal-dark hover:bg-white px-4 py-3 rounded-xl transition-all font-sans font-bold shadow-lg cursor-pointer"
+          className="inline-flex items-center gap-2 self-start sm:self-center text-[12px] font-bold font-black uppercase tracking-wider bg-lime-accent text-royal-dark hover:bg-white px-4 py-3 rounded-xl transition-all font-sans font-bold shadow-lg cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 stroke-[3]" /> Add Branch Admin
         </button>
@@ -187,7 +187,7 @@ const BranchAdmin = () => {
                   <th className="p-4">Administrator Info</th>
                   <th className="p-4">Operational Hub</th>
                   <th className="p-4 max-w-xs">Coverage Pincodes</th>
-                  <th className="p-4 w-44">Credentials Matrix</th>
+                  {/* <th className="p-4 w-44">Credentials Matrix</th> */}
                   <th className="p-4 w-24 text-center">Action</th>
                 </tr>
               </thead>
@@ -203,7 +203,7 @@ const BranchAdmin = () => {
                     <td className="p-4 font-mono text-white/50 break-words max-w-xs text-[11px] leading-relaxed">
                       {admin.pincodes}
                     </td>
-                    <td className="p-4 whitespace-nowrap">
+                    {/* <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center gap-2 bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/5 w-fit">
                         <span className="font-mono text-[11px] text-white/60">
                           {visiblePasswords[admin.id] ? admin.password : "••••••••••••"}
@@ -215,7 +215,7 @@ const BranchAdmin = () => {
                           {visiblePasswords[admin.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
                       </div>
-                    </td>
+                    </td> */}
                     <td className="p-4 text-center whitespace-nowrap">
                       <button 
                         onClick={() => handleOpenEditModal(admin)}

@@ -11,6 +11,7 @@ import {
   PackagePlus,
   Mail,
   User,
+  User2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
@@ -42,6 +43,11 @@ const BranchSidebar = () => {
       name: "Request Stock",
       path: "/branch-admin/request-stock",
       icon: <PackagePlus className="w-5 h-5" />,
+    },
+    {
+      name: "Profile",
+      path: "/branch-admin/profile",
+      icon: <User2 className="w-5 h-5" />,
     },
   ];
 

@@ -33,6 +33,7 @@ import Stock from './pages/branchAdmin/Stock'
 import RequestStock from './pages/branchAdmin/RequestStock'
 import RequestStockBranch from './pages/admin/RequestStockBranch'
 import BranchOrders from './pages/branchAdmin/BranchOrders'
+import BranchProfile from './pages/branchAdmin/BranchProfile'
 
 const App = () => {
   return (
@@ -111,6 +112,7 @@ const App = () => {
                     <Route path="stock" element={<Stock />} />
                     <Route path="orders" element={<BranchOrders />} />
                     <Route path="request-stock" element={<RequestStock />} />
+                    <Route path="profile" element={<BranchProfile />} />
                   </Routes>
                 </div>
               </div>

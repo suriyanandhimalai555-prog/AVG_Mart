@@ -44,7 +44,7 @@ const RequestStockBranch = () => {
     try {
       const response = await fetch(`${API_REQUESTS_URL}/${id}/status`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           "Authorization": `Bearer ${token}`
         },
@@ -121,9 +121,10 @@ const RequestStockBranch = () => {
                         <div className="flex gap-2 justify-end">
                           <button
                             onClick={() => handleExecuteDecision(reqItem.id, 'Approved')}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500 text-royal-dark hover:border-emerald-500 transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500 hover:text-[#071640] hover:border-emerald-500 transition-all duration-200 cursor-pointer"
                           >
-                            <Check className="w-3 h-3 stroke-[3]" /> Approve
+                            <Check className="w-3 h-3 stroke-[3]" />
+                            <span>Approve</span>
                           </button>
                           <button
                             onClick={() => handleExecuteDecision(reqItem.id, 'Rejected')}

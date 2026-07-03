@@ -1,6 +1,7 @@
 import BranchAdminModel from '../models/branchAdminModel.js';
 import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
+import { pool } from '../config/db.js';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail', 
@@ -98,29 +99,46 @@ export const getAllBranchAdmins = async (req, res) => {
   }
 };
 
-//Prevent branch admins from updating other admins' profiles (Password Update Disabled)
 export const updateBranchAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, branch, pincodes } = req.body; // <-- Omitted password destructing
+    const { name, email, branch, pincodes, currentPassword, newPassword } = req.body; 
     
-    // Authorization Check: If not a master admin, check if the ID matches their own ID
+    // Authorization Check
     if (req.user && req.user.role !== 'admin') {
       const targetAdmin = await BranchAdminModel.findById(id);
-      if (!targetAdmin || targetAdmin.email !== req.user.email) {
-        return res.status(403).json({ message: "Unauthorized action. You can only modify your own profile configuration." });
+      if (!targetAdmin || targetAdmin.id !== Number(req.user.id)) {
+        return res.status(403).json({ message: "Unauthorized action." });
       }
     }
 
-    // Pass only the profile details to your model update query
-    const updated = await BranchAdminModel.update(id, { 
-      name, 
-      email, 
-      branch, 
-      pincodes
-    });
+    // Handle Secure Password Updates Separately
+    if (newPassword) {
+      // Fetch the full record containing the current hashed password
+      const userRecord = await BranchAdminModel.findById(id);
+      
+      // Verify current password match
+      const isMatch = await bcrypt.compare(currentPassword, userRecord.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Incorrect current password verification sequence." });
+      }
 
-    res.status(200).json({ message: "Configuration parameters synchronized successfully.", admin: updated });
+      // Hash and commit the new password token
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+      
+      await pool.query(
+        `UPDATE branch_admins SET password = $1 WHERE id = $2`,
+        [hashedPassword, id]
+      );
+
+      return res.status(200).json({ message: "Security gateway password modified cleanly." });
+    }
+
+    // Normal Profile Info Update (No password payload provided)
+    const updated = await BranchAdminModel.update(id, { name, email, branch, pincodes });
+    return res.status(200).json({ message: "Profile parameters synchronized successfully.", admin: updated });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed updating database admin records." });
