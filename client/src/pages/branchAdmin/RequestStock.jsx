@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom'
 import { Layers, Package, Send, Clock, CheckCircle2, XCircle, Plus, X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
-const API_PRODUCTS_URL = 'http://localhost:5000/api/products'
-const API_REQUESTS_URL = 'http://localhost:5000/api/stock-requests/stock-requests'
+const API_PRODUCTS_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
+const API_REQUESTS_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/stock-requests/stock-requests`
 
 const RequestStock = () => {
   const [products, setProducts] = useState([])

@@ -60,7 +60,7 @@ const BranchSidebar = () => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/api/auth/admin/branch",
+        `${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/branch`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

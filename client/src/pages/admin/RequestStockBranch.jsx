@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Check, X, Package, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
-const API_REQUESTS_URL = 'http://localhost:5000/api/stock-requests/stock-requests'
+const API_REQUESTS_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/stock-requests/stock-requests`
 
 const RequestStockBranch = () => {
   const [requests, setRequests] = useState([])

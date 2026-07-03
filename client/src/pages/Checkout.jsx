@@ -30,7 +30,7 @@ const Checkout = () => {
 
     const loadCheckoutCoreData = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/auth/profile", {
+        const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/profile`, {
           headers: { "Authorization": `Bearer ${token}` }
         })
         if (response.ok) {
@@ -58,7 +58,7 @@ const Checkout = () => {
     const addressToastId = toast.loading("Saving new address details...")
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/profile/address", {
+      const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/profile/address`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -91,7 +91,7 @@ const Checkout = () => {
     const gatewayToastId = toast.loading("Initializing payment tunnel...")
 
     try {
-      const responseOrder = await fetch("http://localhost:5000/api/auth/payment/order", {
+      const responseOrder = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/payment/order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -117,7 +117,7 @@ const Checkout = () => {
           const verificationToastId = toast.loading("Verifying transaction settlement...")
           
           try {
-            const verifyRes = await fetch("http://localhost:5000/api/auth/payment/verify", {
+            const verifyRes = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/payment/verify`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",

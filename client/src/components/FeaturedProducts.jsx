@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ShoppingBag, Star, Heart, Sparkles, Eye } from 'lucide-react'
 import { toast } from 'react-hot-toast' // <-- 1. Import toast engine
 
-const API_BASE_URL = 'http://localhost:5000/api/products'
+const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
 
 const FeaturedProducts = () => {
   const [products, setProducts] = useState([])

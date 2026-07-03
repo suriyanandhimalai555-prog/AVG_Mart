@@ -23,7 +23,7 @@ const Cart = () => {
     const fetchCartItemsFromDB = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/api/auth/cart", {
+        const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/cart`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (res.ok) {
@@ -48,7 +48,7 @@ const Cart = () => {
     const toastId = toast.loading("Updating item quantity...");
 
     try {
-      const res = await fetch(`http://localhost:5000/api/auth/cart/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/cart/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -78,7 +78,7 @@ const Cart = () => {
     const toastId = toast.loading("Removing item from cart...");
 
     try {
-      const res = await fetch(`http://localhost:5000/api/auth/cart/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/cart/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });

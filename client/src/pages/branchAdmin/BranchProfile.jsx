@@ -31,7 +31,7 @@ const BranchProfile = () => {
   const fetchBranchProfile = async () => {
     setIsLoading(true)
     try {
-      const res = await axios.get("http://localhost:5000/api/auth/admin/branch", {
+      const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/branch`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = Array.isArray(res.data) ? res.data[0] : res.data
@@ -77,7 +77,7 @@ const BranchProfile = () => {
 
     try {
       await axios.put(
-        `http://localhost:5000/api/auth/admin/branch/${profileId}`,
+        `${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/branch/${profileId}`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       )
@@ -104,7 +104,7 @@ const BranchProfile = () => {
 
     try {
       await axios.put(
-        `http://localhost:5000/api/auth/admin/branch/${profileId}`,
+        `${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/branch/${profileId}`,
         {
           ...formData, // Keep existing values constant
           currentPassword: passwordForm.currentPassword,

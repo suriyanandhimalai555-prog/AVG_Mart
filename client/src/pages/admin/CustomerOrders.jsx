@@ -17,7 +17,7 @@ const CustomerOrders = () => {
   const fetchAllOrders = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("http://localhost:5000/api/auth/admin/orders", {
+      const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/orders`, {
         headers: { "Authorization": `Bearer ${token}` }
       })
       if (response.ok) {
@@ -80,7 +80,7 @@ const CustomerOrders = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/admin/orders/${selectedOrder.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/orders/${selectedOrder.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

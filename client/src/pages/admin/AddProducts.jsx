@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star } from 'lucide-react'
 import { toast } from 'react-hot-toast' 
 
-const API_BASE_URL = 'http://localhost:5000/api/products'
+const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
 
 const AddProducts = () => {
   const [products, setProducts] = useState([])

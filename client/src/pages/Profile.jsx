@@ -55,7 +55,7 @@ const Profile = () => {
 
   // Fetch token from local storage
   const token = localStorage.getItem("token");
-  const API_BASE = "http://localhost:5000/api/auth";
+  const API_BASE = `${import.meta.env.VITE_APP_BASE_URL}/api/auth`;
 
   useEffect(() => {
     fetchProfileData();

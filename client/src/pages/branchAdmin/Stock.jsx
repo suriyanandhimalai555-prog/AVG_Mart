@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Plus, Edit2, Trash2, Layers, Package, Save, X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
-const API_BASE_URL = 'http://localhost:5000/api/branch-stock'
+const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/branch-stock`
 
 const Stock = () => {
   const [stockItems, setStockItems] = useState([])

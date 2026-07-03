@@ -30,7 +30,7 @@ const Dashboard = () => {
   const fetchAllAdminOrders = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch("http://localhost:5000/api/auth/admin/orders", {
+      const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/orders`, {
         headers: { "Authorization": `Bearer ${token}` }
       })
       if (res.ok) {
@@ -67,7 +67,7 @@ const Dashboard = () => {
     else return 
 
     try {
-      const res = await fetch(`http://localhost:5000/api/auth/orders/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/orders/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

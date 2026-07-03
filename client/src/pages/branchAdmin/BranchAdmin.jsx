@@ -28,7 +28,7 @@ const BranchAdmin = () => {
   const fetchBranchAdministrators = async () => {
     setIsLoadingRegistry(true)
     try {
-      const response = await fetch("http://localhost:5000/api/auth/admin/branch", {
+      const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/branch`, {
         headers: { 
           "Authorization": `Bearer ${token}` 
         }
@@ -99,8 +99,8 @@ const BranchAdmin = () => {
 
     try {
       const url = editingId 
-        ? `http://localhost:5000/api/auth/admin/branch/${editingId}`
-        : "http://localhost:5000/api/auth/admin/branch"
+        ? `${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/branch/${editingId}`
+        : `${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/branch`
       
       const method = editingId ? "PUT" : "POST"
 

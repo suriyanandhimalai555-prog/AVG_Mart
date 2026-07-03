@@ -18,7 +18,7 @@ const MyOrders = () => {
 
     const fetchLiveUserOrders = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/auth/orders", {
+        const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/orders`, {
           headers: { "Authorization": `Bearer ${token}` }
         })
         if (res.ok) {

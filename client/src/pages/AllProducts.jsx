@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast' // <-- 1. Import toast engine
 
-const API_BASE_URL = 'http://localhost:5000/api/products'
+const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
 
 const AllProducts = () => {
   const navigate = useNavigate()

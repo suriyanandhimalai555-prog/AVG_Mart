@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast' // <-- 1. Import the toast asset engine
 
-const API_BASE_URL = 'http://localhost:5000/api/products'
+const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
 
 const TShirts = () => {
   const navigate = useNavigate()
@@ -87,7 +87,7 @@ const TShirts = () => {
       const originalPrice = Number(product.originalPrice || 0);
       const offerPrice = Number(product.offerPrice || originalPrice);
       
-      const response = await fetch("http://localhost:5000/api/auth/cart", {
+      const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/cart`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

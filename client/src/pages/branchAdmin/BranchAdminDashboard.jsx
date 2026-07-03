@@ -32,7 +32,7 @@ const BranchAdminDashboard = () => {
     setIsLoading(true)
     try {
       // 1. Fetch Branch Profile for Title Display
-      const profileRes = await fetch("http://localhost:5000/api/auth/admin/branch", {
+      const profileRes = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/branch`, {
         headers: { "Authorization": `Bearer ${token}` }
       })
       if (profileRes.ok) {
@@ -44,7 +44,7 @@ const BranchAdminDashboard = () => {
       }
 
       // 2. Fetch Assigned Branch Orders
-      const ordersRes = await fetch("http://localhost:5000/api/auth/admin/orders", {
+      const ordersRes = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/orders`, {
         headers: { "Authorization": `Bearer ${token}` }
       })
       if (ordersRes.ok) {
@@ -70,7 +70,7 @@ const BranchAdminDashboard = () => {
     else return 
 
     try {
-      const res = await fetch(`http://localhost:5000/api/auth/admin/orders/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/admin/orders/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
