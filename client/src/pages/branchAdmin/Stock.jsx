@@ -235,7 +235,7 @@ const Stock = () => {
                 </span>
                 <h3 className="text-base font-black uppercase tracking-tight text-white flex items-center gap-2">
                   <Package className="w-4 h-4 text-lime-400" />
-                  <span>{editingId ? `Update Node Configuration #${editingId}` : 'Register New Node Stock'}</span>
+                  <span>{editingId ? `Update Stock Configuration #${editingId}` : 'Register New Stock'}</span>
                 </h3>
               </div>
               <button 
@@ -293,14 +293,14 @@ const Stock = () => {
                   onClick={closeAndResetForm}
                   className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 transition-colors cursor-pointer"
                 >
-                  Dismiss Frame
+                  close
                 </button>
                 <button
                   type="submit"
                   className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-lime-400 text-[#071640] hover:bg-lime-300 hover:shadow-[0_4px_20px_rgba(165,206,0,0.25)] transition-all cursor-pointer"
                 >
                   {editingId ? <Save className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5 stroke-[3]" />}
-                  <span>{editingId ? 'Save Configuration' : 'Inject Metrics'}</span>
+                  <span>{editingId ? 'Save Configuration' : 'Submit'}</span>
                 </button>
               </div>
             </form>

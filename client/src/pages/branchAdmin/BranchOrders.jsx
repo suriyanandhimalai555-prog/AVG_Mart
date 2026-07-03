@@ -276,7 +276,7 @@ const BranchOrders = () => {
       {/* PORTAL POPUP 1: BREAKDOWN MANIFEST MODAL */}
       {viewingItemsOrder && createPortal(
         <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#121212] border border-white/10 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative space-y-6 text-white">
+          <div className="bg-[#071640] border border-white/10 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative space-y-6 text-white">
             
             <div className="flex items-center justify-between border-b border-white/5 pb-4">
               <div className="text-left">
@@ -338,7 +338,7 @@ const BranchOrders = () => {
       {/* PORTAL POPUP 2: BIG CLEAR DELIVERY ADDRESS MODAL */}
       {viewingAddressOrder && createPortal(
         <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#121212] border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative space-y-5 text-white">
+          <div className="bg-[#071640] border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative space-y-5 text-white">
             
             <div className="flex items-center justify-between border-b border-white/5 pb-4">
               <div className="text-left">
@@ -392,7 +392,7 @@ const BranchOrders = () => {
       {/* PORTAL POPUP 3: STATUS LOGISTICS CONFIGURATION CONTROL MODAL */}
       {selectedOrder && createPortal(
         <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#121212] border border-white/10 w-full max-w-xl rounded-2xl p-6 shadow-2xl relative space-y-6 text-white">
+          <div className="bg-[#071640] border border-white/10 w-full max-w-xl rounded-2xl p-6 shadow-2xl relative space-y-6 text-white">
             
             <div className="flex items-center justify-between border-b border-white/5 pb-4">
               <div className="text-left">

@@ -238,7 +238,7 @@ const RequestStock = () => {
             <form onSubmit={handleFormSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 block">Category Type Node</label>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 block">Category Type</label>
                   <select
                     required
                     value={selectedCategory}
@@ -295,13 +295,13 @@ const RequestStock = () => {
                     onClick={closeAndResetForm}
                     className="px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 transition-colors cursor-pointer"
                   >
-                    Dismiss
+                    close
                   </button>
                   <button
                     type="submit"
                     className="flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-lime-accent text-royal-dark hover:shadow-[0_4px_20px_rgba(165,206,0,0.25)] transition-all cursor-pointer"
                   >
-                    <Send className="w-3.5 h-3.5 stroke-[2.5]" /> Transmit Request
+                    <Send className="w-3.5 h-3.5 stroke-[2.5]" /> submit Request
                   </button>
                 </div>
               </div>
