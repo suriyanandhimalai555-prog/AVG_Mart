@@ -204,14 +204,14 @@ const BranchOrders = () => {
                   return (
                     <tr key={order.id} className="hover:bg-white/[0.01] transition-colors">
                       <td className="p-4 font-mono text-lime-400 font-bold whitespace-nowrap">{order.id}</td>
-                      <td className="p-4 whitespace-nowrap space-y-0.5">
+                      <td className="p-4 whitespace-nowrap space-y-0.5 text-xl">
                         <div className="font-bold text-white flex items-center gap-1">
                           <User className="w-3 h-3 text-white/40" /> {order.customer || 'Unknown User'}
                         </div>
-                        <div className="text-[10px] text-white/40 font-mono flex items-center gap-1">
+                        <div className="text-[15px] text-white/40 font-mono flex items-center gap-1">
                           <Mail className="w-3 h-3 text-white/20" /> {order.email || '-'}
                         </div>
-                        <div className="text-[10px] text-white/40 font-mono flex items-center gap-1">
+                        <div className="text-[15px] text-white/40 font-mono flex items-center gap-1">
                           <Phone className="w-3 h-3 text-white/20" /> {order.phone || '-'}
                         </div>
                       </td>

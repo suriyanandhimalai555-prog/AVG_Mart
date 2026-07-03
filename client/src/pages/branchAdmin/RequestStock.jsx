@@ -27,17 +27,28 @@ const RequestStock = () => {
   }, [])
 
   // Instantly calculates total amount when product or count selections change
-  useEffect(() => {
-    if (!selectedProductId || !requestedCount) {
-      setCalculatedAmount(0)
-      return
-    }
-    const targetProduct = products.find(p => p.id === parseInt(selectedProductId))
-    if (targetProduct) {
-      const basePrice = targetProduct.branch_admin_price !== undefined ? targetProduct.branch_admin_price : targetProduct.originalPrice || 0;
-      setCalculatedAmount(parseFloat(basePrice) * parseInt(requestedCount))
-    }
-  }, [selectedProductId, requestedCount, products])
+  // Instantly calculates total amount when product or count selections change
+useEffect(() => {
+  // Explicitly ensure both a product selection and a non-empty string exist
+  if (!selectedProductId || !requestedCount || String(requestedCount).trim() === '') {
+    setCalculatedAmount(0)
+    return
+  }
+
+  const targetProduct = products.find(p => p.id === parseInt(selectedProductId))
+  if (targetProduct) {
+    // Cascade carefully through possible naming configurations for item base pricing
+    const basePrice = targetProduct.branch_admin_price !== undefined 
+      ? targetProduct.branch_admin_price 
+      : (targetProduct.branchAdminPrice !== undefined ? targetProduct.branchAdminPrice : targetProduct.originalPrice || 0);
+    
+    // Convert both strictly to numeric values before multiplying to eliminate calculation errors
+    const finalNumericPrice = Number(basePrice) || 0;
+    const finalNumericCount = Number(requestedCount) || 0;
+
+    setCalculatedAmount(finalNumericPrice * finalNumericCount)
+  }
+}, [selectedProductId, requestedCount, products])
 
   const fetchProducts = async () => {
     try {
