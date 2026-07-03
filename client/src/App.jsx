@@ -1,5 +1,8 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+// IMPORT YOUR SCROLL TO TOP UTILITY HERE
+import ScrollToTop from './components/ScrollToTop' 
+
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -38,6 +41,8 @@ import BranchProfile from './pages/branchAdmin/BranchProfile'
 const App = () => {
   return (
     <div>
+      <ScrollToTop />
+
       <Routes>
         {/* ======================================================== */}
         {/* PUBLIC ACCESSIBLE ROUTES (No Login Required)              */}
@@ -102,7 +107,6 @@ const App = () => {
             path="/branch-admin/*"
             element={
               <div className="flex flex-col lg:flex-row bg-[#071640] min-h-screen text-white antialiased">
-                {/* Clean layout segmentation tailored specifically for Branch operations context */}
                 <BranchSidebar />
 
                 <div className="flex-1 overflow-x-hidden bg-white/[0.02] backdrop-blur-md p-6 lg:p-10">
