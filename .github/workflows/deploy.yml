@@ -10,8 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -20,14 +19,18 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           script: |
+            echo "Connected Successfully"
+
+            whoami
+            pwd
+
             cd /root/otp/apps/AVG_Mart
 
+            git status
             git pull origin main
 
             docker compose down
-
             docker compose build --no-cache
-
             docker compose up -d
 
-            docker image prune -af
+            docker ps
