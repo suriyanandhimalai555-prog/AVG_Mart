@@ -3,9 +3,11 @@ import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star } from 'lucid
 import { toast } from 'react-hot-toast' 
 
 const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
+const API_CAT_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/categories`
 
 const AddProducts = () => {
   const [products, setProducts] = useState([])
+  const [availableCategories, setAvailableCategories] = useState([])
   const [isLoading, setIsLoading] = useState(false)
 
   // Dialog and popup controls state
@@ -21,7 +23,7 @@ const AddProducts = () => {
   const [description, setDescription] = useState('')
   const [originalPrice, setOriginalPrice] = useState('')
   const [offerPrice, setOfferPrice] = useState('')
-  const [branchAdminPrice, setBranchAdminPrice] = useState('') // <-- Added state hook
+  const [branchAdminPrice, setBranchAdminPrice] = useState('') 
   const [count, setCount] = useState('')
   const [isFeatured, setIsFeatured] = useState(false)
   
@@ -31,9 +33,26 @@ const AddProducts = () => {
   const tshirtSizes = ['S', 'M', 'L', 'XL']
   const shoeSizes = ['7', '8', '9', '10', '11', '12']
 
+  // Dynamic Category Identifiers
+  const isTshirtCategory = category.toLowerCase() === 't-shirt' || category.toLowerCase() === 'tshirts' || category.toLowerCase() === 'tshirt'
+  const isShoeCategory = category.toLowerCase() === 'shoe' || category.toLowerCase() === 'shoes' || category.toLowerCase() === 'footwear'
+
   useEffect(() => {
     fetchProducts()
+    fetchCategories()
   }, [])
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(API_CAT_URL)
+      if (response.ok) {
+        const data = await response.json()
+        setAvailableCategories(data)
+      }
+    } catch (err) {
+      console.error("Failed fetching live category layout dependencies:", err)
+    }
+  }
 
   const fetchProducts = async () => {
     setIsLoading(true)
@@ -90,7 +109,7 @@ const AddProducts = () => {
     setDescription('')
     setOriginalPrice('')
     setOfferPrice('')
-    setBranchAdminPrice('') // <-- Added reset action
+    setBranchAdminPrice('') 
     setCount('')
     setIsFeatured(false)
     setImages([])
@@ -115,11 +134,11 @@ const AddProducts = () => {
     formData.append('description', description)
     formData.append('originalPrice', originalPrice)
     formData.append('offerPrice', offerPrice)
-    formData.append('branchAdminPrice', branchAdminPrice || '0') // <-- Added form append
+    formData.append('branchAdminPrice', branchAdminPrice || '0') 
     formData.append('count', count || '0')
     formData.append('isFeatured', isFeatured)
 
-    const applicableSizes = (category === 't-shirt' || category === 'shoe') ? selectedSizes : []
+    const applicableSizes = (isTshirtCategory || isShoeCategory) ? selectedSizes : []
     formData.append('sizes', JSON.stringify(applicableSizes))
 
     rawFiles.forEach((file) => {
@@ -169,7 +188,7 @@ const AddProducts = () => {
     
     setOriginalPrice(product.original_price !== undefined ? product.original_price : product.originalPrice)
     setOfferPrice(product.offer_price !== undefined ? product.offer_price : product.offerPrice)
-    setBranchAdminPrice(product.branch_admin_price !== undefined ? product.branch_admin_price : product.branchAdminPrice) // <-- Map values safely
+    setBranchAdminPrice(product.branch_admin_price !== undefined ? product.branch_admin_price : product.branchAdminPrice) 
     
     setCount(product.count)
     setIsFeatured(product.isFeatured || false)
@@ -294,7 +313,6 @@ const AddProducts = () => {
                   <span className="text-xs font-mono text-gray-canvas/40 line-through">
                     ₹{product.original_price !== undefined ? product.original_price : product.originalPrice}
                   </span>
-                  {/* Visual Reference display label inside layout grids */}
                   <span className="text-[10px] text-gray-canvas/50 ml-auto self-center bg-white/5 px-2 py-0.5 border border-white/10 rounded">
                     Admin: ₹{product.branch_admin_price !== undefined ? product.branch_admin_price : product.branchAdminPrice || 0}
                   </span>
@@ -359,14 +377,15 @@ const AddProducts = () => {
                   className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-gray-canvas uppercase tracking-wider focus:outline-none focus:border-lime-accent transition-colors cursor-pointer"
                 >
                   <option value="" disabled className="bg-royal-dark text-gray-canvas/40">-- SELECT CATEGORY --</option>
-                  <option value="t-shirt" className="bg-royal-dark text-gray-canvas">T-Shirt</option>
-                  <option value="shoe" className="bg-royal-dark text-gray-canvas">Shoe</option>
-                  <option value="belt" className="bg-royal-dark text-gray-canvas">Belt</option>
-                  <option value="watch" className="bg-royal-dark text-gray-canvas">Watch</option>
+                  {availableCategories.map((cat) => (
+                    <option key={cat.id} value={cat.name} className="bg-royal-dark text-gray-canvas">
+                      {cat.name.toUpperCase()}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {category === 't-shirt' && (
+              {isTshirtCategory && (
                 <div className="space-y-2 animate-fadeIn">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Select Shirt Sizes</label>
                   <div className="flex flex-wrap gap-2">
@@ -388,7 +407,7 @@ const AddProducts = () => {
                 </div>
               )}
 
-              {category === 'shoe' && (
+              {isShoeCategory && (
                 <div className="space-y-2 animate-fadeIn">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Select Shoe Sizes</label>
                   <div className="flex flex-wrap gap-2">
@@ -446,7 +465,6 @@ const AddProducts = () => {
                 />
               </div>
 
-              {/* Grid layout blocks tracking values */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Original Price *</label>
@@ -478,7 +496,6 @@ const AddProducts = () => {
                   </div>
                 </div>
 
-                {/* --- ADDED INPUT FIELD ELEMENT BLOCK --- */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Branch Admin Price *</label>
                   <div className="relative flex items-center">
@@ -608,7 +625,6 @@ const AddProducts = () => {
                 <span className="text-white font-mono font-bold">{viewProduct.count} units</span>
               </div>
 
-              {/* Added read-only metadata tracking layout wrapper */}
               <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Branch Admin Price:</span>
                 <span className="text-white font-mono font-bold">₹{viewProduct.branch_admin_price !== undefined ? viewProduct.branch_admin_price : viewProduct.branchAdminPrice || 0}</span>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, PlusCircle, ShoppingBag, LogOut, ShieldAlert, Menu, X, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, ShoppingBag, LogOut, ShieldAlert, Menu, X, ShieldCheck, CassetteTape } from 'lucide-react'
 import { toast } from 'react-hot-toast' // <-- Imported toast engine
 import Logo from "../../assets/logo.png"
 
@@ -10,6 +10,7 @@ const Sidebar = () => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { name: 'Add Category', path: '/admin/categories', icon: <CassetteTape className="w-5 h-5" /> },
     { name: 'Add Products', path: '/admin/products', icon: <PlusCircle className="w-5 h-5" /> },
     { name: 'Customer Orders', path: '/admin/orders', icon: <ShoppingBag className="w-5 h-5" /> },
     { name: 'Branch Admin', path: '/admin/create-branch-admin', icon: <ShieldCheck className="w-5 h-5" /> },

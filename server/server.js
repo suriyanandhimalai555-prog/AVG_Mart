@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from './routes/productRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
 import branchAdminRoutes from './routes/branchAdminRoutes.js';
 import stockRoutes from './routes/stockRoutes.js';             // 👈 Actual Stock Management
 import requeststockRoutes from './routes/requestStockRoutes.js'; // 👈 Stock Requests Management
@@ -22,6 +23,7 @@ app.use(express.json());
 // Main Routing mount
 app.use("/api/auth", authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/auth/admin', branchAdminRoutes);
 
 // PAKKA ROUTING SEPARATION FIX

@@ -1,6 +1,5 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-// IMPORT YOUR SCROLL TO TOP UTILITY HERE
 import ScrollToTop from './components/ScrollToTop' 
 
 import Home from './pages/Home'
@@ -9,10 +8,10 @@ import Signup from './pages/Signup'
 import Cart from './pages/Cart'
 import ProductDetailView from './pages/ProductDetailView'
 import AllProducts from './pages/AllProducts'
-import TShirts from './pages/TShirts'
-import Shoes from './pages/Shoes'
-import Watches from './pages/Watches'
-import Belts from './pages/Belt'
+
+// DYNAMIC GENERIC HANDLER REPLACEMENT
+import CategoryViewPage from './pages/CategoryViewPage'
+
 import About from './pages/About'
 import MyOrders from './pages/MyOrders'
 import OrderStatusDetail from './pages/OrderStatusDetail'
@@ -23,50 +22,41 @@ import Sidebar from './pages/admin/Sidebar'
 import Dashboard from './pages/admin/Dashboard'
 import AddProducts from './pages/admin/AddProducts'
 import CustomerOrders from './pages/admin/CustomerOrders'
+import AddCategory from './pages/admin/AddCategory'
 
 // Route Protection Guards
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoutes'
 import Checkout from './pages/Checkout'
 
 // Branch Admin Imports
-import BranchAdmin from './pages/branchAdmin/BranchAdmin'
 import BranchSidebar from './pages/branchAdmin/BranchSidebar'
 import BranchAdminDashboard from './pages/branchAdmin/BranchAdminDashboard'
 import Stock from './pages/branchAdmin/Stock'
 import RequestStock from './pages/branchAdmin/RequestStock'
-import RequestStockBranch from './pages/admin/RequestStockBranch'
-import BranchOrders from './pages/branchAdmin/BranchOrders'
-import BranchProfile from './pages/branchAdmin/BranchProfile'
 
 const App = () => {
   return (
-    <div>
+    <div className="bg-[#050B14] min-h-screen font-sans selection:bg-lime-accent selection:text-royal-dark">
       <ScrollToTop />
-
+      
       <Routes>
-        {/* ======================================================== */}
-        {/* PUBLIC ACCESSIBLE ROUTES (No Login Required)              */}
-        {/* ======================================================== */}
+        {/* PUBLIC UNPROTECTED ASSETS ROUTING MATRIX */}
         <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
         <Route path="/allproducts" element={<AllProducts />} />
-        <Route path="/products/t-shirts" element={<TShirts />} />
-        <Route path="/products/shoes" element={<Shoes />} />
-        <Route path="/products/watches" element={<Watches />} />
-        <Route path="/products/belts" element={<Belts />} />
+        
+        {/* --- THE MASTER DYNAMIC CATEGORY ROUTE --- */}
+        <Route path="/products/:categoryName" element={<CategoryViewPage />} />
+        
         <Route path="/product/:id" element={<ProductDetailView />} />
+        <Route path="/about" element={<About />} />
 
-        {/* ======================================================== */}
-        {/* GUEST ONLY ROUTES (Logged in users cannot revisit these) */}
-        {/* ======================================================== */}
+        {/* AUTH BLOCKING ENTRY CHANNELS */}
         <Route element={<PublicOnlyRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
         </Route>
 
-        {/* ======================================================== */}
-        {/* SECURED CUSTOMER ROUTES (Must be logged in)               */}
-        {/* ======================================================== */}
+        {/* SECURED CLIENT APPLICATION ROLES PRIVILEGES ENTRY CHANNEL */}
         <Route element={<ProtectedRoute />}>
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
@@ -75,23 +65,21 @@ const App = () => {
           <Route path="/profile" element={<Profile />} />
         </Route>
 
-        {/* ======================================================== */}
-        {/* SECURED SUPER ADMIN                               */}
-        {/* ======================================================== */}
+        {/* SECURED PLATFORM ROOT SYSTEM MASTER ROLES */}
         <Route element={<ProtectedRoute requiredRole="admin" />}>
           <Route
             path="/admin/*"
             element={
               <div className="flex flex-col lg:flex-row bg-royal-dark min-h-screen text-white antialiased">
                 <Sidebar />
-                <div className="flex-1 overflow-x-hidden bg-royal-dark/30">
+                <div className="flex-1 overflow-x-hidden bg-white/[0.01] backdrop-blur-md p-4 sm:p-6 lg:p-10">
                   <Routes>
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="categories" element={<AddCategory />} />
                     <Route path="products" element={<AddProducts />} />
+                    <Route path="category" element={<AddCategory />} />
                     <Route path="orders" element={<CustomerOrders />} />
-                    <Route path="create-branch-admin" element={<BranchAdmin />} />
-                    <Route path="stock-request" element={<RequestStockBranch />} />
                   </Routes>
                 </div>
               </div>
@@ -99,24 +87,19 @@ const App = () => {
           />
         </Route>
 
-        {/* ======================================================== */}
-        {/* SECURED BRANCH ADMIN                              */}
-        {/* ======================================================== */}
+        {/* SECURED BRANCH ADMIN ENTRY POINT */}
         <Route element={<ProtectedRoute requiredRole="branch_admin" />}>
           <Route
             path="/branch-admin/*"
             element={
               <div className="flex flex-col lg:flex-row bg-[#071640] min-h-screen text-white antialiased">
                 <BranchSidebar />
-
                 <div className="flex-1 overflow-x-hidden bg-white/[0.02] backdrop-blur-md p-6 lg:p-10">
                   <Routes>
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<BranchAdminDashboard />} />
                     <Route path="stock" element={<Stock />} />
-                    <Route path="orders" element={<BranchOrders />} />
-                    <Route path="request-stock" element={<RequestStock />} />
-                    <Route path="profile" element={<BranchProfile />} />
+                    <Route path="orders" element={<RequestStock />} />
                   </Routes>
                 </div>
               </div>
@@ -124,7 +107,6 @@ const App = () => {
           />
         </Route>
 
-        {/* Catch-all fallback redirection */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
