@@ -42,7 +42,7 @@ jobs:
 
             echo "Creating frontend .env..."
             cat > client/.env <<EOF
-            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            VITE_APP_BASE_URL=${{ secrets.VITE_APP_BASE_URL }}
             EOF
 
             echo "Stopping old containers..."
