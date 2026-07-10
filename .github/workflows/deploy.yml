@@ -7,30 +7,57 @@ on:
 
 jobs:
   deploy:
+    name: Deploy to Contabo VPS
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Deploy Application
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           script: |
-            echo "Connected Successfully"
+            set -e
+
+            echo "========================================"
+            echo " Connected to Contabo VPS"
+            echo "========================================"
 
             whoami
+            hostname
             pwd
 
             cd /root/otp/apps/AVG_Mart
 
-            git status
+            echo "Fetching latest source..."
+            git fetch origin
+
+            echo "Reset local changes..."
+            git reset --hard origin/main
+
+            echo "Pull latest code..."
             git pull origin main
 
+            echo "Stopping old containers..."
             docker compose down
+
+            echo "Building latest images..."
             docker compose build --no-cache
+
+            echo "Starting containers..."
             docker compose up -d
 
+            echo "Cleaning unused Docker images..."
+            docker image prune -af
+
+            echo "Current Containers"
+            docker compose ps
+
+            echo "Docker Status"
             docker ps
+
+            echo "Deployment Completed Successfully"
