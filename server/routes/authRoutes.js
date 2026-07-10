@@ -24,16 +24,17 @@ router.post("/profile/address", verifyToken, addAddress);
 router.put("/profile/address/:id", verifyToken, editAddress);
 router.delete("/profile/address/:id", verifyToken, removeAddress);
 
-// Add these to your routes/authRoutes.js file under protected paths
+// Cart management
 router.get("/cart", verifyToken, getCart);
 router.post("/cart", verifyToken, addToCart);
 router.put("/cart/:id", verifyToken, updateCartQuantity);
 router.delete("/cart/:id", verifyToken, removeFromCart);
 
+// Order & Payment management
 router.post("/payment/order", verifyToken, createRazorpayOrder);
 router.post("/payment/verify", verifyToken, verifyRazorpayPayment);
 router.get("/orders", verifyToken, getUserOrders);
-router.get("/admin/orders", verifyToken, getAllCustomerOrders); // Add your admin verification middleware here if applicable
+router.get("/admin/orders", verifyToken, getAllCustomerOrders); 
 router.put("/admin/orders/:orderId", verifyToken, updateOrderStatusByAdmin);
 
 // Admin Dashboard Command Control Center

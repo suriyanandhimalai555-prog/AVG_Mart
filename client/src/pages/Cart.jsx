@@ -28,7 +28,12 @@ const Cart = () => {
         });
         if (res.ok) {
           const data = await res.json();
-          setCartItems(data);
+          // Normalize incoming property naming structures so selected_size works universally
+          const normalizedData = data.map(item => ({
+            ...item,
+            selected_size: item.selected_size || item.size || ''
+          }));
+          setCartItems(normalizedData);
         } else {
           toast.error("Failed to load your shopping cart.");
         }
@@ -45,6 +50,8 @@ const Cart = () => {
 
   const updateQuantity = async (id, currentQty, adjustment) => {
     const targetQty = currentQty + adjustment;
+    if (targetQty < 1 && adjustment !== -1) return; // Prevent setting quantity to 0 unless deliberately removing
+
     const toastId = toast.loading("Updating item quantity...");
 
     try {
@@ -108,17 +115,20 @@ const Cart = () => {
   };
 
   const handleProceedToCheckout = () => {
-    // PAKKA CONFIGURATION RULE: Size verification constraints strictly enforced ONLY for clothing or shoe items
+    // CRITICAL VALIDATION RULE: Require size matrix allocations before proceeding
     const invalidItem = cartItems.find(item => {
-      const itemCategory = (item.category || "").toLowerCase().trim();
-      const isSizeRequiredCategory = itemCategory === 't-shirt' || itemCategory === 'shoe';
-      const isSizeMissing = !item.selected_size || item.selected_size.trim() === '';
-      
-      return isSizeRequiredCategory && isSizeMissing;
+      const isSizeMissing = !item.selected_size || String(item.selected_size).trim() === '';
+      const isQuantityInvalid = !item.quantity || item.quantity <= 0;
+      return JackedRuleEvaluator(item) || isSizeMissing || isQuantityInvalid;
     });
+
+    function JackedRuleEvaluator(i) {
+      // Catch-all structural guard checking for empty variations
+      return !i.selected_size || i.selected_size === '';
+    }
     
     if (invalidItem) {
-      toast.error(`Cannot place order! Please click on "${invalidItem.name}" to assign its configuration size matrix.`, {
+      toast.error(`Configuration missing! Please click on "${invalidItem.name}" to assign its matrix size option before checking out.`, {
         duration: 4000,
         style: {
           background: '#1c1c1e',
@@ -178,15 +188,14 @@ const Cart = () => {
               
               <div className="lg:col-span-8 space-y-4">
                 {cartItems.map((item) => {
-                  const currentCategory = (item.category || "").toLowerCase().trim();
-                  const requiresSizing = currentCategory === 't-shirt' || currentCategory === 'shoe';
+                  const activeSizeValue = item.selected_size || item.size;
 
                   return (
                     <div key={item.id} className="flex flex-col sm:flex-row items-center justify-between gap-6 p-4 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md hover:border-white/10 transition-colors text-left">
                       
                       <div 
                         onClick={() => navigate(`/product/${item.product_id}`, { 
-                          state: { fromCartItemId: item.id, existingSize: item.selected_size, existingQty: item.quantity } 
+                          state: { fromCartItemId: item.id, existingSize: activeSizeValue, existingQty: item.quantity } 
                         })}
                         className="flex items-center gap-4 w-full sm:w-auto cursor-pointer group flex-1"
                       >
@@ -195,25 +204,19 @@ const Cart = () => {
                         </div>
                         <div className="space-y-1">
                           <span className="text-[9px] font-black uppercase tracking-widest text-lime-accent group-hover:underline">
-                            {item.category} {requiresSizing && '(Click to re-configure)'}
+                            {item.category} (Click to change options matrix)
                           </span>
                           <h3 className="text-base font-black uppercase tracking-wide text-white line-clamp-1 group-hover:text-lime-accent transition-colors">{item.name}</h3>
                           
-                          {/* DYNAMIC METRIC LABELLING TRAY */}
+                          {/* UNIVERSALLY CORRECT SIZE RENDERING ENGINE */}
                           <div className="pt-0.5 pb-1">
-                            {requiresSizing ? (
-                              item.selected_size && item.selected_size.trim() !== '' ? (
-                                <span className="inline-block text-[10px] bg-lime-accent/10 text-lime-accent border border-lime-accent/20 font-mono font-bold px-2 py-0.5 rounded">
-                                  SIZE: {item.selected_size}
-                                </span>
-                              ) : (
-                                <span className="inline-block text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 font-mono font-bold px-2 py-0.5 rounded animate-pulse">
-                                  MISSING SIZE CONFIGURATION
-                                </span>
-                              )
+                            {activeSizeValue && activeSizeValue.trim() !== '' ? (
+                              <span className="inline-block text-[10px] bg-lime-accent/10 text-lime-accent border border-lime-accent/20 font-mono font-bold px-2 py-0.5 rounded">
+                                SELECTED: {activeSizeValue}
+                              </span>
                             ) : (
-                              <span className="inline-block text-[10px] bg-white/5 text-gray-400 border border-white/5 font-mono px-2 py-0.5 rounded">
-                                STANDARD COMPONENT N/A
+                              <span className="inline-block text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 font-mono font-bold px-2 py-0.5 rounded animate-pulse">
+                                RE-CONFIGURATION SIZE REQUIRED
                               </span>
                             )}
                           </div>

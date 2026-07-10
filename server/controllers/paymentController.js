@@ -150,18 +150,45 @@ export const verifyRazorpayPayment = async (req, res) => {
 
 export const getUserOrders = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Access denied. Node missing payload identity signatures." });
+    }
+
+    // Try parsing as integer. If it's a real string/UUID, pass it directly as a string.
+    const rawUserId = req.user.id;
+    const parsedUserId = parseInt(rawUserId, 10);
+    const finalUserId = isNaN(parsedUserId) ? rawUserId : parsedUserId;
+
+    // We explicitly cast the column or the value to TEXT if your DB uses string keys,
+    // or keep it safe with a dynamic fallback cast so Postgres never throws code 22P02.
     const query = `
-      SELECT o.id, o.total_price as "totalPrice", o.status, o.created_at as date,
-             o.expected_delivery as "expected_delivery", o.delivered_at as "delivered_at",
-             json_agg(json_build_object('name', oi.name, 'price', oi.price, 'qty', oi.quantity, 'image', oi.image)) as items
+      SELECT 
+        o.id, 
+        o.total_price AS "totalPrice", 
+        o.status, 
+        o.created_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'product_id', oi.product_id,
+              'name', oi.name, 
+              'price', oi.price, 
+              'quantity', oi.quantity, 
+              'image', oi.image,
+              'selected_size', oi.selected_size
+            )
+          ) FILTER (WHERE oi.id IS NOT NULL), '[]'
+        ) AS items
       FROM orders o
-      JOIN order_items oi ON o.id = oi.order_id
-      WHERE o.user_id = $1
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      WHERE o.user_id::text = $1::text
       GROUP BY o.id
       ORDER BY o.created_at DESC;
     `;
-    const { rows } = await pool.query(query, [req.user.id]);
+    
+    const { rows } = await pool.query(query, [String(finalUserId)]);
     return res.status(200).json(rows);
+    
   } catch (error) {
     console.error("Fetch Live Orders Error:", error);
     return res.status(500).json({ message: "Failed retrieving order telemetry vectors." });
