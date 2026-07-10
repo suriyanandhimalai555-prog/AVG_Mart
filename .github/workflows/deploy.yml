@@ -24,7 +24,7 @@ jobs:
             set -e
 
             echo "========================================"
-            echo " Connected to Contabo VPS"
+            echo "Connected to Contabo VPS"
             echo "========================================"
 
             whoami
@@ -36,14 +36,17 @@ jobs:
             echo "Fetching latest source..."
             git fetch origin
 
-            echo "Reset local changes..."
+            echo "Resetting repository..."
             git reset --hard origin/main
+            git clean -fd
 
-            echo "Pull latest code..."
-            git pull origin main
+            echo "Creating frontend .env..."
+            cat > client/.env <<EOF
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            EOF
 
             echo "Stopping old containers..."
-            docker compose down
+            docker compose down --remove-orphans
 
             echo "Building latest images..."
             docker compose build --no-cache
@@ -51,13 +54,13 @@ jobs:
             echo "Starting containers..."
             docker compose up -d
 
-            echo "Cleaning unused Docker images..."
+            echo "Removing unused Docker images..."
             docker image prune -af
 
-            echo "Current Containers"
+            echo "Container Status"
             docker compose ps
 
-            echo "Docker Status"
+            echo "Running Containers"
             docker ps
 
             echo "Deployment Completed Successfully"
