@@ -30,6 +30,7 @@ import Checkout from './pages/Checkout'
 
 // Branch Admin Imports
 import BranchSidebar from './pages/branchAdmin/BranchSidebar'
+import BranchAdmin from './pages/branchAdmin/BranchAdmin'
 import BranchAdminDashboard from './pages/branchAdmin/BranchAdminDashboard'
 import Stock from './pages/branchAdmin/Stock'
 import RequestStock from './pages/branchAdmin/RequestStock'
@@ -80,6 +81,7 @@ const App = () => {
                     <Route path="products" element={<AddProducts />} />
                     <Route path="category" element={<AddCategory />} />
                     <Route path="orders" element={<CustomerOrders />} />
+                    <Route path="create-branch-admin" element={<BranchAdmin />} />
                   </Routes>
                 </div>
               </div>

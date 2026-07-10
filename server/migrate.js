@@ -1,4 +1,4 @@
-const pkg = require('pg');
+import pkg from 'pg';
 const { Client } = pkg;
 
 const connectionString = "postgresql://postgres:geArYJSlzVGXmDRAdantjXmncwAgowHN@hayabusa.proxy.rlwy.net:58845/railway";
@@ -10,7 +10,9 @@ const client = new Client({
 
 // Completely sanitized SQL string with pure ASCII characters
 const sql = `
-ALTER TABLE order_items ADD COLUMN IF NOT EXISTS selected_size TEXT DEFAULT '';
+ALTER TABLE cart DROP CONSTRAINT IF EXISTS unique_user_product;
+
+ALTER TABLE cart ADD CONSTRAINT unique_user_product_size UNIQUE (user_id, product_id, selected_size);
 `;
 
 async function run() {
