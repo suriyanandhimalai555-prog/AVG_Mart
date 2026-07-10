@@ -149,4 +149,4 @@ export const deleteProduct = async (req, res) => {
     console.error('Error in deleteProduct Controller:', error);
     return res.status(500).json({ success: false, message: 'Failed to drop item row' });
   }
-};
+};  
