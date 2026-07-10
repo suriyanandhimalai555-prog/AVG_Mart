@@ -42,6 +42,11 @@ const ProductDetailView = () => {
                     if (foundProduct) {
                         setProduct(foundProduct)
                         setActiveImg(foundProduct.images && foundProduct.images[0] ? foundProduct.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500")
+                        
+                        // Default to the first available selection matrix option automatically if nothing preset from cart
+                        if (!existingSize && foundProduct.sizes && foundProduct.sizes.length > 0) {
+                            setSelectedSize(foundProduct.sizes[0])
+                        }
                     }
                 }
             } catch (err) {
@@ -52,7 +57,7 @@ const ProductDetailView = () => {
             }
         }
         fetchProductData()
-    }, [id])
+    }, [id, existingSize])
 
     if (isLoading) {
         return (
@@ -73,10 +78,44 @@ const ProductDetailView = () => {
         )
     }
 
-    const original = Number(product.originalPrice || 0)
-    const offer = Number(product.offerPrice || original)
-    const priceDifference = original - offer; 
-    const percentSaved = original > 0 ? Math.round((priceDifference / original) * 100) : 0;
+    // --- PAKKA QUANTITY PRICE MODIFIER CALCULATION LOGIC ---
+    const getPriceMultiplier = (sizeString) => {
+        if (!sizeString) return 1
+        const cleanStr = sizeString.toLowerCase().replace(/\s+/g, '')
+
+        // Handles explicit fraction fractions or whole units
+        if (cleanStr.includes('1/2kg') || cleanStr.includes('0.5kg') || cleanStr.includes('500g') || cleanStr.includes('1/2litre') || cleanStr.includes('500ml')) {
+            return 0.5
+        }
+        if (cleanStr.includes('250g') || cleanStr.includes('250ml')) {
+            return 0.25
+        }
+        if (cleanStr.includes('100g') || cleanStr.includes('100ml')) {
+            return 0.1
+        }
+        if (cleanStr.includes('200g') || cleanStr.includes('200ml')) {
+            return 0.2
+        }
+
+        // Handle integers automatically extracted from string (e.g., '1kg', '2kg', '5kg')
+        const numericMatch = cleanStr.match(/^(\d+(\.\d+)?)/)
+        if (numericMatch) {
+            return parseFloat(numericMatch[1])
+        }
+
+        return 1 // Default fallback multiplier for normal clothing variants or plain tags
+    }
+
+    const baseOriginalPrice = Number(product.originalPrice || 0)
+    const baseOfferPrice = Number(product.offerPrice || baseOriginalPrice)
+
+    const currentMultiplier = getPriceMultiplier(selectedSize)
+    
+    // Compute dynamic running value parameters
+    const offer = Math.round(baseOfferPrice * currentMultiplier)
+    const original = Math.round(baseOriginalPrice * currentMultiplier)
+    const priceDifference = original - offer
+    const percentSaved = original > 0 ? Math.round((priceDifference / original) * 100) : 0
 
     const alternativeAngles = product.images && product.images.length > 0 
         ? product.images 
@@ -102,9 +141,8 @@ const ProductDetailView = () => {
     }
 
     const handleAddToCart = async (product, token, navigate) => {
-        // PAKKA VALIDATION LAYER: Checks if configurations exist and stops user if selection is empty
         if (product.sizes && product.sizes.length > 0 && !selectedSize) {
-            toast.error("Size selection required! Please select a size option variant matrix before adding to cart.", {
+            toast.error("Size selection required! Please select a configuration variant matrix before adding to cart.", {
                 style: { 
                     background: '#1c1c1e', 
                     color: '#f87171', 
@@ -124,13 +162,10 @@ const ProductDetailView = () => {
             return;
         }
 
-        const toastMsg = fromCartItemId ? "Modifying cart size configuration..." : "Syncing asset loadout configuration...";
+        const toastMsg = fromCartItemId ? "Modifying cart configuration..." : "Syncing asset loadout configuration...";
         const loadId = toast.loading(toastMsg);
 
         try {
-            const originalPrice = Number(product.originalPrice || 0);
-            const offerPrice = Number(product.offerPrice || originalPrice);
-            
             const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/cart`, {
                 method: "POST",
                 headers: {
@@ -141,11 +176,10 @@ const ProductDetailView = () => {
                     product_id: product.id,
                     name: product.name,
                     category: product.category,
-                    price: offerPrice,
+                    price: offer, // Sends recalculated price corresponding to option selected
                     image: product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500",
                     selected_size: selectedSize || '', 
                     
-                    // Passing tracking keys parameters to safely bypass count compounding flow
                     fromCartItemId: fromCartItemId,
                     isSizeUpdateOnly: !!fromCartItemId,
                     existingQty: existingQty
@@ -155,11 +189,10 @@ const ProductDetailView = () => {
             if (response.ok) {
                 const successMsg = fromCartItemId 
                     ? `Size safely calibrated to ${selectedSize}!` 
-                    : `${product.name} ${selectedSize ? `(Size: ${selectedSize})` : ''} configured to cart!`;
+                    : `${product.name} (${selectedSize}) configured to cart!`;
                 
                 toast.success(successMsg, { id: loadId });
                 
-                // If updated from cart interface explicitly, kick user directly back to checkout workspace
                 if (fromCartItemId) {
                     setTimeout(() => navigate("/cart"), 1000);
                 }
@@ -277,27 +310,30 @@ const ProductDetailView = () => {
                                 </p>
                             </div>
 
-                            {/* SIZING INPUT TAG SELECTORS */}
+                            {/* SIZING / QUANTITY SELECTION TRAYS */}
                             {product.sizes && product.sizes.length > 0 && (
                                 <div className="space-y-3">
                                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                                        Available Configuration Matrix Size <span className="text-red-400 font-bold">*</span>
+                                        Select Options Matrix Variant <span className="text-red-400 font-bold">*</span>
                                     </h4>
                                     <div className="flex flex-wrap gap-2">
                                         {product.sizes.map((sz, idx) => {
                                             const isSelected = selectedSize === sz;
+                                            // Extract the display clean string if standard custom properties are passed
+                                            const displayLabel = sz.startsWith("Color: ") ? sz.replace("Color: ", "") : sz;
+                                            
                                             return (
                                                 <button 
                                                     key={idx} 
                                                     type="button"
                                                     onClick={() => setSelectedSize(sz)}
-                                                    className={`font-mono text-xs font-black px-4 py-2.5 rounded-xl border transition-all duration-300 transform active:scale-95 ${
+                                                    className={`font-mono text-xs font-black px-4 py-2.5 rounded-xl border transition-all duration-300 transform active:scale-95 uppercase tracking-wider ${
                                                         isSelected 
                                                             ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-[0_0_15px_rgba(165,206,0,0.35)] font-bold' 
                                                             : 'bg-white/5 border-white/10 text-white/70 hover:border-white/30'
                                                     }`}
                                                 >
-                                                    {sz}
+                                                    {displayLabel}
                                                 </button>
                                             )
                                         })}
@@ -313,7 +349,7 @@ const ProductDetailView = () => {
                                 
                                 <div className="flex justify-between items-center relative z-10">
                                     <div className="flex flex-col">
-                                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white/40">Acquisition Value</span>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white/40">Acquisition Value ({selectedSize || 'Base Unit'})</span>
                                         <div className="flex items-baseline gap-3 mt-1">
                                             <span className="text-3xl md:text-4xl font-black text-white tracking-tight">₹{offer}</span>
                                             {priceDifference > 0 && (
@@ -346,7 +382,7 @@ const ProductDetailView = () => {
                                         {product.count <= 0 
                                             ? 'Out of Stock' 
                                             : fromCartItemId 
-                                                ? 'Update Cart Size Matrix' 
+                                                ? 'Update Cart Parameters' 
                                                 : 'Add to Cart'
                                         }
                                     </button>

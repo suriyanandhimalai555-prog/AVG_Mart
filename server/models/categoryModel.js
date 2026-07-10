@@ -1,13 +1,14 @@
 import { pool } from '../config/db.js';
 
 export const CategoryModel = {
-  create: async ({ name, imageUrl }) => {
+  create: async ({ name, imageUrl, attributes }) => {
     const query = `
-      INSERT INTO categories (name, image_url)
-      VALUES ($1, $2)
+      INSERT INTO categories (name, image_url, attributes)
+      VALUES ($1, $2, $3)
       RETURNING *;
     `;
-    const { rows } = await pool.query(query, [name.toLowerCase(), imageUrl]);
+    // Storing name as lowercase as per your original logic, passing attributes array
+    const { rows } = await pool.query(query, [name.toLowerCase(), imageUrl, attributes || []]);
     return rows[0];
   },
 

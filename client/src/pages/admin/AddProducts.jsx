@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star } from 'lucide-react'
+import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star, CheckSquare, Square } from 'lucide-react'
 import { toast } from 'react-hot-toast' 
 
 const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
@@ -18,7 +18,6 @@ const AddProducts = () => {
 
   // Form input field states
   const [category, setCategory] = useState('')
-  const [selectedSizes, setSelectedSizes] = useState([])
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [originalPrice, setOriginalPrice] = useState('')
@@ -30,12 +29,21 @@ const AddProducts = () => {
   const [images, setImages] = useState([])       
   const [rawFiles, setRawFiles] = useState([])   
 
-  const tshirtSizes = ['S', 'M', 'L', 'XL']
-  const shoeSizes = ['7', '8', '9', '10', '11', '12']
+  // --- Dynamic Category Attributes State ---
+  const [selectedSpecOptions, setSelectedSpecOptions] = useState([]) // Stores finalized strings/tags to submit
+  const [customTextInputs, setCustomTextInputs] = useState({}) // Stores text values typed for generic text specs
 
-  // Dynamic Category Identifiers
-  const isTshirtCategory = category.toLowerCase() === 't-shirt' || category.toLowerCase() === 'tshirts' || category.toLowerCase() === 'tshirt'
-  const isShoeCategory = category.toLowerCase() === 'shoe' || category.toLowerCase() === 'shoes' || category.toLowerCase() === 'footwear'
+  // Expanded Standard Sizes arrays
+  const clothingSizesList = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL']
+  const footwearSizesList = ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+
+  // Category Detection logic
+  const normalizedCat = category.toLowerCase().trim()
+  const isClothingCategory = normalizedCat === 't-shirt' || normalizedCat === 'tshirts' || normalizedCat === 'tshirt' || normalizedCat === 'shirt' || normalizedCat === 'clothing' || normalizedCat === 'clothes'
+  const isFootwearCategory = normalizedCat === 'shoe' || normalizedCat === 'shoes' || normalizedCat === 'footwear' || normalizedCat === 'footwears'
+
+  // Get currently selected category object details
+  const activeCategoryObject = availableCategories.find(cat => cat.name.toLowerCase() === normalizedCat)
 
   useEffect(() => {
     fetchProducts()
@@ -65,7 +73,7 @@ const AddProducts = () => {
         toast.error("Failed to sync inventory from the database.")
       }
     } catch (err) {
-      console.error("Network communication line breakdown matching data pipelines:", err)
+      console.error("Network communication line breakdown:", err)
       toast.error("Network error. Could not connect to product servers.")
     } finally {
       setIsLoading(false)
@@ -94,17 +102,25 @@ const AddProducts = () => {
     toast.success("Image staging removed.")
   }
 
-  const handleSizeToggle = (size) => {
-    if (selectedSizes.includes(size)) {
-      setSelectedSizes(selectedSizes.filter(s => s !== size))
+  // Handle checking and unchecking selection pills
+  const handleSpecToggle = (optionString) => {
+    if (selectedSpecOptions.includes(optionString)) {
+      setSelectedSpecOptions(selectedSpecOptions.filter(item => item !== optionString))
     } else {
-      setSelectedSizes([...selectedSizes, size])
+      setSelectedSpecOptions([...selectedSpecOptions, optionString])
     }
+  }
+
+  // Handle generic text specifications inputs (e.g. Brand Name, Battery)
+  const handleCustomTextChange = (specName, value) => {
+    setCustomTextInputs(prev => ({
+      ...prev,
+      [specName]: value
+    }))
   }
 
   const resetForm = () => {
     setCategory('')
-    setSelectedSizes([])
     setName('')
     setDescription('')
     setOriginalPrice('')
@@ -116,6 +132,8 @@ const AddProducts = () => {
     setRawFiles([])
     setIsEditing(false)
     setCurrentProductId(null)
+    setSelectedSpecOptions([])
+    setCustomTextInputs({})
   }
 
   const handleSubmit = async (e) => {
@@ -138,8 +156,16 @@ const AddProducts = () => {
     formData.append('count', count || '0')
     formData.append('isFeatured', isFeatured)
 
-    const applicableSizes = (isTshirtCategory || isShoeCategory) ? selectedSizes : []
-    formData.append('sizes', JSON.stringify(applicableSizes))
+    // Compile selection items and typed custom specifications text cleanly into a unified sizes array payload
+    let finalPayloadSpecs = [...selectedSpecOptions]
+    
+    Object.keys(customTextInputs).forEach(key => {
+      if (customTextInputs[key] && customTextInputs[key].trim() !== '') {
+        finalPayloadSpecs.push(`${key}: ${customTextInputs[key].trim()}`)
+      }
+    })
+
+    formData.append('sizes', JSON.stringify(finalPayloadSpecs))
 
     rawFiles.forEach((file) => {
       formData.append('productImages', file)
@@ -165,16 +191,11 @@ const AddProducts = () => {
         resetForm()
         fetchProducts() 
       } else {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const errorData = await response.json();
-          toast.error(`Error: ${errorData.message || "Failed operation"}`, { id: actionToastId });
-        } else {
-          toast.error("Server processing error. Validation failed.", { id: actionToastId });
-        }
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(`Error: ${errorData.message || "Failed operation"}`, { id: actionToastId });
       }
     } catch (error) {
-      console.error("Submission operational runtime execution issue caught:", error)
+      console.error("Submission error:", error)
       toast.error("Network error. Could not commit product updates.", { id: actionToastId })
     }
   }
@@ -183,7 +204,6 @@ const AddProducts = () => {
     setCurrentProductId(product.id)
     setName(product.name)
     setCategory(product.category)
-    setSelectedSizes(product.sizes || [])
     setDescription(product.description || '')
     
     setOriginalPrice(product.original_price !== undefined ? product.original_price : product.originalPrice)
@@ -194,6 +214,31 @@ const AddProducts = () => {
     setIsFeatured(product.isFeatured || false)
     setImages(product.images || [])
     setRawFiles([]) 
+
+    // Parse pre-existing elements into separate text fields and checkbox categories
+    const initialChecked = []
+    const initialTexts = {}
+
+    if (product.sizes && Array.isArray(product.sizes)) {
+      product.sizes.forEach(item => {
+        if (item.includes(': ')) {
+          const parts = item.split(': ')
+          const label = parts[0]
+          const val = parts.slice(1).join(': ')
+          // If it's a dynamic color selection tag, keep it as an option check
+          if (label === 'Color') {
+            initialChecked.push(item)
+          } else {
+            initialTexts[label] = val
+          }
+        } else {
+          initialChecked.push(item)
+        }
+      })
+    }
+
+    setSelectedSpecOptions(initialChecked)
+    setCustomTextInputs(initialTexts)
     setIsEditing(true)
     setIsModalOpen(true)
   }
@@ -204,26 +249,21 @@ const AddProducts = () => {
         <p className="font-bold text-white uppercase tracking-wider">Confirm Delete Operation?</p>
         <p className="text-white/60">Are you sure you want to permanently erase this inventory record asset?</p>
         <div className="flex gap-2 justify-end mt-1">
-          <button 
-            onClick={() => toast.dismiss(t.id)} 
-            className="px-3 py-1.5 rounded bg-white/5 border border-white/10 text-white font-medium uppercase tracking-wider text-[10px]"
-          >
-            Cancel
-          </button>
+          <button onClick={() => toast.dismiss(t.id)} className="px-3 py-1.5 rounded bg-white/5 border border-white/10 text-white font-medium uppercase tracking-wider text-[10px]">Cancel</button>
           <button 
             onClick={async () => {
               toast.dismiss(t.id);
-              const executionToastId = toast.loading("Erasing catalog entry element...");
+              const executionToastId = toast.loading("Erasing catalog entry...");
               try {
                 const response = await fetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' });
                 if (response.ok) {
-                  toast.success("Product permanently removed from database log indices.", { id: executionToastId });
+                  toast.success("Product permanently removed.", { id: executionToastId });
                   fetchProducts();
                 } else {
-                  toast.error("Target resource drop script rejected by server.", { id: executionToastId });
+                  toast.error("Delete script rejected by server.", { id: executionToastId });
                 }
               } catch (err) {
-                toast.error("Network processing fault during removal pipeline request.", { id: executionToastId });
+                toast.error("Network processing fault during removal.", { id: executionToastId });
               }
             }} 
             className="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-wider text-[10px]"
@@ -266,7 +306,7 @@ const AddProducts = () => {
           <p className="text-sm font-bold uppercase tracking-wider text-gray-canvas/40">No Products Found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
             <div key={product.id} className="bg-royal-main/40 border border-white/5 rounded-2xl overflow-hidden flex flex-col justify-between backdrop-blur-sm shadow-xl hover:border-white/10 transition-all duration-300">
               
@@ -299,9 +339,9 @@ const AddProducts = () => {
 
                 {product.sizes && product.sizes.length > 0 && (
                   <div className="flex flex-wrap gap-1 items-center">
-                    <span className="text-[9px] font-bold tracking-wider uppercase text-gray-canvas/40 mr-1">Sizes:</span>
+                    <span className="text-[9px] font-bold tracking-wider uppercase text-gray-canvas/40 mr-1">Specs:</span>
                     {product.sizes.map((sz, idx) => (
-                      <span key={idx} className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-canvas/80">{sz}</span>
+                      <span key={idx} className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-lime-400">{sz}</span>
                     ))}
                   </div>
                 )}
@@ -320,26 +360,14 @@ const AddProducts = () => {
               </div>
 
               <div className="px-5 pb-5 pt-2 grid grid-cols-3 gap-2 border-t border-white/5 bg-royal-dark/20">
-                <button 
-                  onClick={() => setViewProduct(product)}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-canvas/80 hover:bg-royal-main hover:text-white transition-all cursor-pointer"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>View</span>
+                <button onClick={() => setViewProduct(product)} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-canvas/80 hover:bg-royal-main hover:text-white transition-all cursor-pointer">
+                  <Eye className="w-3.5 h-3.5" /> <span>View</span>
                 </button>
-                <button 
-                  onClick={() => handleEditTrigger(product)}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-blue-500/20 bg-blue-500/5 text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  <span>Edit</span>
+                <button onClick={() => handleEditTrigger(product)} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-blue-500/20 bg-blue-500/5 text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer">
+                  <Edit2 className="w-3.5 h-3.5" /> <span>Edit</span>
                 </button>
-                <button 
-                  onClick={() => handleDelete(product.id)}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete</span>
+                <button onClick={() => handleDelete(product.id)} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer">
+                  <Trash2 className="w-3.5 h-3.5" /> <span>Delete</span>
                 </button>
               </div>
 
@@ -358,10 +386,7 @@ const AddProducts = () => {
                 <Layers className="w-5 h-5 text-lime-accent" />
                 <span>{isEditing ? 'Edit Product' : 'Add New Product'}</span>
               </h3>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-              >
+              <button onClick={() => setIsModalOpen(false)} className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -373,7 +398,11 @@ const AddProducts = () => {
                 <select
                   required
                   value={category}
-                  onChange={(e) => { setCategory(e.target.value); setSelectedSizes([]); }}
+                  onChange={(e) => { 
+                    setCategory(e.target.value); 
+                    setSelectedSpecOptions([]); 
+                    setCustomTextInputs({}); 
+                  }}
                   className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-gray-canvas uppercase tracking-wider focus:outline-none focus:border-lime-accent transition-colors cursor-pointer"
                 >
                   <option value="" disabled className="bg-royal-dark text-gray-canvas/40">-- SELECT CATEGORY --</option>
@@ -385,55 +414,141 @@ const AddProducts = () => {
                 </select>
               </div>
 
-              {isTshirtCategory && (
-                <div className="space-y-2 animate-fadeIn">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Select Shirt Sizes</label>
+              {/* --- STANDARD BACKUP SIZE CHECKS FOR CLOTHING AND FOOTWEAR --- */}
+              {isClothingCategory && (
+                <div className="space-y-2 p-4 bg-lime-accent/5 rounded-2xl border border-lime-accent/10">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-lime-400">Available Clothing Sizes</label>
                   <div className="flex flex-wrap gap-2">
-                    {tshirtSizes.map((sz) => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => handleSizeToggle(sz)}
-                        className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
-                          selectedSizes.includes(sz)
-                            ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md'
-                            : 'bg-white/5 text-gray-canvas/60 border-white/10 hover:border-white/30'
-                        }`}
-                      >
-                        {sz}
-                      </button>
-                    ))}
+                    {clothingSizesList.map((sz) => {
+                      const isChecked = selectedSpecOptions.includes(sz)
+                      return (
+                        <button
+                          key={sz} type="button" onClick={() => handleSpecToggle(sz)}
+                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
+                            isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
+                          }`}
+                        >
+                          {sz}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}
 
-              {isShoeCategory && (
-                <div className="space-y-2 animate-fadeIn">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Select Shoe Sizes</label>
+              {isFootwearCategory && (
+                <div className="space-y-2 p-4 bg-lime-accent/5 rounded-2xl border border-lime-accent/10">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-lime-400">Available Footwear Sizes</label>
                   <div className="flex flex-wrap gap-2">
-                    {shoeSizes.map((sz) => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => handleSizeToggle(sz)}
-                        className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
-                          selectedSizes.includes(sz)
-                            ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md'
-                            : 'bg-white/5 text-gray-canvas/60 border-white/10 hover:border-white/30'
-                        }`}
-                      >
-                        {sz}
-                      </button>
-                    ))}
+                    {footwearSizesList.map((sz) => {
+                      const isChecked = selectedSpecOptions.includes(sz)
+                      return (
+                        <button
+                          key={sz} type="button" onClick={() => handleSpecToggle(sz)}
+                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
+                            isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
+                          }`}
+                        >
+                          UK/US {sz}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* --- DYNAMICALLY LOADED MAPPED SPECIFICATION INPUTS FROM CATEGORY MATRIX --- */}
+              {activeCategoryObject && activeCategoryObject.attributes && activeCategoryObject.attributes.length > 0 && (
+                <div className="space-y-4 border-t border-white/5 pt-4">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-lime-400">Category Configured Specifications Matrix</h4>
+                  
+                  <div className="grid grid-cols-1 gap-4 bg-royal-main/20 p-4 rounded-2xl border border-white/5">
+                    {(() => {
+                      // Separate plain attributes and dynamic color key tab targets
+                      const normalAttributes = []
+                      const colorTabValues = []
+
+                      activeCategoryObject.attributes.forEach(attr => {
+                        if (attr.startsWith("Color: ")) {
+                          colorTabValues.push(attr)
+                        } else if (attr === "Color") {
+                          // General fallback placeholder
+                        } else {
+                          normalAttributes.push(attr)
+                        }
+                      })
+
+                      return (
+                        <>
+                          {/* If category has color tabs configured, show checkable button list */}
+                          {colorTabValues.length > 0 && (
+                            <div className="space-y-2 border-b border-white/5 pb-3">
+                              <label className="text-[10px] font-black uppercase text-gray-canvas/50">Select Available Color Variants</label>
+                              <div className="flex flex-wrap gap-1.5">
+                                {colorTabValues.map((fullValue, index) => {
+                                  const displayColor = fullValue.replace("Color: ", "")
+                                  const isChecked = selectedSpecOptions.includes(fullValue)
+                                  return (
+                                    <button
+                                      type="button" key={index} onClick={() => handleSpecToggle(fullValue)}
+                                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-left transition-all text-[11px] font-bold ${
+                                        isChecked ? 'bg-lime-accent/10 border-lime-accent text-lime-400' : 'bg-royal-dark border-white/5 text-gray-canvas/50'
+                                      }`}
+                                    >
+                                      {isChecked ? <CheckSquare className="w-3 h-3 text-lime-400" /> : <Square className="w-3 h-3 text-gray-canvas/30" />}
+                                      <span>{displayColor.toUpperCase()}</span>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Dynamic Inputs for simple generic categories (Brand Name, Battery, RAM/ROM, 100gram, etc.) */}
+                          {normalAttributes.map((attrName, index) => {
+                            // Check if this item is standard boolean flag or requires continuous string values
+                            const isCheckboxValue = attrName.toLowerCase().includes("kg") || attrName.toLowerCase().includes("gram") || attrName.toLowerCase().includes("litre") || attrName.toLowerCase().includes("ml") || attrName.toLowerCase().includes("resistant")
+                            
+                            if (isCheckboxValue) {
+                              const isChecked = selectedSpecOptions.includes(attrName)
+                              return (
+                                <div key={index} className="flex items-center gap-2 py-1">
+                                  <button
+                                    type="button" onClick={() => handleSpecToggle(attrName)}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-bold ${
+                                      isChecked ? 'bg-lime-accent/10 border-lime-accent text-lime-400' : 'bg-royal-dark border-white/5 text-gray-canvas/50'
+                                    }`}
+                                  >
+                                    {isChecked ? <CheckSquare className="w-3.5 h-3.5 text-lime-400" /> : <Square className="w-3.5 h-3.5 text-gray-canvas/30" />}
+                                    <span>{attrName}</span>
+                                  </button>
+                                </div>
+                              )
+                            }
+
+                            return (
+                              <div key={index} className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/50">{attrName}</label>
+                                <input 
+                                  type="text"
+                                  placeholder={`Enter ${attrName} configuration values...`}
+                                  value={customTextInputs[attrName] || ''}
+                                  onChange={(e) => handleCustomTextChange(attrName, e.target.value)}
+                                  className="w-full bg-royal-dark border border-white/10 rounded-xl px-3 py-2.5 text-xs text-gray-canvas focus:outline-none focus:border-lime-accent"
+                                />
+                              </div>
+                            )
+                          })}
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
               )}
 
               <div className="flex items-center gap-3 bg-royal-main/20 border border-white/5 p-4 rounded-xl">
                 <input 
-                  type="checkbox"
-                  id="featuredCheckbox"
-                  checked={isFeatured}
+                  type="checkbox" id="featuredCheckbox" checked={isFeatured}
                   onChange={(e) => setIsFeatured(e.target.checked)}
                   className="w-4 h-4 rounded accent-lime-accent bg-royal-dark border-white/10 cursor-pointer"
                 />
@@ -445,38 +560,30 @@ const AddProducts = () => {
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Name *</label>
                 <input 
-                  type="text" 
-                  required
-                  placeholder="e.g., Premium Leather Chronograph Watch" 
-                  value={name}
+                  type="text" required placeholder="e.g., Premium Leather Chronograph Watch" value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas placeholder-gray-canvas/30 focus:outline-none focus:border-lime-accent transition-colors"
+                  className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas focus:outline-none focus:border-lime-accent"
                 />
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Description</label>
                 <textarea 
-                  rows="3"
-                  placeholder="Provide technical product specifications or descriptions..." 
-                  value={description}
+                  rows="3" placeholder="Provide product technical description specifications..." value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas placeholder-gray-canvas/30 focus:outline-none focus:border-lime-accent transition-colors resize-none"
+                  className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas focus:outline-none focus:border-lime-accent resize-none"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Original Price *</label>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
                     <input 
-                      type="number" 
-                      required
-                      placeholder="2499" 
-                      value={originalPrice}
+                      type="number" required placeholder="2499" value={originalPrice}
                       onChange={(e) => setOriginalPrice(e.target.value)}
-                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono font-medium text-gray-canvas focus:outline-none focus:border-lime-accent transition-colors"
+                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent"
                     />
                   </div>
                 </div>
@@ -486,12 +593,9 @@ const AddProducts = () => {
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
                     <input 
-                      type="number" 
-                      required
-                      placeholder="1899" 
-                      value={offerPrice}
+                      type="number" required placeholder="1899" value={offerPrice}
                       onChange={(e) => setOfferPrice(e.target.value)}
-                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono font-medium text-gray-canvas focus:outline-none focus:border-lime-accent transition-colors"
+                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent"
                     />
                   </div>
                 </div>
@@ -501,42 +605,27 @@ const AddProducts = () => {
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
                     <input 
-                      type="number" 
-                      required
-                      placeholder="1350" 
-                      value={branchAdminPrice}
+                      type="number" required placeholder="1350" value={branchAdminPrice}
                       onChange={(e) => setBranchAdminPrice(e.target.value)}
-                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono font-medium text-gray-canvas focus:outline-none focus:border-lime-accent transition-colors"
+                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Stock Count *</label>
-                  <div className="relative flex items-center">
-                    <input 
-                      type="number" 
-                      required
-                      min="0"
-                      placeholder="50" 
-                      value={count}
-                      onChange={(e) => setCount(e.target.value)}
-                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono font-medium text-gray-canvas focus:outline-none focus:border-lime-accent transition-colors"
-                    />
-                  </div>
+                  <input 
+                    type="number" required min="0" placeholder="50" value={count}
+                    onChange={(e) => setCount(e.target.value)}
+                    className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent"
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Upload Product Images *</label>
-                <div className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl bg-royal-main/20 hover:border-white/20 transition-colors relative cursor-pointer group">
-                  <input 
-                    type="file" 
-                    multiple 
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
+                <div className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl bg-royal-main/20 hover:border-white/20 relative cursor-pointer group">
+                  <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                   <Image className="w-8 h-8 text-gray-canvas/40 group-hover:text-lime-accent transition-colors mb-2" />
                   <span className="text-xs font-bold text-gray-canvas/70">Click to upload files from device</span>
                 </div>
@@ -548,8 +637,7 @@ const AddProducts = () => {
                         <div key={idx} className="relative w-16 h-16 rounded-lg border border-white/10 overflow-hidden bg-royal-dark">
                           <img src={img} alt="preview" className="w-full h-full object-cover" />
                           <button
-                            type="button"
-                            onClick={() => removeUploadedImage(idx)}
+                            type="button" onClick={() => removeUploadedImage(idx)}
                             className="absolute top-0.5 right-0.5 bg-black/80 hover:bg-red-500 text-white rounded-full p-0.5 transition-colors cursor-pointer"
                           >
                             <X className="w-3 h-3" />
@@ -562,17 +650,8 @@ const AddProducts = () => {
               </div>
 
               <div className="border-t border-white/10 pt-5 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-canvas/80 hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-lime-accent text-royal-dark hover:shadow-[0_4px_20px_rgba(165,206,0,0.25)] transition-all cursor-pointer font-black"
-                >
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-canvas/80 hover:bg-white/10 cursor-pointer">Cancel</button>
+                <button type="submit" className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-lime-accent text-royal-dark hover:shadow-[0_4px_20px_rgba(165,206,0,0.25)] font-black cursor-pointer">
                   {isEditing ? 'Save Changes' : 'Publish Product'}
                 </button>
               </div>
@@ -582,7 +661,7 @@ const AddProducts = () => {
         </div>
       )}
 
-      {/* --- READ-ONLY VIEW WINDOW OVERLAY --- */}
+      {/* --- READ-ONLY INSPECTION OVERLAY --- */}
       {viewProduct && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
           <div className="bg-royal-dark border border-white/10 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative space-y-6 text-left">
@@ -592,10 +671,7 @@ const AddProducts = () => {
                 <span className="text-[9px] font-black uppercase tracking-widest text-lime-accent font-mono">Product Inspection Mode</span>
                 <h3 className="text-base font-black uppercase tracking-wider text-gray-canvas">{viewProduct.name}</h3>
               </div>
-              <button 
-                onClick={() => setViewProduct(null)}
-                className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-              >
+              <button onClick={() => setViewProduct(null)} className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -607,7 +683,6 @@ const AddProducts = () => {
             </div>
 
             <div className="space-y-4 text-xs font-medium">
-              
               <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Showcase Level:</span>
                 <span className={`font-black uppercase tracking-wider ${viewProduct.isFeatured ? 'text-lime-accent' : 'text-gray-canvas/40'}`}>
@@ -628,6 +703,19 @@ const AddProducts = () => {
               <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Branch Admin Price:</span>
                 <span className="text-white font-mono font-bold">₹{viewProduct.branch_admin_price !== undefined ? viewProduct.branch_admin_price : viewProduct.branchAdminPrice || 0}</span>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Product Specifications / Sizes Bound:</span>
+                <div className="flex flex-wrap gap-1 bg-royal-main/10 border border-white/5 p-3 rounded-xl">
+                  {viewProduct.sizes && viewProduct.sizes.length > 0 ? (
+                    viewProduct.sizes.map((sz, idx) => (
+                      <span key={idx} className="text-[10px] bg-lime-accent/10 border border-lime-accent/20 text-lime-400 px-2 py-0.5 rounded font-mono font-bold">{sz}</span>
+                    ))
+                  ) : (
+                    <span className="text-gray-canvas/30 italic">No custom parameters matched.</span>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1.5">

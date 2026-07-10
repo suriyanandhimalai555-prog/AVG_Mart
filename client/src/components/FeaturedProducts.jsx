@@ -76,7 +76,7 @@ const FeaturedProducts = () => {
       const originalPrice = Number(product.originalPrice || 0);
       const offerPrice = Number(product.offerPrice || originalPrice);
       
-      const response = await fetch("http://localhost:5000/api/auth/cart", {
+      const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/cart`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
