@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, ShoppingBag, Star, ShieldCheck, Cpu, MessageSquare, Calendar, User } from 'lucide-react'
+import { ArrowLeft, ShoppingBag, Star, Cpu, MessageSquare, Calendar, User, Plus, Minus } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast'
@@ -18,23 +18,29 @@ const ProductDetailView = () => {
     const existingQty = location.state?.existingQty || 1
 
     const [product, setProduct] = useState(null)
-    const [reviews, setReviews] = useState([]) // Stores fetched review arrays
+    const [reviews, setReviews] = useState([]) 
     const [averageRating, setAverageRating] = useState(0)
     const [activeImg, setActiveImg] = useState('')
     const [isLoading, setIsLoading] = useState(true)
+    
+    // Selectable variations and quantities
     const [selectedSize, setSelectedSize] = useState('')
+    const [selectedColor, setSelectedColor] = useState('')
+    const [quantity, setQuantity] = useState(1)
 
     useEffect(() => {
         if (existingSize) {
             setSelectedSize(existingSize)
         }
-    }, [existingSize])
+        if (existingQty) {
+            setQuantity(existingQty)
+        }
+    }, [existingSize, existingQty])
 
     useEffect(() => {
         const fetchProductAndReviews = async () => {
             setIsLoading(true)
             try {
-                // 1. Fetch Product Asset
                 const prodResponse = await fetch(API_BASE_URL)
                 if (prodResponse.ok) {
                     const data = await prodResponse.json()
@@ -42,25 +48,27 @@ const ProductDetailView = () => {
                     if (foundProduct) {
                         setProduct(foundProduct)
                         setActiveImg(foundProduct.images && foundProduct.images[0] ? foundProduct.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500")
-                        if (!existingSize && foundProduct.sizes && foundProduct.sizes.length > 0) {
-                            setSelectedSize(foundProduct.sizes[0])
+                        
+                        if (foundProduct.sizes && foundProduct.sizes.length > 0) {
+                            const colors = foundProduct.sizes.filter(sz => isColorOption(sz))
+                            const sizes = foundProduct.sizes.filter(sz => isSizeOption(sz))
+
+                            if (!existingSize && sizes.length > 0) setSelectedSize(sizes[0])
+                            if (colors.length > 0) setSelectedColor(colors[0])
                         }
                     }
                 }
 
-                // 2. Fetch Review Metadata Logs
-const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/products/${id}/reviews`)
+                const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/products/${id}/reviews`)
                 if (revResponse.ok) {
                     const revData = await revResponse.json()
                     if (revData.success) {
                         setReviews(revData.reviews)
-                        
-                        // Compute live average rating metric safely
                         if (revData.reviews.length > 0) {
                             const aggregateSum = revData.reviews.reduce((sum, item) => sum + item.rating, 0)
                             setAverageRating((aggregateSum / revData.reviews.length).toFixed(1))
                         } else {
-                            setAverageRating(5.0) // Default baseline placeholder
+                            setAverageRating(5.0) 
                         }
                     }
                 }
@@ -73,6 +81,30 @@ const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/produc
         }
         fetchProductAndReviews()
     }, [id, existingSize])
+
+    // --- ACCURATE SEPARATION LOGIC PATTERNS ---
+    const isColorOption = (str) => {
+        const lower = str.toLowerCase()
+        if (lower.startsWith('color:')) return true
+        const colorKeywords = ['blue', 'red', 'white', 'black', 'green', 'gold', 'silver', 'grey', 'yellow', 'pink']
+        return colorKeywords.some(color => lower.includes(color)) && !lower.includes('brand') && !lower.includes('battery')
+    }
+
+    const isSizeOption = (str) => {
+        if (isColorOption(str)) return false
+        if (str.includes(':')) return false // Filters out metadata specifications like Brand: x or Battery: y
+        
+        const lower = str.toLowerCase()
+        // Standard clothing sizes or volumetric measurements
+        const standardSizes = ['s', 'm', 'l', 'xl', 'xxl', 'xxxl']
+        if (standardSizes.includes(lower)) return true
+        if (lower.includes('ml') || lower.includes('litre') || lower.includes('kg') || lower.includes('g')) return true
+        return false
+    }
+
+    const isStaticSpecification = (str) => {
+        return !isColorOption(str) && !isSizeOption(str)
+    }
 
     if (isLoading) {
         return (
@@ -130,8 +162,16 @@ const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/produc
     }
 
     const handleAddToCart = async (product, token, navigate) => {
-        if (product.sizes && product.sizes.length > 0 && !selectedSize) {
-            toast.error("Size selection required variation matrix before adding to cart.");
+        const hasSizes = product.sizes && product.sizes.some(sz => isSizeOption(sz))
+        const hasColors = product.sizes && product.sizes.some(sz => isColorOption(sz))
+
+        if (hasSizes && !selectedSize) {
+            toast.error("Size/Volume selection choice is required.");
+            return;
+        }
+
+        if (hasColors && !selectedColor) {
+            toast.error("Color option variation configuration is required.");
             return;
         }
 
@@ -142,6 +182,16 @@ const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/produc
         }
 
         const loadId = toast.loading("Syncing asset loadout...");
+        
+        // Clean up text format sent to backend database pipeline
+        const cleanSize = selectedSize
+        const cleanColor = selectedColor.replace(/^color:\s*/i, '')
+        
+        let finalOptionString = cleanSize
+        if (cleanColor) {
+            finalOptionString = finalOptionString ? `${cleanSize} (${cleanColor})` : cleanColor
+        }
+
         try {
             const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/cart`, {
                 method: "POST",
@@ -152,10 +202,10 @@ const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/produc
                     category: product.category,
                     price: offer,
                     image: activeImg,
-                    selected_size: selectedSize || '', 
+                    selected_size: finalOptionString || '', 
                     fromCartItemId,
                     isSizeUpdateOnly: !!fromCartItemId,
-                    existingQty
+                    existingQty: quantity
                 })
             });
 
@@ -170,6 +220,11 @@ const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/produc
             toast.error("Network synchronization error.", { id: loadId });
         }
     };
+
+    // Filter matrices categories dynamically
+    const sizeOptions = product.sizes ? product.sizes.filter(sz => isSizeOption(sz)) : []
+    const colorOptions = product.sizes ? product.sizes.filter(sz => isColorOption(sz)) : []
+    const specificationLabels = product.sizes ? product.sizes.filter(sz => isStaticSpecification(sz)) : []
 
     return (
         <>
@@ -229,39 +284,88 @@ const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/produc
                             <hr className="border-white/5" />
                             <p className="text-white/70 text-sm md:text-base leading-relaxed font-light">{product.description || "High efficiency catalog asset."}</p>
 
-                            {product.sizes && product.sizes.length > 0 && (
+                            {/* SELECTION INTERACTIVE SYSTEM MATRIX */}
+                            <div className="space-y-5">
+                                {/* 1. Size / Volume Options selection matrix */}
+                                {sizeOptions.length > 0 && (
+                                    <div className="space-y-3">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Select Variant Options Matrix</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {sizeOptions.map((sz, idx) => (
+                                                <button key={idx} type="button" onClick={() => setSelectedSize(sz)} className={`font-mono text-xs font-black px-4 py-2.5 rounded-xl border transition-all ${selectedSize === sz ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-md' : 'bg-white/5 border-white/10 text-white/70'}`}>
+                                                    {sz}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 2. Color Selection Engine Matrix */}
+                                {colorOptions.length > 0 && (
+                                    <div className="space-y-3">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Select Color Matrix</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {colorOptions.map((clr, idx) => (
+                                                <button key={idx} type="button" onClick={() => setSelectedColor(clr)} className={`font-mono text-xs font-black px-4 py-2.5 rounded-xl border transition-all ${selectedColor === clr ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-md' : 'bg-white/5 border-white/10 text-white/70'}`}>
+                                                    {clr.replace(/^color:\s*/i, '')} {/* Renders only "Blue", "Red", "White" visually */}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 3. Quantitative Selector Counter */}
                                 <div className="space-y-3">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Available Options Matrix</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {product.sizes.map((sz, idx) => (
-                                            <button key={idx} type="button" onClick={() => setSelectedSize(sz)} className={`font-mono text-xs font-black px-4 py-2.5 rounded-xl border transition-all ${selectedSize === sz ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-md' : 'bg-white/5 border-white/10 text-white/70'}`}>
-                                                {sz.startsWith("Color: ") ? sz.replace("Color: ", "") : sz}
-                                            </button>
-                                        ))}
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Select Quantity</h4>
+                                    <div className="flex items-center gap-1 bg-white/5 border border-white/10 w-fit p-1 rounded-xl">
+                                        <button type="button" onClick={() => setQuantity(prev => Math.max(1, prev - 1))} className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
+                                            <Minus className="w-4 h-4" />
+                                        </button>
+                                        <span className="font-mono font-black text-sm text-center px-4 min-w-[40px]">{quantity}</span>
+                                        <button type="button" onClick={() => setQuantity(prev => prev + 1)} className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
+                                            <Plus className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
-                            )}
 
+                                {/* 4. STATIC METADATA LABELS (SHOWCASE DISPLAY ONLY) */}
+                                {specificationLabels.length > 0 && (
+                                    <div className="space-y-3 pt-2">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Product Specifications & Features</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {specificationLabels.map((spec, idx) => (
+                                                <span key={idx} className="bg-white/[0.02] border border-white/5 font-sans text-xs text-white/50 px-4 py-2.5 rounded-xl cursor-default select-none">
+                                                    {spec}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ACQUISITION VALUE SECTION CONTAINER */}
                             <div className="bg-gradient-to-b from-white/[0.06] to-white/[0.01] border border-white/10 p-6 rounded-2xl space-y-6">
                                 <div className="flex justify-between items-center">
                                     <div className="flex flex-col">
-                                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white/40">Acquisition Value ({selectedSize || 'Base'})</span>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white/40">
+                                            Total Acquisition Value ({selectedSize || selectedColor.replace(/^color:\s*/i, '') || 'Base'})
+                                        </span>
                                         <div className="flex items-baseline gap-3 mt-1">
-                                            <span className="text-3xl md:text-4xl font-black text-white">₹{offer}</span>
-                                            {priceDifference > 0 && <span className="text-sm line-through text-white/30 font-bold">₹{original}</span>}
+                                            <span className="text-3xl md:text-4xl font-black text-white">₹{offer * quantity}</span>
+                                            {priceDifference > 0 && <span className="text-sm line-through text-white/30 font-bold">₹{original * quantity}</span>}
                                         </div>
                                     </div>
                                     {percentSaved > 0 && <div className="bg-lime-accent text-royal-dark text-[10px] font-black px-3 py-1.5 rounded-lg">-{percentSaved}% Drop</div>}
                                 </div>
 
                                 <button disabled={product.count <= 0} onClick={() => handleAddToCart(product, localStorage.getItem("token"), navigate)} className={`w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 font-black uppercase tracking-[0.15em] text-[11px] rounded-xl transition-all ${product.count > 0 ? 'bg-white hover:bg-lime-accent text-royal-dark shadow-md' : 'bg-white/10 text-white/30 cursor-not-allowed'}`}>
-                                    <ShoppingBag className="w-4 h-4" /> {product.count <= 0 ? 'Out of Stock' : fromCartItemId ? 'Update Size Matrix' : 'Add to Cart'}
+                                    <ShoppingBag className="w-4 h-4" /> {product.count <= 0 ? 'Out of Stock' : fromCartItemId ? 'Update Custom Configuration' : 'Add to Cart'}
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* --- DYNAMIC PRODUCT REVIEWS LAYOUT MATRICES SECTION --- */}
+                    {/* --- REVIEWS LAYOUT MATRICES SECTION --- */}
                     <div className="mt-20 border-t border-white/10 pt-12 text-left space-y-8">
                         <div className="flex items-center gap-2">
                             <MessageSquare className="w-5 h-5 text-lime-accent" />
@@ -277,7 +381,6 @@ const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/produc
                                 {reviews.map((rev) => (
                                     <div key={rev.id} className="bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-2xl p-5 space-y-3 flex flex-col justify-between">
                                         <div className="space-y-2">
-                                            {/* Header information info row */}
                                             <div className="flex items-center justify-between text-xs">
                                                 <div className="flex items-center gap-2 text-white/80 font-bold">
                                                     <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center"><User className="w-3 h-3 text-lime-accent" /></div>
@@ -288,7 +391,6 @@ const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/produc
                                                 </span>
                                             </div>
 
-                                            {/* Stars display loop */}
                                             <div className="flex gap-0.5">
                                                 {[1, 2, 3, 4, 5].map((starIdx) => (
                                                     <Star key={starIdx} className={`w-3.5 h-3.5 ${starIdx <= rev.rating ? 'text-lime-accent fill-lime-accent' : 'text-white/10'}`} />
@@ -298,7 +400,6 @@ const revResponse = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/produc
                                             <p className="text-xs font-normal text-white/70 leading-relaxed tracking-wide font-sans">{rev.comment}</p>
                                         </div>
 
-                                        {/* Optional Customer Proof Image Attachment Loop Tray */}
                                         {rev.images && rev.images.length > 0 && (
                                             <div className="flex flex-wrap gap-2 pt-2 border-t border-white/[0.03]">
                                                 {rev.images.map((imgUrl, i) => (
