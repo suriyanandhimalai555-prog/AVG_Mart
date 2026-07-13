@@ -12,13 +12,31 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
+// 1. UPDATE CORS: Allow both production and local domains explicitly
+const allowedOrigins = [
+  process.env.FRONTEND_URL, 
+  'https://avgmart.com', 
+  'http://localhost:5173'
+].filter(Boolean); // Removes undefined values if process.env isn't set yet
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
+
+// 2. INCREASE PAYLOAD LIMITS: Solves the 413 (Request Entity Too Large) error
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Main Routing mount
 app.use("/api/auth", authRoutes);
