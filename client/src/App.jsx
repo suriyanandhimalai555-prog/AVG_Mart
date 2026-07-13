@@ -23,6 +23,7 @@ import Dashboard from './pages/admin/Dashboard'
 import AddProducts from './pages/admin/AddProducts'
 import CustomerOrders from './pages/admin/CustomerOrders'
 import AddCategory from './pages/admin/AddCategory'
+import RequestStockBranch from './pages/admin/RequestStockBranch'
 
 // Route Protection Guards
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoutes'
@@ -31,9 +32,11 @@ import Checkout from './pages/Checkout'
 // Branch Admin Imports
 import BranchSidebar from './pages/branchAdmin/BranchSidebar'
 import BranchAdmin from './pages/branchAdmin/BranchAdmin'
+import BranchOrders from './pages/branchAdmin/BranchOrders'
 import BranchAdminDashboard from './pages/branchAdmin/BranchAdminDashboard'
 import Stock from './pages/branchAdmin/Stock'
 import RequestStock from './pages/branchAdmin/RequestStock'
+import BranchProfile from './pages/branchAdmin/BranchProfile'
 
 const App = () => {
   return (
@@ -82,6 +85,7 @@ const App = () => {
                     <Route path="category" element={<AddCategory />} />
                     <Route path="orders" element={<CustomerOrders />} />
                     <Route path="create-branch-admin" element={<BranchAdmin />} />
+                    <Route path='stock-request' element={<RequestStockBranch />} />
                   </Routes>
                 </div>
               </div>
@@ -101,7 +105,9 @@ const App = () => {
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<BranchAdminDashboard />} />
                     <Route path="stock" element={<Stock />} />
-                    <Route path="orders" element={<RequestStock />} />
+                    <Route path="orders" element={<BranchOrders />} />
+                    <Route path='request-stock' element={<RequestStock />} />
+                    <Route path="profile" element={<BranchProfile />} />
                   </Routes>
                 </div>
               </div>
