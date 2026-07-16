@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star, CheckSquare, Square } from 'lucide-react'
+import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star, CheckSquare, Square, Upload } from 'lucide-react'
 import { toast } from 'react-hot-toast' 
 
 const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
@@ -26,23 +26,25 @@ const AddProducts = () => {
   const [count, setCount] = useState('')
   const [isFeatured, setIsFeatured] = useState(false)
   
-  const [images, setImages] = useState([])       
-  const [rawFiles, setRawFiles] = useState([])   
+  // Base structural tracking changes
+  const [baseRawFiles, setBaseRawFiles] = useState([])   
+  const [baseImages, setBaseImages] = useState([])
+  
+  // Upgraded to arrays supporting up to 5 images per color option
+  const [colorSpecificFiles, setColorSpecificFiles] = useState({}) // format: { "Color: Red": [File, File] }
+  const [colorSpecificPreviews, setColorSpecificPreviews] = useState({}) // format: { "Color: Red": [DataURL, DataURL] }
 
   // --- Dynamic Category Attributes State ---
-  const [selectedSpecOptions, setSelectedSpecOptions] = useState([]) // Stores finalized strings/tags to submit
-  const [customTextInputs, setCustomTextInputs] = useState({}) // Stores text values typed for generic text specs
+  const [selectedSpecOptions, setSelectedSpecOptions] = useState([]) 
+  const [customTextInputs, setCustomTextInputs] = useState({}) 
 
-  // Expanded Standard Sizes arrays
   const clothingSizesList = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL']
   const footwearSizesList = ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 
-  // Category Detection logic
   const normalizedCat = category.toLowerCase().trim()
-  const isClothingCategory = normalizedCat === 't-shirt' || normalizedCat === 'tshirts' || normalizedCat === 'tshirt' || normalizedCat === 'shirt' || normalizedCat === 'clothing' || normalizedCat === 'clothes'
-  const isFootwearCategory = normalizedCat === 'shoe' || normalizedCat === 'shoes' || normalizedCat === 'footwear' || normalizedCat === 'footwears'
+  const isClothingCategory = ['t-shirt', 'tshirts', 'tshirt', 'shirt', 'clothing', 'clothes'].includes(normalizedCat)
+  const isFootwearCategory = ['shoe', 'shoes', 'footwear', 'footwears'].includes(normalizedCat)
 
-  // Get currently selected category object details
   const activeCategoryObject = availableCategories.find(cat => cat.name.toLowerCase() === normalizedCat)
 
   useEffect(() => {
@@ -80,43 +82,74 @@ const AddProducts = () => {
     }
   }
 
-  const handleImageUpload = (e) => {
+  const handleBaseImageUpload = (e) => {
     const files = Array.from(e.target.files)
     if (!files.length) return
 
-    setRawFiles((prevFiles) => [...prevFiles, ...files])
+    setBaseRawFiles((prev) => [...prev, ...files])
+    files.forEach((file) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setBaseImages((prev) => [...prev, reader.result])
+      }
+      reader.readAsDataURL(file)
+    })
+    toast.success("General image staged.")
+  }
+
+  // Refactored Multi-Image support up to 5 per variant color choice
+  const handleColorImageUpload = (colorKey, e) => {
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+
+    const currentFiles = colorSpecificFiles[colorKey] || []
+    if (currentFiles.length + files.length > 15) {
+      toast.error("You can only upload up to 15 images per color variant.")
+      return
+    }
+
+    const updatedFiles = [...currentFiles, ...files]
+    setColorSpecificFiles(prev => ({ ...prev, [colorKey]: updatedFiles }))
     
     files.forEach((file) => {
       const reader = new FileReader()
       reader.onloadend = () => {
-        setImages((prevImages) => [...prevImages, reader.result])
+        setColorSpecificPreviews(prev => {
+          const currentPreviews = prev[colorKey] || []
+          return { ...prev, [colorKey]: [...currentPreviews, reader.result] }
+        })
       }
       reader.readAsDataURL(file)
     })
-    toast.success(`${files.length} image(s) staged successfully.`)
+    toast.success(`Staged ${files.length} asset variant views for color: ${colorKey.replace("Color: ", "")}`)
   }
 
-  const removeUploadedImage = (indexToRemove) => {
-    setImages(images.filter((_, index) => index !== indexToRemove))
-    setRawFiles(rawFiles.filter((_, index) => index !== indexToRemove))
-    toast.success("Image staging removed.")
+  const removeColorImageSlot = (colorKey, indexToDrop) => {
+    const updatedFiles = (colorSpecificFiles[colorKey] || []).filter((_, i) => i !== indexToDrop)
+    const updatedPreviews = (colorSpecificPreviews[colorKey] || []).filter((_, i) => i !== indexToDrop)
+    
+    setColorSpecificFiles(prev => ({ ...prev, [colorKey]: updatedFiles }))
+    setColorSpecificPreviews(prev => ({ ...prev, [colorKey]: updatedPreviews }))
   }
 
-  // Handle checking and unchecking selection pills
   const handleSpecToggle = (optionString) => {
     if (selectedSpecOptions.includes(optionString)) {
       setSelectedSpecOptions(selectedSpecOptions.filter(item => item !== optionString))
+      if (optionString.startsWith("Color: ")) {
+        const updatedFiles = { ...colorSpecificFiles }
+        const updatedPreviews = { ...colorSpecificPreviews }
+        delete updatedFiles[optionString]
+        delete updatedPreviews[optionString]
+        setColorSpecificFiles(updatedFiles)
+        setColorSpecificPreviews(updatedPreviews)
+      }
     } else {
       setSelectedSpecOptions([...selectedSpecOptions, optionString])
     }
   }
 
-  // Handle generic text specifications inputs (e.g. Brand Name, Battery)
   const handleCustomTextChange = (specName, value) => {
-    setCustomTextInputs(prev => ({
-      ...prev,
-      [specName]: value
-    }))
+    setCustomTextInputs(prev => ({ ...prev, [specName]: value }))
   }
 
   const resetForm = () => {
@@ -128,8 +161,10 @@ const AddProducts = () => {
     setBranchAdminPrice('') 
     setCount('')
     setIsFeatured(false)
-    setImages([])
-    setRawFiles([])
+    setBaseImages([])
+    setBaseRawFiles([])
+    setColorSpecificFiles({})
+    setColorSpecificPreviews({})
     setIsEditing(false)
     setCurrentProductId(null)
     setSelectedSpecOptions([])
@@ -137,10 +172,23 @@ const AddProducts = () => {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    if (e) e.preventDefault()
     
-    if (images.length === 0) {
-      toast.error("Please upload at least one product image.");
+    // Validation checks for color images when adding a new item
+    if (!isEditing) {
+      const activeColorKeys = selectedSpecOptions.filter(key => key.startsWith("Color: "))
+      for (const colorKey of activeColorKeys) {
+        const filesForColor = colorSpecificFiles[colorKey] || []
+        if (filesForColor.length === 0) {
+          toast.error(`Please upload at least one image for variant: ${colorKey.replace("Color: ", "")}`)
+          return
+        }
+      }
+    }
+
+    const hasColorImages = Object.values(colorSpecificFiles).some(arr => arr && arr.length > 0)
+    if (baseRawFiles.length === 0 && !hasColorImages && !isEditing) {
+      toast.error("Please upload at least one product asset image.");
       return;
     }
 
@@ -156,8 +204,52 @@ const AddProducts = () => {
     formData.append('count', count || '0')
     formData.append('isFeatured', isFeatured)
 
-    // Compile selection items and typed custom specifications text cleanly into a unified sizes array payload
-    let finalPayloadSpecs = [...selectedSpecOptions]
+    // Append standard fallback asset files
+    const trackingUploadFiles = [...baseRawFiles]
+    const activeColorKeys = Object.keys(colorSpecificFiles).filter(key => selectedSpecOptions.includes(key))
+    
+    // Map dynamically keeping tracking index records accurate
+    let colorIndexOffsetMap = {}
+    let runningIndexSum = baseRawFiles.length
+
+    activeColorKeys.forEach((colorKey) => {
+      const filesForColor = colorSpecificFiles[colorKey] || []
+      if (filesForColor.length > 0) {
+        // Record starting location index of files for this color
+        colorIndexOffsetMap[colorKey] = runningIndexSum
+        filesForColor.forEach(file => {
+          trackingUploadFiles.push(file)
+          runningIndexSum++
+        })
+      }
+    })
+
+    // Enforce max 15 limitation cleanly before submitting to backend middleware
+    if (trackingUploadFiles.length > 15) {
+      toast.dismiss(actionToastId)
+      toast.error("Total image attachments cross the maximum layout limit (Max 15).")
+      return
+    }
+
+    // Fixed key name string parameter securely targeting backend endpoint arrays map layout
+    trackingUploadFiles.forEach((file) => {
+      formData.append('productImages', file)
+    })
+
+    let finalPayloadSpecs = []
+    
+    selectedSpecOptions.forEach(item => {
+      if (item.startsWith("Color: ")) {
+        if (colorIndexOffsetMap[item] !== undefined) {
+          // Send back index key metadata string to database backend tracking
+          finalPayloadSpecs.push(`${item}__imgIdx:${colorIndexOffsetMap[item]}`)
+        } else {
+          finalPayloadSpecs.push(`${item}__imgIdx:0`) 
+        }
+      } else {
+        finalPayloadSpecs.push(item)
+      }
+    })
     
     Object.keys(customTextInputs).forEach(key => {
       if (customTextInputs[key] && customTextInputs[key].trim() !== '') {
@@ -167,22 +259,12 @@ const AddProducts = () => {
 
     formData.append('sizes', JSON.stringify(finalPayloadSpecs))
 
-    rawFiles.forEach((file) => {
-      formData.append('productImages', file)
-    })
-
     try {
       let response
       if (isEditing) {
-        response = await fetch(`${API_BASE_URL}/${currentProductId}`, {
-          method: 'PUT',
-          body: formData,
-        })
+        response = await fetch(`${API_BASE_URL}/${currentProductId}`, { method: 'PUT', body: formData })
       } else {
-        response = await fetch(API_BASE_URL, {
-          method: 'POST',
-          body: formData,
-        })
+        response = await fetch(API_BASE_URL, { method: 'POST', body: formData })
       }
 
       if (response.ok) {
@@ -205,27 +287,27 @@ const AddProducts = () => {
     setName(product.name)
     setCategory(product.category)
     setDescription(product.description || '')
-    
     setOriginalPrice(product.original_price !== undefined ? product.original_price : product.originalPrice)
     setOfferPrice(product.offer_price !== undefined ? product.offer_price : product.offerPrice)
     setBranchAdminPrice(product.branch_admin_price !== undefined ? product.branch_admin_price : product.branchAdminPrice) 
-    
     setCount(product.count)
     setIsFeatured(product.isFeatured || false)
-    setImages(product.images || [])
-    setRawFiles([]) 
+    
+    setBaseImages(product.images || [])
+    setBaseRawFiles([]) 
 
-    // Parse pre-existing elements into separate text fields and checkbox categories
     const initialChecked = []
     const initialTexts = {}
 
     if (product.sizes && Array.isArray(product.sizes)) {
       product.sizes.forEach(item => {
-        if (item.includes(': ')) {
+        if (item.includes('__imgIdx:')) {
+          const parts = item.split('__imgIdx:')
+          initialChecked.push(parts[0])
+        } else if (item.includes(': ')) {
           const parts = item.split(': ')
           const label = parts[0]
           const val = parts.slice(1).join(': ')
-          // If it's a dynamic color selection tag, keep it as an option check
           if (label === 'Color') {
             initialChecked.push(item)
           } else {
@@ -239,6 +321,8 @@ const AddProducts = () => {
 
     setSelectedSpecOptions(initialChecked)
     setCustomTextInputs(initialTexts)
+    setColorSpecificFiles({})
+    setColorSpecificPreviews({})
     setIsEditing(true)
     setIsModalOpen(true)
   }
@@ -341,7 +425,9 @@ const AddProducts = () => {
                   <div className="flex flex-wrap gap-1 items-center">
                     <span className="text-[9px] font-bold tracking-wider uppercase text-gray-canvas/40 mr-1">Specs:</span>
                     {product.sizes.map((sz, idx) => (
-                      <span key={idx} className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-lime-400">{sz}</span>
+                      <span key={idx} className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-lime-400">
+                        {sz.split('__imgIdx:')[0]}
+                      </span>
                     ))}
                   </div>
                 )}
@@ -378,101 +464,79 @@ const AddProducts = () => {
 
       {/* --- POPUP MODAL --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-royal-dark border border-white/10 w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto text-left">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="bg-royal-dark border border-white/10 w-full max-w-2xl rounded-3xl shadow-2xl relative flex flex-col max-h-[85vh] text-left">
             
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            {/* Locked Modal Header */}
+            <div className="flex items-center justify-between border-b border-white/10 p-6 shrink-0">
               <h3 className="text-lg font-black uppercase tracking-wider text-gray-canvas flex items-center gap-2">
                 <Layers className="w-5 h-5 text-lime-accent" />
                 <span>{isEditing ? 'Edit Product' : 'Add New Product'}</span>
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Scrollable Form Content View Body Zone */}
+            <form id="productForm" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
               
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Select Category *</label>
-                <select
-                  required
-                  value={category}
-                  onChange={(e) => { 
-                    setCategory(e.target.value); 
-                    setSelectedSpecOptions([]); 
-                    setCustomTextInputs({}); 
-                  }}
-                  className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-gray-canvas uppercase tracking-wider focus:outline-none focus:border-lime-accent transition-colors cursor-pointer"
-                >
-                  <option value="" disabled className="bg-royal-dark text-gray-canvas/40">-- SELECT CATEGORY --</option>
-                  {availableCategories.map((cat) => (
-                    <option key={cat.id} value={cat.name} className="bg-royal-dark text-gray-canvas">
-                      {cat.name.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Name *</label>
+                  <input 
+                    type="text" required placeholder="e.g., Elite Sports Shoes" value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Select Category *</label>
+                  <select
+                    required
+                    value={category}
+                    onChange={(e) => { 
+                      setCategory(e.target.value); 
+                      setSelectedSpecOptions([]); 
+                      setCustomTextInputs({}); 
+                      setColorSpecificFiles({});
+                      setColorSpecificPreviews({});
+                    }}
+                    className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-gray-canvas uppercase tracking-wider focus:outline-none focus:border-lime-accent transition-colors cursor-pointer"
+                  >
+                    <option value="" disabled className="bg-royal-dark text-gray-canvas/40">-- SELECT CATEGORY --</option>
+                    {availableCategories.map((cat) => (
+                      <option key={cat.id} value={cat.name} className="bg-royal-dark text-gray-canvas">
+                        {cat.name.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              {/* --- STANDARD BACKUP SIZE CHECKS FOR CLOTHING AND FOOTWEAR --- */}
-              {isClothingCategory && (
-                <div className="space-y-2 p-4 bg-lime-accent/5 rounded-2xl border border-lime-accent/10">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-lime-400">Available Clothing Sizes</label>
-                  <div className="flex flex-wrap gap-2">
-                    {clothingSizesList.map((sz) => {
-                      const isChecked = selectedSpecOptions.includes(sz)
-                      return (
-                        <button
-                          key={sz} type="button" onClick={() => handleSpecToggle(sz)}
-                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
-                            isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
-                          }`}
-                        >
-                          {sz}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Description</label>
+                <textarea 
+                  rows="2" placeholder="Provide product technical description specifications..." value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas focus:outline-none focus:border-lime-accent resize-none text-left"
+                />
+              </div>
 
-              {isFootwearCategory && (
-                <div className="space-y-2 p-4 bg-lime-accent/5 rounded-2xl border border-lime-accent/10">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-lime-400">Available Footwear Sizes</label>
-                  <div className="flex flex-wrap gap-2">
-                    {footwearSizesList.map((sz) => {
-                      const isChecked = selectedSpecOptions.includes(sz)
-                      return (
-                        <button
-                          key={sz} type="button" onClick={() => handleSpecToggle(sz)}
-                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
-                            isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
-                          }`}
-                        >
-                          UK/US {sz}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* --- DYNAMICALLY LOADED MAPPED SPECIFICATION INPUTS FROM CATEGORY MATRIX --- */}
+              {/* Dynamic Categories Configurations Matrix */}
               {activeCategoryObject && activeCategoryObject.attributes && activeCategoryObject.attributes.length > 0 && (
                 <div className="space-y-4 border-t border-white/5 pt-4">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-lime-400">Category Configured Specifications Matrix</h4>
                   
                   <div className="grid grid-cols-1 gap-4 bg-royal-main/20 p-4 rounded-2xl border border-white/5">
                     {(() => {
-                      // Separate plain attributes and dynamic color key tab targets
                       const normalAttributes = []
                       const colorTabValues = []
 
                       activeCategoryObject.attributes.forEach(attr => {
                         if (attr.startsWith("Color: ")) {
                           colorTabValues.push(attr)
-                        } else if (attr === "Color") {
-                          // General fallback placeholder
                         } else {
                           normalAttributes.push(attr)
                         }
@@ -480,34 +544,80 @@ const AddProducts = () => {
 
                       return (
                         <>
-                          {/* If category has color tabs configured, show checkable button list */}
                           {colorTabValues.length > 0 && (
-                            <div className="space-y-2 border-b border-white/5 pb-3">
-                              <label className="text-[10px] font-black uppercase text-gray-canvas/50">Select Available Color Variants</label>
-                              <div className="flex flex-wrap gap-1.5">
+                            <div className="space-y-4 border-b border-white/5 pb-3">
+                              <label className="text-[10px] font-black uppercase text-gray-canvas/50">Step 1: Select Available Color Variants</label>
+                              <div className="flex flex-wrap gap-2">
                                 {colorTabValues.map((fullValue, index) => {
                                   const displayColor = fullValue.replace("Color: ", "")
                                   const isChecked = selectedSpecOptions.includes(fullValue)
                                   return (
                                     <button
                                       type="button" key={index} onClick={() => handleSpecToggle(fullValue)}
-                                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-left transition-all text-[11px] font-bold ${
-                                        isChecked ? 'bg-lime-accent/10 border-lime-accent text-lime-400' : 'bg-royal-dark border-white/5 text-gray-canvas/50'
+                                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                                        isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-md' : 'bg-white/5 border-white/10 text-white/60'
                                       }`}
                                     >
-                                      {isChecked ? <CheckSquare className="w-3 h-3 text-lime-400" /> : <Square className="w-3 h-3 text-gray-canvas/30" />}
+                                      {isChecked ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 opacity-40" />}
                                       <span>{displayColor.toUpperCase()}</span>
                                     </button>
                                   )
                                 })}
                               </div>
+
+                              {/* Multi Image Upload Box Section for colors */}
+                              {selectedSpecOptions.some(opt => opt.startsWith("Color: ")) && (
+                                <div className="space-y-4 pt-3 border-t border-white/5">
+                                  <label className="text-[10px] font-black uppercase text-lime-400">Step 2: Upload Images For Selected Colors (Max 5 Each)</label>
+                                  <div className="grid grid-cols-1 gap-4">
+                                    {selectedSpecOptions.filter(opt => opt.startsWith("Color: ")).map((colorKey, idx) => {
+                                      const previews = colorSpecificPreviews[colorKey] || []
+                                      return (
+                                        <div key={idx} className="bg-royal-dark/80 p-4 rounded-xl border border-white/5 space-y-3">
+                                          <div className="flex justify-between items-center text-[11px] font-bold text-white uppercase tracking-wider">
+                                            <span>{colorKey.replace("Color: ", "")} Variant</span>
+                                            <span className="text-[10px] font-mono text-lime-400">{previews.length} / 5 Images</span>
+                                          </div>
+
+                                          <div className="flex flex-wrap gap-2 items-center">
+                                            {/* Previews List */}
+                                            {previews.map((src, pIdx) => (
+                                              <div key={pIdx} className="relative w-14 h-14 rounded-lg border border-white/10 overflow-hidden shrink-0">
+                                                <img src={src} alt="preview" className="w-full h-full object-cover" />
+                                                <button 
+                                                  type="button" 
+                                                  onClick={() => removeColorImageSlot(colorKey, pIdx)}
+                                                  className="absolute top-0.5 right-0.5 bg-black/85 rounded-full p-0.5 hover:bg-red-500 transition-colors"
+                                                >
+                                                  <X className="w-2.5 h-2.5 text-white" />
+                                                </button>
+                                              </div>
+                                            ))}
+
+                                            {/* Upload Trigger Dropzone Box */}
+                                            {previews.length < 5 && (
+                                              <div className="relative w-14 h-14 rounded-lg bg-white/5 border border-dashed border-white/20 hover:border-lime-accent/50 transition-colors flex flex-col items-center justify-center shrink-0 cursor-pointer">
+                                                <input 
+                                                  type="file" multiple accept="image/*"
+                                                  onChange={(e) => handleColorImageUpload(colorKey, e)}
+                                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                />
+                                                <Upload className="w-4 h-4 text-lime-accent" />
+                                                <span className="text-[8px] mt-1 text-gray-canvas/40 font-bold">ADD</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
 
-                          {/* Dynamic Inputs for simple generic categories (Brand Name, Battery, RAM/ROM, 100gram, etc.) */}
                           {normalAttributes.map((attrName, index) => {
-                            // Check if this item is standard boolean flag or requires continuous string values
-                            const isCheckboxValue = attrName.toLowerCase().includes("kg") || attrName.toLowerCase().includes("gram") || attrName.toLowerCase().includes("litre") || attrName.toLowerCase().includes("ml") || attrName.toLowerCase().includes("resistant")
+                            const isCheckboxValue = attrName.toLowerCase().includes("`kg`") || attrName.toLowerCase().includes("gram") || attrName.toLowerCase().includes("litre") || attrName.toLowerCase().includes("ml") || attrName.toLowerCase().includes("resistant")
                             
                             if (isCheckboxValue) {
                               const isChecked = selectedSpecOptions.includes(attrName)
@@ -528,13 +638,13 @@ const AddProducts = () => {
 
                             return (
                               <div key={index} className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/50">{attrName}</label>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/50 text-left block">{attrName}</label>
                                 <input 
                                   type="text"
-                                  placeholder={`Enter ${attrName} configuration values...`}
+                                  placeholder={`Enter ${attrName} configuration...`}
                                   value={customTextInputs[attrName] || ''}
                                   onChange={(e) => handleCustomTextChange(attrName, e.target.value)}
-                                  className="w-full bg-royal-dark border border-white/10 rounded-xl px-3 py-2.5 text-xs text-gray-canvas focus:outline-none focus:border-lime-accent"
+                                  className="w-full bg-royal-dark border border-white/10 rounded-xl px-3 py-2.5 text-xs text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
                                 />
                               </div>
                             )
@@ -546,6 +656,126 @@ const AddProducts = () => {
                 </div>
               )}
 
+              {/* Standard Sizes Blocks */}
+              {isClothingCategory && (
+                <div className="space-y-2 p-4 bg-lime-accent/5 rounded-2xl border border-lime-accent/10">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-lime-400 text-left block">Available Clothing Sizes</label>
+                  <div className="flex flex-wrap gap-2">
+                    {clothingSizesList.map((sz) => {
+                      const isChecked = selectedSpecOptions.includes(sz)
+                      return (
+                        <button
+                          key={sz} type="button" onClick={() => handleSpecToggle(sz)}
+                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
+                            isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
+                          }`}
+                        >
+                          {sz}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {isFootwearCategory && (
+                <div className="space-y-2 p-4 bg-lime-accent/5 rounded-2xl border border-lime-accent/10">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-lime-400 text-left block">Available Footwear Sizes</label>
+                  <div className="flex flex-wrap gap-2">
+                    {footwearSizesList.map((sz) => {
+                      const isChecked = selectedSpecOptions.includes(sz)
+                      return (
+                        <button
+                          key={sz} type="button" onClick={() => handleSpecToggle(sz)}
+                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
+                            isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
+                          }`}
+                        >
+                          UK/US {sz}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* General Fallback Bulk Images Pickers */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 text-left block">Additional General Images (Optional)</label>
+                <div className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl bg-royal-main/20 hover:border-white/20 relative cursor-pointer group">
+                  <input type="file" multiple accept="image/*" onChange={handleBaseImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <Image className="w-8 h-8 text-gray-canvas/40 group-hover:text-lime-accent transition-colors mb-2" />
+                  <span className="text-xs font-bold text-gray-canvas/70">Click to upload general views</span>
+                </div>
+                {baseImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {baseImages.map((img, idx) => (
+                      <div key={idx} className="relative w-14 h-14 rounded-lg border border-white/10 overflow-hidden">
+                        <img src={img} alt="preview" className="w-full h-full object-cover" />
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setBaseImages(baseImages.filter((_, i) => i !== idx));
+                            setBaseRawFiles(baseRawFiles.filter((_, i) => i !== idx));
+                          }}
+                          className="absolute top-0.5 right-0.5 bg-black/80 rounded-full p-0.5 hover:bg-red-500"
+                        >
+                          <X className="w-2.5 h-2.5 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Pricing Metric Container Grids */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 text-left block">Original Price *</label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
+                    <input 
+                      type="number" required placeholder="2499" value={originalPrice}
+                      onChange={(e) => setOriginalPrice(e.target.value)}
+                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 text-left block">Offer Price *</label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
+                    <input 
+                      type="number" required placeholder="1899" value={offerPrice}
+                      onChange={(e) => setOfferPrice(e.target.value)}
+                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 text-left block">Branch Admin *</label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
+                    <input 
+                      type="number" required placeholder="1350" value={branchAdminPrice}
+                      onChange={(e) => setBranchAdminPrice(e.target.value)}
+                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 text-left block">Stock Count *</label>
+                  <input 
+                    type="number" required min="0" placeholder="50" value={count}
+                    onChange={(e) => setCount(e.target.value)}
+                    className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
+                  />
+                </div>
+              </div>
+
               <div className="flex items-center gap-3 bg-royal-main/20 border border-white/5 p-4 rounded-xl">
                 <input 
                   type="checkbox" id="featuredCheckbox" checked={isFeatured}
@@ -556,107 +786,16 @@ const AddProducts = () => {
                   Show this product in Featured Products list
                 </label>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Name *</label>
-                <input 
-                  type="text" required placeholder="e.g., Premium Leather Chronograph Watch" value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas focus:outline-none focus:border-lime-accent"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Description</label>
-                <textarea 
-                  rows="3" placeholder="Provide product technical description specifications..." value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas focus:outline-none focus:border-lime-accent resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Original Price *</label>
-                  <div className="relative flex items-center">
-                    <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
-                    <input 
-                      type="number" required placeholder="2499" value={originalPrice}
-                      onChange={(e) => setOriginalPrice(e.target.value)}
-                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Offer Price *</label>
-                  <div className="relative flex items-center">
-                    <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
-                    <input 
-                      type="number" required placeholder="1899" value={offerPrice}
-                      onChange={(e) => setOfferPrice(e.target.value)}
-                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Branch Admin Price *</label>
-                  <div className="relative flex items-center">
-                    <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
-                    <input 
-                      type="number" required placeholder="1350" value={branchAdminPrice}
-                      onChange={(e) => setBranchAdminPrice(e.target.value)}
-                      className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Stock Count *</label>
-                  <input 
-                    type="number" required min="0" placeholder="50" value={count}
-                    onChange={(e) => setCount(e.target.value)}
-                    className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Upload Product Images *</label>
-                <div className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl bg-royal-main/20 hover:border-white/20 relative cursor-pointer group">
-                  <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                  <Image className="w-8 h-8 text-gray-canvas/40 group-hover:text-lime-accent transition-colors mb-2" />
-                  <span className="text-xs font-bold text-gray-canvas/70">Click to upload files from device</span>
-                </div>
-
-                {images.length > 0 && (
-                  <div className="pt-2">
-                    <div className="flex flex-wrap gap-2">
-                      {images.map((img, idx) => (
-                        <div key={idx} className="relative w-16 h-16 rounded-lg border border-white/10 overflow-hidden bg-royal-dark">
-                          <img src={img} alt="preview" className="w-full h-full object-cover" />
-                          <button
-                            type="button" onClick={() => removeUploadedImage(idx)}
-                            className="absolute top-0.5 right-0.5 bg-black/80 hover:bg-red-500 text-white rounded-full p-0.5 transition-colors cursor-pointer"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-white/10 pt-5 flex items-center justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-canvas/80 hover:bg-white/10 cursor-pointer">Cancel</button>
-                <button type="submit" className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-lime-accent text-royal-dark hover:shadow-[0_4px_20px_rgba(165,206,0,0.25)] font-black cursor-pointer">
-                  {isEditing ? 'Save Changes' : 'Publish Product'}
-                </button>
-              </div>
-
             </form>
+
+            {/* Locked Modal Action Control Footer Buttons */}
+            <div className="border-t border-white/10 p-6 flex items-center justify-end gap-3 shrink-0 bg-royal-dark/95 rounded-b-3xl">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-canvas/80 hover:bg-white/10 cursor-pointer">Cancel</button>
+              <button form="productForm" type="submit" className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-lime-accent text-royal-dark hover:shadow-[0_4px_20px_rgba(165,206,0,0.25)] font-black cursor-pointer">
+                {isEditing ? 'Save Changes' : 'Publish Product'}
+              </button>
+            </div>
+
           </div>
         </div>
       )}
@@ -678,7 +817,10 @@ const AddProducts = () => {
 
             <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto rounded-xl">
               {viewProduct.images && viewProduct.images.map((img, idx) => (
-                <img key={idx} src={img} alt={`Asset View ${idx}`} className="w-full h-32 object-cover rounded-xl border border-white/5 bg-royal-main/10" />
+                <div key={idx} className="relative">
+                  <img src={img} alt={`Asset View ${idx}`} className="w-full h-32 object-cover rounded-xl border border-white/5 bg-royal-main/10" />
+                  <span className="absolute top-1 left-1 text-[8px] bg-black/80 px-1.5 py-0.5 rounded text-white font-mono">Slot #{idx + 1}</span>
+                </div>
               ))}
             </div>
 
@@ -710,7 +852,9 @@ const AddProducts = () => {
                 <div className="flex flex-wrap gap-1 bg-royal-main/10 border border-white/5 p-3 rounded-xl">
                   {viewProduct.sizes && viewProduct.sizes.length > 0 ? (
                     viewProduct.sizes.map((sz, idx) => (
-                      <span key={idx} className="text-[10px] bg-lime-accent/10 border border-lime-accent/20 text-lime-400 px-2 py-0.5 rounded font-mono font-bold">{sz}</span>
+                      <span key={idx} className="text-[10px] bg-lime-accent/10 border border-lime-accent/20 text-lime-400 px-2 py-0.5 rounded font-mono font-bold">
+                        {sz.split('__imgIdx:')[0]}
+                      </span>
                     ))
                   ) : (
                     <span className="text-gray-canvas/30 italic">No custom parameters matched.</span>

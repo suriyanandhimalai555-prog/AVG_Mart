@@ -28,6 +28,76 @@ const ProductDetailView = () => {
     const [selectedColor, setSelectedColor] = useState('')
     const [quantity, setQuantity] = useState(1)
 
+    // --- ACCURATE SEPARATION LOGIC PATTERNS ---
+    const isColorOption = (str) => {
+        if (!str) return false
+        const lower = str.toLowerCase()
+        if (lower.startsWith('color:') || lower.includes('__imgidx:')) return true
+        const colorKeywords = ['blue', 'red', 'white', 'black', 'green', 'gold', 'silver', 'grey', 'yellow', 'pink']
+        return colorKeywords.some(color => lower.includes(color)) && !lower.includes('brand') && !lower.includes('battery')
+    }
+
+    const isSizeOption = (str) => {
+        if (!str) return false
+        if (isColorOption(str)) return false
+        if (str.includes(':')) return false 
+        
+        const lower = str.toLowerCase()
+        const standardSizes = ['s', 'm', 'l', 'xl', 'xxl', 'xxxl']
+        if (standardSizes.includes(lower)) return true
+        if (lower.includes('ml') || lower.includes('litre') || lower.includes('kg') || lower.includes('g')) return true
+        return false
+    }
+
+    const isStaticSpecification = (str) => {
+        return !isColorOption(str) && !isSizeOption(str)
+    }
+
+    // Helper to get clean color string without structural tags
+    const getCleanColorName = (colorRawString) => {
+        if (!colorRawString) return '';
+        return colorRawString.split(/__imgidx:/i)[0].replace(/^color:\s*/i, '').toLowerCase().trim();
+    }
+
+    // Handles dynamic color image viewport switching interaction
+    const handleColorSelectionChange = (colorRawString, productImagesArray, currentProduct = null) => {
+        setSelectedColor(colorRawString)
+        const targetImages = productImagesArray || (product && product.images) || []
+        if (targetImages.length === 0) return
+
+        const lowerRaw = colorRawString.toLowerCase()
+
+        // 1. Check for embedded image index tags safely
+        if (lowerRaw.includes('__imgidx:')) {
+            const parts = lowerRaw.split('__imgidx:')
+            const indexPointer = parseInt(parts[1]) || 0
+            if (targetImages[indexPointer]) {
+                setActiveImg(targetImages[indexPointer])
+                return
+            }
+        }
+
+        // 2. Smart Fallback: Search image URLs for the color name keyword using boundary strictness
+        const cleanColor = getCleanColorName(colorRawString)
+        const strictBoundaryRegex = new RegExp(`(?:[\\/_\\.-]|^)${cleanColor}(?:[\\/_\\.-]|\\.|$)`, 'i')
+        const matchedImageByKeyword = targetImages.find(imgUrl => strictBoundaryRegex.test(imgUrl))
+        
+        if (matchedImageByKeyword) {
+            setActiveImg(matchedImageByKeyword)
+            return
+        }
+
+        // 3. Sequential Fallback: Match color selection array order index
+        const activeProductInstance = currentProduct || product
+        const rawSizesArray = activeProductInstance?.sizes || []
+        const currentColorOptions = rawSizesArray.filter(sz => isColorOption(sz))
+        const colorIdx = currentColorOptions.indexOf(colorRawString)
+        
+        if (colorIdx !== -1 && targetImages[colorIdx]) {
+            setActiveImg(targetImages[colorIdx])
+        }
+    }
+
     useEffect(() => {
         if (existingSize) {
             setSelectedSize(existingSize)
@@ -47,14 +117,20 @@ const ProductDetailView = () => {
                     const foundProduct = data.find(p => String(p.id) === String(id))
                     if (foundProduct) {
                         setProduct(foundProduct)
-                        setActiveImg(foundProduct.images && foundProduct.images[0] ? foundProduct.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500")
+                        
+                        const defaultImage = foundProduct.images && foundProduct.images[0] 
+                            ? foundProduct.images[0] 
+                            : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"
+                        setActiveImg(defaultImage)
                         
                         if (foundProduct.sizes && foundProduct.sizes.length > 0) {
                             const colors = foundProduct.sizes.filter(sz => isColorOption(sz))
                             const sizes = foundProduct.sizes.filter(sz => isSizeOption(sz))
 
                             if (!existingSize && sizes.length > 0) setSelectedSize(sizes[0])
-                            if (colors.length > 0) setSelectedColor(colors[0])
+                            if (colors.length > 0) {
+                                handleColorSelectionChange(colors[0], foundProduct.images, foundProduct)
+                            }
                         }
                     }
                 }
@@ -81,30 +157,6 @@ const ProductDetailView = () => {
         }
         fetchProductAndReviews()
     }, [id, existingSize])
-
-    // --- ACCURATE SEPARATION LOGIC PATTERNS ---
-    const isColorOption = (str) => {
-        const lower = str.toLowerCase()
-        if (lower.startsWith('color:')) return true
-        const colorKeywords = ['blue', 'red', 'white', 'black', 'green', 'gold', 'silver', 'grey', 'yellow', 'pink']
-        return colorKeywords.some(color => lower.includes(color)) && !lower.includes('brand') && !lower.includes('battery')
-    }
-
-    const isSizeOption = (str) => {
-        if (isColorOption(str)) return false
-        if (str.includes(':')) return false // Filters out metadata specifications like Brand: x or Battery: y
-        
-        const lower = str.toLowerCase()
-        // Standard clothing sizes or volumetric measurements
-        const standardSizes = ['s', 'm', 'l', 'xl', 'xxl', 'xxxl']
-        if (standardSizes.includes(lower)) return true
-        if (lower.includes('ml') || lower.includes('litre') || lower.includes('kg') || lower.includes('g')) return true
-        return false
-    }
-
-    const isStaticSpecification = (str) => {
-        return !isColorOption(str) && !isSizeOption(str)
-    }
 
     if (isLoading) {
         return (
@@ -146,7 +198,41 @@ const ProductDetailView = () => {
     const priceDifference = original - offer
     const percentSaved = original > 0 ? Math.round((priceDifference / original) * 100) : 0
 
-    const alternativeAngles = product.images && product.images.length > 0 ? product.images : [activeImg]
+    // --- CRITICAL POSITION MOVE FOR DECLARATIONS ---
+    const sizeOptions = product.sizes ? product.sizes.filter(sz => isSizeOption(sz)) : []
+    const colorOptions = product.sizes ? product.sizes.filter(sz => isColorOption(sz)) : []
+    const specificationLabels = product.sizes ? product.sizes.filter(sz => isStaticSpecification(sz)) : []
+
+    // --- FIXED: AMAZON DYNAMIC ISOLATION FILTER ---
+    const getFilteredThumbnails = () => {
+        const allImages = product.images && product.images.length > 0 ? product.images : [activeImg]
+        if (!selectedColor) return allImages
+
+        const cleanColor = getCleanColorName(selectedColor)
+        const strictBoundaryRegex = new RegExp(`(?:[\\/_\\.-]|^)${cleanColor}(?:[\\/_\\.-]|\\.|$)`, 'i')
+        
+        // 1. First try: Match by filename keyword (e.g. "blue", "red")
+        const matchedThumbnails = allImages.filter(imgUrl => strictBoundaryRegex.test(imgUrl))
+        if (matchedThumbnails.length > 0) return matchedThumbnails
+
+        // 2. Second try: Smart index chunking fallback (For randomized/uploaded URLs)
+        if (colorOptions.length > 0) {
+            const currentColorIdx = colorOptions.findIndex(clr => getCleanColorName(clr) === cleanColor)
+            
+            if (currentColorIdx !== -1) {
+                const imagesPerColor = Math.ceil(allImages.length / colorOptions.length)
+                const startIdx = currentColorIdx * imagesPerColor
+                const endIdx = Math.min(startIdx + imagesPerColor, allImages.length)
+                
+                const chunkedImages = allImages.slice(startIdx, endIdx)
+                if (chunkedImages.length > 0) return chunkedImages
+            }
+        }
+        
+        return allImages
+    }
+
+    const alternativeAngles = getFilteredThumbnails()
 
     const handleMouseMove = (e) => {
         const card = imageContainerRef.current
@@ -183,9 +269,8 @@ const ProductDetailView = () => {
 
         const loadId = toast.loading("Syncing asset loadout...");
         
-        // Clean up text format sent to backend database pipeline
         const cleanSize = selectedSize
-        const cleanColor = selectedColor.replace(/^color:\s*/i, '')
+        const cleanColor = getCleanColorName(selectedColor)
         
         let finalOptionString = cleanSize
         if (cleanColor) {
@@ -221,11 +306,6 @@ const ProductDetailView = () => {
         }
     };
 
-    // Filter matrices categories dynamically
-    const sizeOptions = product.sizes ? product.sizes.filter(sz => isSizeOption(sz)) : []
-    const colorOptions = product.sizes ? product.sizes.filter(sz => isColorOption(sz)) : []
-    const specificationLabels = product.sizes ? product.sizes.filter(sz => isStaticSpecification(sz)) : []
-
     return (
         <>
             <Navbar />
@@ -253,10 +333,11 @@ const ProductDetailView = () => {
                                 </div>
                             </div>
 
+                            {/* UPDATED DYNAMIC GRID SYSTEM */}
                             {alternativeAngles.length > 1 && (
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-4 gap-4">
                                     {alternativeAngles.map((imgUrl, idx) => (
-                                        <button key={idx} onClick={() => setActiveImg(imgUrl)} className={`h-20 md:h-28 rounded-xl overflow-hidden border bg-white/5 transition-all ${activeImg === imgUrl ? 'border-lime-accent scale-95' : 'border-white/10'}`}>
+                                        <button key={idx} onClick={() => setActiveImg(imgUrl)} className={`h-20 md:h-24 rounded-xl overflow-hidden border bg-white/5 transition-all ${activeImg === imgUrl ? 'border-lime-accent scale-95' : 'border-white/10'}`}>
                                           <img src={imgUrl} alt="Alternative Angle view" className="w-full h-full object-cover" />
                                         </button>
                                     ))}
@@ -264,7 +345,7 @@ const ProductDetailView = () => {
                             )}
                         </div>
 
-                        {/* RIGHT COLUMN: CORE PRODUCT ACTIONS */}
+                        {/* RIGHT COLUMN: ACTIONS */}
                         <div className="lg:col-span-5 space-y-8 text-left">
                             <div className="space-y-3">
                                 <span className="inline-block text-xs font-black text-lime-accent uppercase tracking-[0.25em] bg-lime-accent/10 px-3 py-1 rounded-md border border-lime-accent/20">{product.category}</span>
@@ -284,9 +365,7 @@ const ProductDetailView = () => {
                             <hr className="border-white/5" />
                             <p className="text-white/70 text-sm md:text-base leading-relaxed font-light">{product.description || "High efficiency catalog asset."}</p>
 
-                            {/* SELECTION INTERACTIVE SYSTEM MATRIX */}
                             <div className="space-y-5">
-                                {/* 1. Size / Volume Options selection matrix */}
                                 {sizeOptions.length > 0 && (
                                     <div className="space-y-3">
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Select Variant Options Matrix</h4>
@@ -300,21 +379,22 @@ const ProductDetailView = () => {
                                     </div>
                                 )}
 
-                                {/* 2. Color Selection Engine Matrix */}
                                 {colorOptions.length > 0 && (
                                     <div className="space-y-3">
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Select Color Matrix</h4>
                                         <div className="flex flex-wrap gap-2">
-                                            {colorOptions.map((clr, idx) => (
-                                                <button key={idx} type="button" onClick={() => setSelectedColor(clr)} className={`font-mono text-xs font-black px-4 py-2.5 rounded-xl border transition-all ${selectedColor === clr ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-md' : 'bg-white/5 border-white/10 text-white/70'}`}>
-                                                    {clr.replace(/^color:\s*/i, '')} {/* Renders only "Blue", "Red", "White" visually */}
-                                                </button>
-                                            ))}
+                                            {colorOptions.map((clr, idx) => {
+                                                const cleanColorDisplay = getCleanColorName(clr)
+                                                return (
+                                                    <button key={idx} type="button" onClick={() => handleColorSelectionChange(clr, product.images)} className={`font-mono text-xs font-black px-4 py-2.5 rounded-xl border transition-all ${selectedColor === clr ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-md' : 'bg-white/5 border-white/10 text-white/70'}`}>
+                                                        {cleanColorDisplay.toUpperCase()}
+                                                    </button>
+                                                )
+                                            })}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* 3. Quantitative Selector Counter */}
                                 <div className="space-y-3">
                                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Select Quantity</h4>
                                     <div className="flex items-center gap-1 bg-white/5 border border-white/10 w-fit p-1 rounded-xl">
@@ -328,7 +408,6 @@ const ProductDetailView = () => {
                                     </div>
                                 </div>
 
-                                {/* 4. STATIC METADATA LABELS (SHOWCASE DISPLAY ONLY) */}
                                 {specificationLabels.length > 0 && (
                                     <div className="space-y-3 pt-2">
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Product Specifications & Features</h4>
@@ -343,12 +422,11 @@ const ProductDetailView = () => {
                                 )}
                             </div>
 
-                            {/* ACQUISITION VALUE SECTION CONTAINER */}
                             <div className="bg-gradient-to-b from-white/[0.06] to-white/[0.01] border border-white/10 p-6 rounded-2xl space-y-6">
                                 <div className="flex justify-between items-center">
                                     <div className="flex flex-col">
                                         <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white/40">
-                                            Total Acquisition Value ({selectedSize || selectedColor.replace(/^color:\s*/i, '') || 'Base'})
+                                            Total Acquisition Value ({selectedSize || getCleanColorName(selectedColor) || 'Base'})
                                         </span>
                                         <div className="flex items-baseline gap-3 mt-1">
                                             <span className="text-3xl md:text-4xl font-black text-white">₹{offer * quantity}</span>
@@ -365,7 +443,7 @@ const ProductDetailView = () => {
                         </div>
                     </div>
 
-                    {/* --- REVIEWS LAYOUT MATRICES SECTION --- */}
+                    {/* REVIEWS SECTION */}
                     <div className="mt-20 border-t border-white/10 pt-12 text-left space-y-8">
                         <div className="flex items-center gap-2">
                             <MessageSquare className="w-5 h-5 text-lime-accent" />

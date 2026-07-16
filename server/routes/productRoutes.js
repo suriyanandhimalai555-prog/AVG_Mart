@@ -8,12 +8,12 @@ const router = Router();
 
 // Standard Product Catalogs
 router.get('/', getAllProducts);
-router.post('/', uploadFiles.array('productImages', 5), createProduct);
-router.put('/:id', uploadFiles.array('productImages', 5), updateProduct);
+router.post('/', uploadFiles.array('productImages', 15), createProduct);
+router.put('/:id', uploadFiles.array('productImages', 15), updateProduct);
 router.delete('/:id', deleteProduct);
 
 // Review Management (Structured beautifully under /api/products)
 router.get('/:productId/reviews', getProductReviews);
-router.post('/reviews', verifyToken, uploadFiles.array('reviewImages', 5), addProductReview);
+router.post('/reviews', verifyToken, uploadFiles.array('reviewImages', 15), addProductReview);
 
 export default router;
