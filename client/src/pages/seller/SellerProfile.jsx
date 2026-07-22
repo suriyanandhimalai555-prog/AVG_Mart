@@ -63,7 +63,7 @@ const SellerProfile = () => {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-[#071640] min-h-screen text-white select-none">
+    <div className="p-4 md:p-8 bg-[#071640] min-h-screen text-white select-none rounded-2xl">
       <div className="max-w-6xl mx-auto space-y-8">
         
         {/* HEADER CARD */}

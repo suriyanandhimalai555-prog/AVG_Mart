@@ -47,7 +47,7 @@ import SellerProfile from './pages/seller/SellerProfile'
 
 const App = () => {
   return (
-    <div className="bg-[#050B14] min-h-screen font-sans selection:bg-lime-accent selection:text-royal-dark">
+    <div className="min-h-screen font-sans selection:bg-lime-accent selection:text-royal-dark">
       <ScrollToTop />
       
       <Routes>
@@ -74,10 +74,10 @@ const App = () => {
           <Route
             path="/seller/*"
             element={
-              <div className="flex flex-col lg:flex-row bg-[#050B14] min-h-screen text-white antialiased">
+              <div className="flex flex-col lg:flex-row min-h-screen text-white antialiased">
                 <SellerSidebar />
-                <div className="flex-1 overflow-x-hidden bg-white/[0.0] backdrop-blur-md p-6 lg:p-10">
-                  <Routes>
+                <div className="flex-1 overflow-x-hidden bg-[#0A224E] backdrop-blur-md p-6 lg:p-10">
+                  <Routes>  
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<SellerDashboard />} />
                     <Route path="profile" element={<SellerProfile />} />
