@@ -91,7 +91,55 @@ jobs:
 
           html_body: |
             <h2>✅ AVG Mart Deployment Successful</h2>
-            <p>The deployment completed successfully.</p>
+
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+              <tr>
+                <td><b>Repository</b></td>
+                <td>${{ github.repository }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Branch</b></td>
+                <td>${{ github.ref_name }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Commit ID</b></td>
+                <td>${{ github.sha }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Developer</b></td>
+                <td>${{ github.actor }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Workflow</b></td>
+                <td>${{ github.workflow }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Status</b></td>
+                <td style="color:green;"><b>Deployment Successful ✅</b></td>
+              </tr>
+            </table>
+
+            <br>
+
+            <h3>Deployment Summary</h3>
+
+            <ul>
+              <li>✅ Connected to Contabo VPS</li>
+              <li>✅ Latest source code fetched</li>
+              <li>✅ Repository updated successfully</li>
+              <li>✅ Docker images rebuilt</li>
+              <li>✅ Docker containers restarted</li>
+              <li>✅ Deployment completed successfully</li>
+            </ul>
+
+            <br>
+
+            <b>The latest version of AVG Mart has been deployed successfully to the Contabo VPS.</b>
 
       - name: Send Failure Email
         if: failure()
@@ -114,4 +162,49 @@ jobs:
 
           html_body: |
             <h2>❌ AVG Mart Deployment Failed</h2>
-            <p>Please check the GitHub Actions logs for the error details.</p>
+
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+              <tr>
+                <td><b>Repository</b></td>
+                <td>${{ github.repository }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Branch</b></td>
+                <td>${{ github.ref_name }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Commit ID</b></td>
+                <td>${{ github.sha }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Developer</b></td>
+                <td>${{ github.actor }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Workflow</b></td>
+                <td>${{ github.workflow }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Status</b></td>
+                <td style="color:red;"><b>Deployment Failed ❌</b></td>
+              </tr>
+            </table>
+
+            <br>
+
+            <h3>Failure Summary</h3>
+
+            <ul>
+              <li>❌ Failed to deploy the latest version.</li>
+              <li>❌ One or more deployment steps failed.</li>
+              <li>📄 Review the GitHub Actions logs for complete error details.</li>
+            </ul>
+
+            <br>
+
+            <b>Please check the GitHub Actions logs for the complete error details.</b>
