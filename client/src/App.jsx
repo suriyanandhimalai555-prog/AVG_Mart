@@ -38,6 +38,12 @@ import Stock from './pages/branchAdmin/Stock'
 import RequestStock from './pages/branchAdmin/RequestStock'
 import BranchProfile from './pages/branchAdmin/BranchProfile'
 
+// Seller Imports
+import SellerLogin from './pages/seller/SellerLogin'
+import SellerRegister from './pages/seller/SellerRegister'
+import SellerSidebar from './pages/seller/SellerSidebar'
+import SellerDashboard from './pages/seller/SellerDashboard'
+
 const App = () => {
   return (
     <div className="bg-[#050B14] min-h-screen font-sans selection:bg-lime-accent selection:text-royal-dark">
@@ -58,6 +64,26 @@ const App = () => {
         <Route element={<PublicOnlyRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/seller/login" element={<SellerLogin />} />
+          <Route path="/seller/register" element={<SellerRegister />} />
+        </Route>
+
+        {/* SECURED SELLER ENTRY CHANNEL */}
+        <Route element={<ProtectedRoute requiredRole="seller" />}>
+          <Route
+            path="/seller/*"
+            element={
+              <div className="flex flex-col lg:flex-row bg-[#050B14] min-h-screen text-white antialiased">
+                <SellerSidebar />
+                <div className="flex-1 overflow-x-hidden bg-white/[0.01] backdrop-blur-md p-6 lg:p-10">
+                  <Routes>
+                    <Route index element={<Navigate to="dashboard" replace />} />
+                    <Route path="dashboard" element={<SellerDashboard />} />
+                  </Routes>
+                </div>
+              </div>
+            }
+          />
         </Route>
 
         {/* SECURED CLIENT APPLICATION ROLES PRIVILEGES ENTRY CHANNEL */}
