@@ -125,3 +125,22 @@ export const getSellerDashboardData = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get Seller Profile details
+export const getSellerProfile = async (req, res) => {
+  try {
+    const sellerId = req.user.id; // Extracted from JWT verification middleware
+    const seller = await Seller.findById(sellerId);
+
+    if (!seller) {
+      return res.status(404).json({ message: "Seller profile not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      seller
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -43,6 +43,7 @@ import SellerLogin from './pages/seller/SellerLogin'
 import SellerRegister from './pages/seller/SellerRegister'
 import SellerSidebar from './pages/seller/SellerSidebar'
 import SellerDashboard from './pages/seller/SellerDashboard'
+import SellerProfile from './pages/seller/SellerProfile'
 
 const App = () => {
   return (
@@ -75,10 +76,11 @@ const App = () => {
             element={
               <div className="flex flex-col lg:flex-row bg-[#050B14] min-h-screen text-white antialiased">
                 <SellerSidebar />
-                <div className="flex-1 overflow-x-hidden bg-white/[0.01] backdrop-blur-md p-6 lg:p-10">
+                <div className="flex-1 overflow-x-hidden bg-white/[0.0] backdrop-blur-md p-6 lg:p-10">
                   <Routes>
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<SellerDashboard />} />
+                    <Route path="profile" element={<SellerProfile />} />
                   </Routes>
                 </div>
               </div>
