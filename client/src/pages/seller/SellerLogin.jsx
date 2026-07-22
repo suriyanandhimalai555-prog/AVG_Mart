@@ -74,6 +74,7 @@ const SellerLogin = () => {
       if (!response.ok) throw new Error(data.message || "Invalid seller credentials.");
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("userRole", "seller");
       localStorage.setItem("userName", data.user.name || data.user.store_name);
 

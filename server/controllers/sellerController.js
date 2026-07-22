@@ -96,6 +96,7 @@ export const loginSeller = async (req, res) => {
       token,
       user: {
         id: seller.id,
+        sellerId: seller.id,
         name: seller.store_name,
         email: seller.email,
         role: 'seller'

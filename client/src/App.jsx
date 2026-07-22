@@ -44,6 +44,8 @@ import SellerRegister from './pages/seller/SellerRegister'
 import SellerSidebar from './pages/seller/SellerSidebar'
 import SellerDashboard from './pages/seller/SellerDashboard'
 import SellerProfile from './pages/seller/SellerProfile'
+import SellerCategory from './pages/seller/SellerCategory'
+import SellerProduct from './pages/seller/SellerProduct'
 
 const App = () => {
   return (
@@ -80,6 +82,8 @@ const App = () => {
                   <Routes>  
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<SellerDashboard />} />
+                    <Route path="categories" element={<SellerCategory />} />
+                    <Route path="products" element={<SellerProduct />} />
                     <Route path="profile" element={<SellerProfile />} />
                   </Routes>
                 </div>

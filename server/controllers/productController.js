@@ -5,7 +5,7 @@ import crypto from 'crypto';
 
 export const createProduct = async (req, res) => {
   try {
-    const { name, category, sizes, description, originalPrice, offerPrice, branchAdminPrice, count, isFeatured } = req.body;
+    const { name, category, sizes, description, originalPrice, offerPrice, branchAdminPrice, count, isFeatured, sellerId } = req.body;
     
     let parsedSizes = [];
     if (sizes) {
@@ -14,9 +14,13 @@ export const createProduct = async (req, res) => {
 
     const featuredBool = isFeatured === 'true' || isFeatured === true;
 
+    const filesToUpload = req.files 
+      ? (Array.isArray(req.files) ? req.files : req.files['productImages'] || []) 
+      : [];
+
     const uploadedImageUrls = [];
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
+    if (filesToUpload.length > 0) {
+      for (const file of filesToUpload) {
         const uniqueToken = crypto.randomBytes(16).toString('hex');
         const s3Key = `products/${uniqueToken}-${file.originalname.replace(/\s+/g, '-')}`;
 
@@ -34,18 +38,32 @@ export const createProduct = async (req, res) => {
       uploadedImageUrls.push("https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500");
     }
 
+    // Assign seller_id based on logged-in user role
+let assignedSellerId = null;
+
+if (req.user.role === "seller") {
+  assignedSellerId = req.user.sellerId || req.user.id;
+}
+
+// Admin products will have seller_id = NULL
+if (req.user.role === "admin") {
+  assignedSellerId = null;
+}
+
+    // Include both seller_id and sellerId so SQL models handle column binding properly
     const newProduct = await ProductModel.create({
-      name,
-      category,
-      sizes: parsedSizes,
-      description,
-      originalPrice,
-      offerPrice,
-      branchAdminPrice, // <-- Passed here
-      count: count || 0,
-      images: uploadedImageUrls,
-      isFeatured: featuredBool
-    });
+  name,
+  category,
+  sizes: parsedSizes,
+  description,
+  originalPrice,
+  offerPrice,
+  branchAdminPrice,
+  count: count || 0,
+  images: uploadedImageUrls,
+  isFeatured: featuredBool,
+  sellerId: assignedSellerId
+});
 
     return res.status(201).json({ success: true, message: 'Product added successfully', product: newProduct });
   } catch (error) {
@@ -56,9 +74,17 @@ export const createProduct = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
   try {
-    const data = await ProductModel.findAll();
-    
-    const structuredData = data.map(item => ({
+    let products;
+
+    // Seller request
+    if (req.query.sellerId) {
+      products = await ProductModel.findAll(req.query.sellerId);
+    } else {
+      // Admin request
+      products = await ProductModel.findAll();
+    }
+
+    const data = products.map(item => ({
       id: item.id,
       name: item.name,
       category: item.category,
@@ -66,16 +92,20 @@ export const getAllProducts = async (req, res) => {
       description: item.description,
       originalPrice: item.original_price,
       offerPrice: item.offer_price,
-      branchAdminPrice: item.branch_admin_price, // <-- Mapped cleanly here
+      branchAdminPrice: item.branch_admin_price,
       count: item.count,
       images: item.images,
-      isFeatured: item.is_featured 
+      isFeatured: item.is_featured,
+      sellerId: item.seller_id
     }));
 
-    return res.status(200).json(structuredData);
-  } catch (error) {
-    console.error('Error in getAllProducts Controller:', error);
-    return res.status(500).json({ success: false, message: 'Failed to fetch items' });
+    res.json(data);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Server Error"
+    });
   }
 };
 
@@ -118,7 +148,7 @@ export const updateProduct = async (req, res) => {
       description,
       originalPrice,
       offerPrice,
-      branchAdminPrice, // <-- Passed here
+      branchAdminPrice,
       count,
       images: uploadedImageUrls,
       isFeatured: featuredBool
@@ -149,4 +179,4 @@ export const deleteProduct = async (req, res) => {
     console.error('Error in deleteProduct Controller:', error);
     return res.status(500).json({ success: false, message: 'Failed to drop item row' });
   }
-};  
+};
