@@ -20,6 +20,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
+
           script: |
             set -e
 
@@ -64,3 +65,119 @@ jobs:
             docker ps
 
             echo "Deployment Completed Successfully"
+
+      - name: Send Success Email
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          secure: true
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+
+          subject: "✅ AVG Mart Deployment Successful"
+
+          to: |
+            Sanjayvanan03@gmail.com,
+            muthukdm45@gmail.com,
+            deepakavgprimetech@gmail.com
+
+          from: Deepak CI/CD <deepakavgprimetech@gmail.com>
+
+          html_body: |
+            <h2>✅ AVG Mart Deployment Successful</h2>
+
+            <table border="1" cellpadding="8" cellspacing="0">
+              <tr>
+                <td><b>Repository</b></td>
+                <td>${{ github.repository }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Branch</b></td>
+                <td>${{ github.ref_name }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Commit ID</b></td>
+                <td>${{ github.sha }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Developer</b></td>
+                <td>${{ github.actor }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Workflow</b></td>
+                <td>${{ github.workflow }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Status</b></td>
+                <td>Deployment Successful ✅</td>
+              </tr>
+            </table>
+
+            <br>
+
+            <b>The latest version of AVG Mart has been deployed successfully to the Contabo VPS.</b>
+
+      - name: Send Failure Email
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          secure: true
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+
+          subject: "❌ AVG Mart Deployment Failed"
+
+          to: |
+            Sanjayvanan03@gmail.com,
+            muthukdm45@gmail.com,
+            deepakavgprimetech@gmail.com
+
+          from: Deepak CI/CD <deepakavgprimetech@gmail.com>
+
+          html_body: |
+            <h2>❌ AVG Mart Deployment Failed</h2>
+
+            <table border="1" cellpadding="8" cellspacing="0">
+              <tr>
+                <td><b>Repository</b></td>
+                <td>${{ github.repository }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Branch</b></td>
+                <td>${{ github.ref_name }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Commit ID</b></td>
+                <td>${{ github.sha }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Developer</b></td>
+                <td>${{ github.actor }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Workflow</b></td>
+                <td>${{ github.workflow }}</td>
+              </tr>
+
+              <tr>
+                <td><b>Status</b></td>
+                <td>Deployment Failed ❌</td>
+              </tr>
+            </table>
+
+            <br>
+
+            <b>Please check the GitHub Actions logs for the complete error details.</b>
