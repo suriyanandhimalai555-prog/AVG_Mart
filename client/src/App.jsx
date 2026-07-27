@@ -48,6 +48,11 @@ import SellerProfile from './pages/seller/SellerProfile'
 import SellerCategory from './pages/seller/SellerCategory'
 import SellerProduct from './pages/seller/SellerProduct'
 
+// Marketer Imports
+import MarketLogin from './pages/marketing/MarketLogin'
+import MarketSignup from './pages/marketing/MarketSignup'
+import MarketDashboard from './pages/marketing/MarketDashboard'
+
 const App = () => {
   return (
     <div className="min-h-screen font-sans selection:bg-lime-accent selection:text-royal-dark">
@@ -70,9 +75,11 @@ const App = () => {
           <Route path="/signup" element={<Signup />} />
           <Route path="/seller/login" element={<SellerLogin />} />
           <Route path="/seller/register" element={<SellerRegister />} />
+          <Route path="/marketing/login" element={<MarketLogin />} />
+          <Route path="/marketing/signup" element={<MarketSignup />} />
         </Route>
 
-        {/* SECURED SELLER ENTRY CHANNEL */}
+        {/* SECURED SELLER */}
         <Route element={<ProtectedRoute requiredRole="seller" />}>
           <Route
             path="/seller/*"
@@ -93,7 +100,20 @@ const App = () => {
           />
         </Route>
 
-        {/* SECURED CLIENT APPLICATION ROLES PRIVILEGES ENTRY CHANNEL */}
+        {/* SECURED MARKETER */}
+        <Route element={<ProtectedRoute requiredRole="marketer" />}>
+          <Route
+            path="/marketing/*"
+            element={
+              <Routes>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<MarketDashboard />} />
+              </Routes>
+            }
+          />
+        </Route>
+
+        {/* SECURED CLIENT */}
         <Route element={<ProtectedRoute />}>
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
@@ -102,7 +122,7 @@ const App = () => {
           <Route path="/profile" element={<Profile />} />
         </Route>
 
-        {/* SECURED PLATFORM ROOT SYSTEM MASTER ROLES */}
+        {/* SUPER ADMIN */}
         <Route element={<ProtectedRoute requiredRole="admin" />}>
           <Route
             path="/admin/*"
@@ -118,8 +138,8 @@ const App = () => {
                     <Route path="category" element={<AddCategory />} />
                     <Route path="orders" element={<CustomerOrders />} />
                     <Route path="create-branch-admin" element={<BranchAdmin />} />
-                    <Route path='stock-request' element={<RequestStockBranch />} />
-                    <Route path='sellers' element={<SellerList />} />
+                    <Route path="stock-request" element={<RequestStockBranch />} />
+                    <Route path="sellers" element={<SellerList />} />
                   </Routes>
                 </div>
               </div>
@@ -127,7 +147,7 @@ const App = () => {
           />
         </Route>
 
-        {/* SECURED BRANCH ADMIN ENTRY POINT */}
+        {/* BRANCH ADMIN */}
         <Route element={<ProtectedRoute requiredRole="branch_admin" />}>
           <Route
             path="/branch-admin/*"
@@ -140,7 +160,7 @@ const App = () => {
                     <Route path="dashboard" element={<BranchAdminDashboard />} />
                     <Route path="stock" element={<Stock />} />
                     <Route path="orders" element={<BranchOrders />} />
-                    <Route path='request-stock' element={<RequestStock />} />
+                    <Route path="request-stock" element={<RequestStock />} />
                     <Route path="profile" element={<BranchProfile />} />
                   </Routes>
                 </div>

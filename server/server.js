@@ -8,6 +8,7 @@ import branchAdminRoutes from './routes/branchAdminRoutes.js';
 import stockRoutes from './routes/stockRoutes.js';             // 👈 Actual Stock Management
 import requeststockRoutes from './routes/requestStockRoutes.js'; // 👈 Stock Requests Management
 import sellerRoutes from './routes/sellerRoutes.js';
+import marketerRoutes from './routes/marketerRoutes.js';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use('/api/auth/admin', branchAdminRoutes);
 app.use('/api/branch-stock', stockRoutes);
 app.use('/api/stock-requests', requeststockRoutes);
 app.use('/api/seller', sellerRoutes);
+app.use('/api/marketer', marketerRoutes);
 
 // Root path test
 app.get("/", (req, res) => {

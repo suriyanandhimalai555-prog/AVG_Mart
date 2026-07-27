@@ -1,0 +1,293 @@
+import React, { useState, useRef } from "react";
+import {
+  FaUser,
+  FaCity,
+  FaPhone,
+  FaEnvelope,
+  FaKey,
+  FaEye,
+  FaEyeSlash,
+  FaChevronRight,
+  FaCircleNotch,
+} from "react-icons/fa";
+import Logo from "../../assets/logo.png";
+import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import axios from "axios";
+
+const MarketSignup = () => {
+  const cardRef = useRef(null);
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    city: "",
+    phone: "",
+    email: "",
+    password: "",
+  });
+
+  // 3D Tilt State variables
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+  const [glowX, setGlowX] = useState(50);
+  const [glowY, setGlowY] = useState(50);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Real-time 3D Mouse Tracking Calculation
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const card = cardRef.current;
+    const box = card.getBoundingClientRect();
+    const centerX = box.left + box.width / 2;
+    const centerY = box.top + box.height / 2;
+    const rotateYVal = (e.clientX - centerX) / (box.width / 2);
+    const rotateXVal = (e.clientY - centerY) / (box.height / 2);
+
+    setRotateY(rotateYVal * 10);
+    setRotateX(-rotateXVal * 10);
+
+    const glowXPercentage = ((e.clientX - box.left) / box.width) * 100;
+    const glowYPercentage = ((e.clientY - box.top) / box.height) * 100;
+    setGlowX(glowXPercentage);
+    setGlowY(glowYPercentage);
+  };
+
+  const handleMouseLeave = () => {
+    setRotateX(0);
+    setRotateY(0);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      await axios.post("http://localhost:5000/api/marketer/signup", formData);
+      toast.success("Account created successfully! Please login.");
+      navigate("/marketing/login");
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || "Signup failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="h-screen w-screen bg-[#071640] text-white flex items-center justify-center p-4 relative overflow-hidden select-none perspective-1000">
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        @keyframes subtle-float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+        }
+        .perspective-1000 { perspective: 1200px; }
+        .preserve-3d { transform-style: preserve-3d; transition: transform 0.15s ease-out, box-shadow 0.3s ease; }
+        .translate-z-3d { transform: translateZ(40px); }
+      `,
+        }}
+      />
+
+      {/* BACKGROUND EFFECTS */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-lime-400/10 rounded-full blur-[140px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-white/5 rounded-full blur-[140px]" />
+        <div
+          className="absolute top-1/4 left-10 w-72 h-72 border border-white/[0.02] rounded-full pointer-events-none"
+          style={{ animation: "subtle-float 6s infinite ease-in-out" }}
+        />
+        <div
+          className="absolute bottom-1/4 right-10 w-96 h-96 border border-lime-400/[0.02] rounded-full pointer-events-none"
+          style={{ animation: "subtle-float 8s infinite ease-in-out 1s" }}
+        />
+      </div>
+
+      {/* 3D CARD BOX */}
+      <div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
+          boxShadow: `${-rotateY * 2}px ${rotateX * 2}px 35px rgba(0, 0, 0, 0.5), 0 0 40px rgba(165, 206, 0, 0.05)`,
+        }}
+        className="w-full max-w-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-8 md:p-10 preserve-3d relative z-10 group hover:border-lime-400/40 transition-colors duration-300"
+      >
+        <div
+          style={{
+            background: `radial-gradient(circle 250px at ${glowX}% ${glowY}%, rgba(165, 206, 0, 0.12), transparent)`,
+          }}
+          className="absolute inset-0 pointer-events-none rounded-3xl transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+        />
+
+        {/* Brand Header */}
+        <div className="flex flex-col items-center text-center space-y-2 mb-6 translate-z-3d">
+          <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center p-2 shadow-inner group-hover:border-lime-400/30 transition-all duration-300">
+            <img src={Logo} alt="AVG MART" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black uppercase tracking-widest text-white">
+              JOIN <span className="text-lime-400 font-light">MARKETING</span>
+            </h2>
+            <p className="text-white/30 text-[9px] font-black tracking-[0.25em] uppercase mt-1">
+              Generate Your Referral Code
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-5 translate-z-3d">
+          {/* Error Message Panel */}
+          {errorMessage && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center">
+              {errorMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4 text-left">
+            {/* 2 Inputs per row Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">
+                  Full Name
+                </label>
+                <div className="relative flex items-center">
+                  <FaUser className="absolute left-4 text-white/20 text-xs" />
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="John Doe"
+                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-xs outline-none font-medium text-white placeholder-white/20 transition-all focus:border-lime-400/40 focus:bg-white/[0.04]"
+                  />
+                </div>
+              </div>
+
+              {/* Email Address */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">
+                  Email Address
+                </label>
+                <div className="relative flex items-center">
+                  <FaEnvelope className="absolute left-4 text-white/20 text-xs" />
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="marketer@avgmart.com"
+                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-xs outline-none font-medium text-white placeholder-white/20 transition-all focus:border-lime-400/40 focus:bg-white/[0.04]"
+                  />
+                </div>
+              </div>
+
+              {/* Phone Number */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">
+                  Phone Number
+                </label>
+                <div className="relative flex items-center">
+                  <FaPhone className="absolute left-4 text-white/20 text-xs" />
+                  <input
+                    type="tel"
+                    name="phone"
+                    required
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="+91 9876543210"
+                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-xs outline-none font-medium text-white placeholder-white/20 transition-all focus:border-lime-400/40 focus:bg-white/[0.04]"
+                  />
+                </div>
+              </div>
+
+              {/* City */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">
+                  City
+                </label>
+                <div className="relative flex items-center">
+                  <FaCity className="absolute left-4 text-white/20 text-xs" />
+                  <input
+                    type="text"
+                    name="city"
+                    required
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    placeholder="Bengaluru"
+                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-xs outline-none font-medium text-white placeholder-white/20 transition-all focus:border-lime-400/40 focus:bg-white/[0.04]"
+                  />
+                </div>
+              </div>
+
+              {/* Password - Takes Full Row or Half Row */}
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">
+                  Password
+                </label>
+                <div className="relative flex items-center">
+                  <FaKey className="absolute left-4 text-white/20 text-xs" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    required
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="••••••••••••••••"
+                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-12 py-3.5 text-xs outline-none font-medium text-white placeholder-white/20 transition-all focus:border-lime-400/40 focus:bg-white/[0.04]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 text-white/30 hover:text-white transition-colors"
+                  >
+                    {showPassword ? <FaEyeSlash className="text-xs" /> : <FaEye className="text-xs" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full md:w-1/2 bg-lime-400 disabled:bg-lime-400/50 disabled:cursor-not-allowed text-[#071640] font-black text-xs uppercase tracking-widest py-3.5 rounded-xl flex items-center justify-center gap-2 group/submit hover:shadow-[0_0_25px_rgba(165,206,0,0.35)] transition-all duration-300"
+              >
+                {isSubmitting ? (
+                  <FaCircleNotch className="text-sm animate-spin" />
+                ) : (
+                  <>
+                    <span>Create Marketer Account</span>
+                    <FaChevronRight className="text-[9px] transform group-hover/submit:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          <div className="pt-2 text-center">
+            <p className="text-xs text-white/30 font-medium">
+              Already registered?{" "}
+              <Link to="/marketing/login" className="text-lime-400 font-bold hover:underline transition-all">
+                Sign In
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MarketSignup;
