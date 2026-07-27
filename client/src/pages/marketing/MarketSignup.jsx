@@ -70,7 +70,7 @@ const MarketSignup = () => {
     setErrorMessage("");
 
     try {
-      await axios.post("http://localhost:5000/api/marketer/signup", formData);
+      await axios.post(`${import.meta.env.VITE_APP_BASE_URL}/api/marketer/signup`, formData);
       toast.success("Account created successfully! Please login.");
       navigate("/marketing/login");
     } catch (error) {

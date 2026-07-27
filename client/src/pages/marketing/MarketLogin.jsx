@@ -61,7 +61,7 @@ const MarketLogin = () => {
     setErrorMessage("");
 
     try {
-      const res = await axios.post("http://localhost:5000/api/marketer/login", formData);
+      const res = await axios.post(`${import.meta.env.VITE_APP_BASE_URL}/api/marketer/login`, formData);
 
       const marketerData = {
         ...res.data.marketer,
