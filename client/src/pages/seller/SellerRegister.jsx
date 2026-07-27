@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   FaUser,
   FaEnvelope,
@@ -16,9 +16,10 @@ import {
   FaChevronRight,
   FaChevronLeft,
   FaCircleNotch,
+  FaTag,
 } from "react-icons/fa";
 import Logo from "../../assets/logo.png";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
 const STEPS = [
@@ -32,6 +33,7 @@ const STEPS = [
 const SellerRegister = () => {
   const cardRef = useRef(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
@@ -45,6 +47,7 @@ const SellerRegister = () => {
     email: "",
     password: "",
     phone: "",
+    referral_code: "", // Added referral code
 
     // Step 2: Tax Details
     gst_number: "",
@@ -67,6 +70,20 @@ const SellerRegister = () => {
     ifsc_code: "",
     bank_name: "",
   });
+
+  // Track the initial URL referral code so we know if it was pre-filled via link
+  const initialUrlRefCode = searchParams.get("referral_code")?.toUpperCase() || "";
+
+  // Set referral code initial value ONLY ONCE when page mounts
+  useEffect(() => {
+    const refCodeFromUrl = searchParams.get("referral_code");
+    if (refCodeFromUrl) {
+      setFormData((prev) => ({
+        ...prev,
+        referral_code: refCodeFromUrl.toUpperCase(),
+      }));
+    }
+  }, []); // Run strictly once on mount so typing isn't blocked
 
   // 3D Tilt State
   const [rotateX, setRotateX] = useState(0);
@@ -105,7 +122,7 @@ const SellerRegister = () => {
     setErrorMessage("");
     if (currentStep === 1) {
       if (!formData.owner_name || !formData.email || !formData.password || !formData.phone) {
-        setErrorMessage("Please fill in all account creation fields.");
+        setErrorMessage("Please fill in all required account creation fields.");
         return false;
       }
     } else if (currentStep === 2) {
@@ -340,6 +357,29 @@ const SellerRegister = () => {
                   >
                     {showPassword ? <FaEyeSlash className="text-xs" /> : <FaEye className="text-xs" />}
                   </button>
+                </div>
+              </div>
+
+              {/* Editable Referral Code Field */}
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">
+                  Referral Code <span className="text-white/40 font-normal lowercase">(optional)</span>
+                </label>
+                <div className="relative flex items-center">
+                  <FaTag className="absolute left-4 text-white/20 text-xs" />
+                  <input
+                    type="text"
+                    name="referral_code"
+                    value={formData.referral_code}
+                    onChange={handleChange}
+                    placeholder="Enter marketer referral code (e.g. MKT-8832)"
+                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-32 py-3 text-xs outline-none text-white uppercase focus:border-lime-400/40"
+                  />
+                  {initialUrlRefCode && formData.referral_code === initialUrlRefCode && (
+                    <span className="absolute right-3 text-[10px] bg-lime-400/20 text-lime-400 border border-lime-400/30 px-2.5 py-1 rounded font-bold">
+                      Applied via Link
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

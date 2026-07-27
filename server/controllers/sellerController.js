@@ -21,7 +21,8 @@ export const registerSeller = async (req, res) => {
       account_holder,
       bank_name,
       ifsc_code,
-      account_number
+      account_number,
+      referral_code
     } = req.body;
 
     // Check existing email
@@ -33,7 +34,7 @@ export const registerSeller = async (req, res) => {
     // Hash Password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Save seller with complete details
+    // Save seller with complete details including referral code
     const newSeller = await Seller.create({
       owner_name,
       email,
@@ -51,7 +52,8 @@ export const registerSeller = async (req, res) => {
       account_holder,
       bank_name,
       ifsc_code,
-      account_number
+      account_number,
+      referral_code
     });
 
     // JWT Token creation
@@ -127,10 +129,9 @@ export const getSellerDashboardData = async (req, res) => {
   }
 };
 
-// Get Seller Profile details
 export const getSellerProfile = async (req, res) => {
   try {
-    const sellerId = req.user.id; // Extracted from JWT verification middleware
+    const sellerId = req.user.id;
     const seller = await Seller.findById(sellerId);
 
     if (!seller) {
@@ -146,8 +147,6 @@ export const getSellerProfile = async (req, res) => {
   }
 };
 
-// Get all registered sellers (For Admin View)
-// Get all registered sellers (For Admin View)
 export const getAllSellers = async (req, res) => {
   try {
     const sellers = await Seller.findAll();

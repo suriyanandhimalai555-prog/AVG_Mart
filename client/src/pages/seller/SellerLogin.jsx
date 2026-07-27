@@ -249,7 +249,7 @@ const SellerLogin = () => {
             <p className="text-xs text-white/30 font-medium">
               Want to start selling?{" "}
               <Link
-                to="/seller/register"
+                to="/seller/signup"
                 className="text-lime-400 font-bold hover:underline transition-all"
               >
                 Register Merchant Account

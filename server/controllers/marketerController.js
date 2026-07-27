@@ -1,4 +1,4 @@
-import { pool } from '../config/db.js'; // Ensure file extension .js is included
+import { pool } from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -117,5 +117,45 @@ export const getMarketerProfile = async (req, res) => {
     return res.status(200).json(marketer.rows[0]);
   } catch (err) {
     return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// Get Profile & Referred Sellers for the logged-in marketer
+export const getMarketerDashboard = async (req, res) => {
+  try {
+    const marketerId = req.user.id;
+
+    // 1. Get Marketer Profile from DB
+    const marketerRes = await pool.query(
+      'SELECT id, name, email, phone, city, referral_code FROM marketers WHERE id = $1',
+      [marketerId]
+    );
+
+    if (marketerRes.rows.length === 0) {
+      return res.status(404).json({ message: "Marketer profile not found." });
+    }
+
+    const marketer = marketerRes.rows[0];
+
+    // 2. Fetch all sellers registered using this marketer's referral code
+    const referredSellersQuery = `
+      SELECT 
+        id, owner_name, email, phone, store_name, city, state, created_at, status 
+      FROM sellers 
+      WHERE UPPER(referral_code) = UPPER($1)
+      ORDER BY created_at DESC
+    `;
+    
+    const { rows: referredSellers } = await pool.query(referredSellersQuery, [marketer.referral_code]);
+
+    res.status(200).json({
+      success: true,
+      marketer,
+      referredSellers,
+      totalReferred: referredSellers.length
+    });
+  } catch (error) {
+    console.error("Error fetching marketer dashboard data:", error);
+    res.status(500).json({ message: error.message || "Server Error" });
   }
 };

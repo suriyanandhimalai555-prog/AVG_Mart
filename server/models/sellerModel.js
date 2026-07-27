@@ -22,6 +22,7 @@ const Seller = {
         bank_name VARCHAR(255) NOT NULL,
         ifsc_code VARCHAR(50) NOT NULL,
         account_number VARCHAR(100) NOT NULL,
+        referral_code VARCHAR(50),
         status VARCHAR(50) DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -29,14 +30,13 @@ const Seller = {
     return await pool.query(query);
   },
 
-  // NEW METHOD: Fetch all sellers for admin dashboard
   findAll: async () => {
     const res = await pool.query(
       `SELECT 
         id, owner_name, email, phone, gst_number, pan_number, 
         store_name, store_description, pickup_address, city, state, 
         pincode, shipping_type, account_holder, bank_name, ifsc_code, 
-        account_number, status, created_at 
+        account_number, referral_code, status, created_at 
        FROM sellers ORDER BY created_at DESC`
     );
     return res.rows;
@@ -52,7 +52,7 @@ const Seller = {
       `SELECT 
         id, owner_name, email, phone, gst_number, pan_number, 
         store_name, store_description, pickup_address, city, state, 
-        pincode, shipping_type, account_holder, bank_name, ifsc_code, status 
+        pincode, shipping_type, account_holder, bank_name, ifsc_code, referral_code, status 
        FROM sellers WHERE id = $1`,
       [id]
     );
@@ -77,16 +77,17 @@ const Seller = {
       account_holder,
       bank_name,
       ifsc_code,
-      account_number
+      account_number,
+      referral_code
     } = data;
 
     const res = await pool.query(
       `INSERT INTO sellers (
         owner_name, email, password, phone, gst_number, pan_number,
         store_name, store_description, pickup_address, city, state,
-        pincode, shipping_type, account_holder, bank_name, ifsc_code, account_number
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-      RETURNING id, store_name, owner_name, email, status`,
+        pincode, shipping_type, account_holder, bank_name, ifsc_code, account_number, referral_code
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      RETURNING id, store_name, owner_name, email, referral_code, status`,
       [
         owner_name,
         email,
@@ -104,7 +105,8 @@ const Seller = {
         account_holder,
         bank_name,
         ifsc_code,
-        account_number
+        account_number,
+        referral_code || null
       ]
     );
     return res.rows[0];
