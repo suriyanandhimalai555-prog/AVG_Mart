@@ -58,21 +58,11 @@ const SellerProduct = () => {
 
   const fetchCategories = async () => {
     try {
-      // Fetch categories using seller filter
-      const fetchUrl = userRole === 'admin' 
-        ? API_CAT_URL 
-        : `${API_CAT_URL}?sellerId=${currentUserId}`
-
-      const response = await fetch(fetchUrl)
+      // Fetch global category list directly without filtering by sellerId
+      const response = await fetch(API_CAT_URL)
       if (response.ok) {
         const data = await response.json()
-        if (userRole === 'admin') {
-          setAvailableCategories(data)
-        } else {
-          setAvailableCategories(data.filter(cat => 
-            String(cat.sellerId || cat.seller_id || cat.userId || cat.createdBy) === String(currentUserId)
-          ))
-        }
+        setAvailableCategories(data)
       }
     } catch (err) {
       console.error("Failed fetching live category layout dependencies:", err)
@@ -96,26 +86,15 @@ const SellerProduct = () => {
 
       if (response.ok) {
         const data = await response.json()
-        
-        console.log("--- DEBUGGING SELLER FILTER ---")
-        console.log("Logged-in currentUserId:", currentUserId, "Type:", typeof currentUserId)
-        console.log("Raw products fetched from DB:", data)
 
         if (userRole === 'admin') {
           setProducts(data)
         } else {
           const sellerOnlyProducts = data.filter(prod => {
             const itemSellerId = prod.sellerId ?? prod.seller_id
-            
-            console.log(`Checking Product ID: ${prod.id} | Product sellerId: ${itemSellerId} (${typeof itemSellerId}) vs LoggedIn User: ${currentUserId} (${typeof currentUserId})`)
-            
             if (itemSellerId === null || itemSellerId === undefined) return false
-
-            // Flexible matching (handles numbers, strings, and stringified numbers)
             return String(itemSellerId).trim() === String(currentUserId).trim()
           })
-
-          console.log("Filtered Products Result:", sellerOnlyProducts)
           setProducts(sellerOnlyProducts)
         }
       } else {
@@ -303,8 +282,7 @@ const SellerProduct = () => {
     formData.append('sizes', JSON.stringify(finalPayloadSpecs))
 
     try {
-      // Retrieve token stored during login
-      const token = localStorage.getItem('token') || user?.token || ''
+      const token = localStorage.getItem('token') || user?.token || '';
 
       let response
       const headers = {
