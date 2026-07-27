@@ -17,10 +17,10 @@ const SellerSidebar = () => {
   }, []);
 
   const menuItems = [
-    { name: 'Dashboard', path: '/seller/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    // { name: 'Dashboard', path: '/seller/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'Add Category', path: '/seller/categories', icon: <Package className="w-5 h-5" /> },
     { name: 'Add Products', path: '/seller/products', icon: <Package className="w-5 h-5" /> },
-    { name: 'Orders & Fulfillment', path: '/seller/orders', icon: <ShoppingBag className="w-5 h-5" /> },
+    // { name: 'Orders & Fulfillment', path: '/seller/orders', icon: <ShoppingBag className="w-5 h-5" /> },
     { name: 'Profile', path: '/seller/profile', icon: <Store className="w-5 h-5" /> },
   ];
 
@@ -71,7 +71,7 @@ const SellerSidebar = () => {
       {/* --- MAIN SIDEBAR MODULE MATRIX CONTAINER --- */}
       <div
         className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-[#071640] border-r border-white/10 h-screen flex flex-col justify-between p-6 select-none transition-transform duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-50 w-64 bg-royal-dark border-r border-white/10 h-screen flex flex-col justify-between p-6 select-none transition-transform duration-300 ease-in-out
         lg:sticky lg:top-0 lg:transform-none lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}

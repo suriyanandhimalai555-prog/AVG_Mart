@@ -126,7 +126,7 @@ const Stock = () => {
   const customScrollbarClasses = "scrollbar-none [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
 
   return (
-    <div className="space-y-8 min-h-screen text-white bg-[#071640]/20 relative">
+    <div className="space-y-8 min-h-screen text-white bg-royal-dark min-h-screen p-4 sm:p-6 lg:p-10 rounded-2xl relative">
       
       {/* HEADER SECTION */}
       <div className="border-b border-white/10 pb-6 text-left">

@@ -254,7 +254,7 @@ const SellerCategory = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10 bg-royal-dark/20 min-h-screen text-gray-canvas max-w-3xl mx-auto space-y-10">
+    <div className="p-4 sm:p-6 lg:p-10 bg-royal-dark min-h-screen text-gray-canvas max-w-6xl mx-auto space-y-10 rounded-2xl">
       <div className="border-b border-white/10 pb-6">
         <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider"><span className='text-lime-400'>Global</span> Category Configuration</h2>
         <p className="text-xs text-gray-canvas/50 font-medium mt-1">Configure parameters and handle specific color variants dynamically.</p>

@@ -159,3 +159,34 @@ export const getMarketerDashboard = async (req, res) => {
     res.status(500).json({ message: error.message || "Server Error" });
   }
 };
+
+// GET ALL MARKETERS (For Admin)
+export const getAllMarketers = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        m.id, 
+        m.name, 
+        m.email, 
+        m.phone, 
+        m.city, 
+        m.referral_code, 
+        m.created_at,
+        COUNT(s.id)::int AS total_referred_sellers
+      FROM marketers m
+      LEFT JOIN sellers s ON UPPER(s.referral_code) = UPPER(m.referral_code)
+      GROUP BY m.id
+      ORDER BY m.created_at DESC
+    `;
+    
+    const { rows } = await pool.query(query);
+
+    return res.status(200).json({
+      success: true,
+      marketers: rows
+    });
+  } catch (err) {
+    console.error('Error fetching marketers list:', err);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};

@@ -135,7 +135,7 @@ const BranchProfile = () => {
   const customScrollbarClasses = "scrollbar-none [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
 
   return (
-    <div className="space-y-8 min-h-screen text-white relative overflow-hidden text-left">
+    <div className="space-y-8 min-h-screen text-white relative overflow-hidden text-left bg-royal-dark min-h-screen p-4 sm:p-6 lg:p-10 rounded-2xl">
       {/* <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" /> */}
 
       {/* Profile Header Segment with Toggle Button in Top Right Corner */}

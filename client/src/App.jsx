@@ -25,6 +25,7 @@ import CustomerOrders from './pages/admin/CustomerOrders'
 import AddCategory from './pages/admin/AddCategory'
 import RequestStockBranch from './pages/admin/RequestStockBranch'
 import SellerList from './pages/admin/SellerList'
+import MarketersList from './pages/admin/MarketersList'
 
 // Route Protection Guards
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoutes'
@@ -84,9 +85,9 @@ const App = () => {
           <Route
             path="/seller/*"
             element={
-              <div className="flex flex-col lg:flex-row min-h-screen text-white antialiased">
+              <div className="flex flex-col lg:flex-row bg-royal-dark min-h-screen text-white antialiased">
                 <SellerSidebar />
-                <div className="flex-1 overflow-x-hidden bg-[#0A224E] backdrop-blur-md p-6 lg:p-10">
+                <div className="flex-1 overflow-x-hidden bg-white/[0.01] backdrop-blur-md p-6 lg:p-10">
                   <Routes>  
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<SellerDashboard />} />
@@ -139,7 +140,8 @@ const App = () => {
                     <Route path="orders" element={<CustomerOrders />} />
                     <Route path="create-branch-admin" element={<BranchAdmin />} />
                     <Route path="stock-request" element={<RequestStockBranch />} />
-                    <Route path="sellers" element={<SellerList />} />
+                    <Route path="sellers-list" element={<SellerList />} />
+                    <Route path="marketers-list" element={<MarketersList />} />
                   </Routes>
                 </div>
               </div>

@@ -163,7 +163,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-10 bg-royal-dark text-white min-h-screen relative overflow-hidden">
+    <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-10 bg-royal-dark text-white min-h-screen relative overflow-hidden rounded-2xl">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
       
       {/* Layout Greeting Block */}

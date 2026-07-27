@@ -406,7 +406,7 @@ const SellerProduct = () => {
   }
 
   return (
-    <div className="space-y-8 text-white">
+    <div className="space-y-8 text-white bg-royal-dark min-h-screen p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto rounded-2xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/10 pb-6">
         <div>
           <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider">

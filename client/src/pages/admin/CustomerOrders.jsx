@@ -145,7 +145,7 @@ const CustomerOrders = () => {
   const customScrollbarClasses = "scrollbar-none [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark min-h-screen text-white relative">
+    <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark min-h-screen text-white relative rounded-2xl">
       <div className="relative z-10 text-left border-b border-white/5 pb-6">
         <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white"><span className='text-lime-400'>Customer</span> Orders</h2>
         <p className="text-xs text-gray-400 mt-1">Modify logistics tracking pipelines and manage global shipping logs maps.</p>

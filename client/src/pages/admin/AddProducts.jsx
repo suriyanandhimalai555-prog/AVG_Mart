@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, X, Eye, Edit2, Trash2, Image, Layers, Package, Star, CheckSquare, Square, Upload } from 'lucide-react'
-import { toast } from 'react-hot-toast' 
+import { toast } from 'react-hot-toast'
 
 const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
 const API_CAT_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/categories`
@@ -14,7 +14,7 @@ const AddProducts = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [currentProductId, setCurrentProductId] = useState(null)
-  const [viewProduct, setViewProduct] = useState(null) 
+  const [viewProduct, setViewProduct] = useState(null)
 
   // Form input field states
   const [category, setCategory] = useState('')
@@ -22,21 +22,21 @@ const AddProducts = () => {
   const [description, setDescription] = useState('')
   const [originalPrice, setOriginalPrice] = useState('')
   const [offerPrice, setOfferPrice] = useState('')
-  const [branchAdminPrice, setBranchAdminPrice] = useState('') 
+  const [branchAdminPrice, setBranchAdminPrice] = useState('')
   const [count, setCount] = useState('')
   const [isFeatured, setIsFeatured] = useState(false)
-  
+
   // Base structural tracking changes
-  const [baseRawFiles, setBaseRawFiles] = useState([])   
+  const [baseRawFiles, setBaseRawFiles] = useState([])
   const [baseImages, setBaseImages] = useState([])
-  
+
   // Upgraded to arrays supporting up to 5 images per color option
   const [colorSpecificFiles, setColorSpecificFiles] = useState({}) // format: { "Color: Red": [File, File] }
   const [colorSpecificPreviews, setColorSpecificPreviews] = useState({}) // format: { "Color: Red": [DataURL, DataURL] }
 
   // --- Dynamic Category Attributes State ---
-  const [selectedSpecOptions, setSelectedSpecOptions] = useState([]) 
-  const [customTextInputs, setCustomTextInputs] = useState({}) 
+  const [selectedSpecOptions, setSelectedSpecOptions] = useState([])
+  const [customTextInputs, setCustomTextInputs] = useState({})
 
   const clothingSizesList = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL']
   const footwearSizesList = ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
@@ -110,7 +110,7 @@ const AddProducts = () => {
 
     const updatedFiles = [...currentFiles, ...files]
     setColorSpecificFiles(prev => ({ ...prev, [colorKey]: updatedFiles }))
-    
+
     files.forEach((file) => {
       const reader = new FileReader()
       reader.onloadend = () => {
@@ -127,7 +127,7 @@ const AddProducts = () => {
   const removeColorImageSlot = (colorKey, indexToDrop) => {
     const updatedFiles = (colorSpecificFiles[colorKey] || []).filter((_, i) => i !== indexToDrop)
     const updatedPreviews = (colorSpecificPreviews[colorKey] || []).filter((_, i) => i !== indexToDrop)
-    
+
     setColorSpecificFiles(prev => ({ ...prev, [colorKey]: updatedFiles }))
     setColorSpecificPreviews(prev => ({ ...prev, [colorKey]: updatedPreviews }))
   }
@@ -158,7 +158,7 @@ const AddProducts = () => {
     setDescription('')
     setOriginalPrice('')
     setOfferPrice('')
-    setBranchAdminPrice('') 
+    setBranchAdminPrice('')
     setCount('')
     setIsFeatured(false)
     setBaseImages([])
@@ -173,7 +173,7 @@ const AddProducts = () => {
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault()
-    
+
     // Validation checks for color images when adding a new item
     if (!isEditing) {
       const activeColorKeys = selectedSpecOptions.filter(key => key.startsWith("Color: "))
@@ -193,21 +193,21 @@ const AddProducts = () => {
     }
 
     const actionToastId = toast.loading(isEditing ? "Updating product record..." : "Publishing new product...");
-    
+
     const formData = new FormData()
     formData.append('name', name)
     formData.append('category', category)
     formData.append('description', description)
     formData.append('originalPrice', originalPrice)
     formData.append('offerPrice', offerPrice)
-    formData.append('branchAdminPrice', branchAdminPrice || '0') 
+    formData.append('branchAdminPrice', branchAdminPrice || '0')
     formData.append('count', count || '0')
     formData.append('isFeatured', isFeatured)
 
     // Append standard fallback asset files
     const trackingUploadFiles = [...baseRawFiles]
     const activeColorKeys = Object.keys(colorSpecificFiles).filter(key => selectedSpecOptions.includes(key))
-    
+
     // Map dynamically keeping tracking index records accurate
     let colorIndexOffsetMap = {}
     let runningIndexSum = baseRawFiles.length
@@ -237,20 +237,20 @@ const AddProducts = () => {
     })
 
     let finalPayloadSpecs = []
-    
+
     selectedSpecOptions.forEach(item => {
       if (item.startsWith("Color: ")) {
         if (colorIndexOffsetMap[item] !== undefined) {
           // Send back index key metadata string to database backend tracking
           finalPayloadSpecs.push(`${item}__imgIdx:${colorIndexOffsetMap[item]}`)
         } else {
-          finalPayloadSpecs.push(`${item}__imgIdx:0`) 
+          finalPayloadSpecs.push(`${item}__imgIdx:0`)
         }
       } else {
         finalPayloadSpecs.push(item)
       }
     })
-    
+
     Object.keys(customTextInputs).forEach(key => {
       if (customTextInputs[key] && customTextInputs[key].trim() !== '') {
         finalPayloadSpecs.push(`${key}: ${customTextInputs[key].trim()}`)
@@ -264,30 +264,30 @@ const AddProducts = () => {
       if (isEditing) {
         const token = localStorage.getItem("token");
 
-response = await fetch(`${API_BASE_URL}/${currentProductId}`, {
-  method: "PUT",
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-  body: formData,
-});
+        response = await fetch(`${API_BASE_URL}/${currentProductId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
       } else {
         const token = localStorage.getItem("token");
 
-response = await fetch(API_BASE_URL, {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-  body: formData,
-});
+        response = await fetch(API_BASE_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
       }
 
       if (response.ok) {
         toast.success(isEditing ? "Product updated successfully!" : "Product published successfully!", { id: actionToastId })
         setIsModalOpen(false)
         resetForm()
-        fetchProducts() 
+        fetchProducts()
       } else {
         const errorData = await response.json().catch(() => ({}));
         toast.error(`Error: ${errorData.message || "Failed operation"}`, { id: actionToastId });
@@ -305,12 +305,12 @@ response = await fetch(API_BASE_URL, {
     setDescription(product.description || '')
     setOriginalPrice(product.original_price !== undefined ? product.original_price : product.originalPrice)
     setOfferPrice(product.offer_price !== undefined ? product.offer_price : product.offerPrice)
-    setBranchAdminPrice(product.branch_admin_price !== undefined ? product.branch_admin_price : product.branchAdminPrice) 
+    setBranchAdminPrice(product.branch_admin_price !== undefined ? product.branch_admin_price : product.branchAdminPrice)
     setCount(product.count)
     setIsFeatured(product.isFeatured || false)
-    
+
     setBaseImages(product.images || [])
-    setBaseRawFiles([]) 
+    setBaseRawFiles([])
 
     const initialChecked = []
     const initialTexts = {}
@@ -350,19 +350,19 @@ response = await fetch(API_BASE_URL, {
         <p className="text-white/60">Are you sure you want to permanently erase this inventory record asset?</p>
         <div className="flex gap-2 justify-end mt-1">
           <button onClick={() => toast.dismiss(t.id)} className="px-3 py-1.5 rounded bg-white/5 border border-white/10 text-white font-medium uppercase tracking-wider text-[10px]">Cancel</button>
-          <button 
+          <button
             onClick={async () => {
               toast.dismiss(t.id);
               const executionToastId = toast.loading("Erasing catalog entry...");
               try {
                 const token = localStorage.getItem("token");
 
-const response = await fetch(`${API_BASE_URL}/${id}`, {
-  method: "DELETE",
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-});
+                const response = await fetch(`${API_BASE_URL}/${id}`, {
+                  method: "DELETE",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                });
                 if (response.ok) {
                   toast.success("Product permanently removed.", { id: executionToastId });
                   fetchProducts();
@@ -372,7 +372,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
               } catch (err) {
                 toast.error("Network processing fault during removal.", { id: executionToastId });
               }
-            }} 
+            }}
             className="px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-wider text-[10px]"
           >
             Delete
@@ -387,8 +387,8 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark/20 min-h-screen text-gray-canvas">
-      
+    <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark min-h-screen text-gray-canvas rounded-2xl">
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/10 pb-6">
         <div>
           <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider"><span className='text-lime-400'>Product</span> Inventory</h2>
@@ -416,11 +416,11 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
             <div key={product.id} className="bg-royal-main/40 border border-white/5 rounded-2xl overflow-hidden flex flex-col justify-between backdrop-blur-sm shadow-xl hover:border-white/10 transition-all duration-300">
-              
+
               <div className="h-48 w-full bg-royal-dark/60 relative overflow-hidden group">
-                <img 
-                  src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"} 
-                  alt={product.name} 
+                <img
+                  src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"}
+                  alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <span className="absolute top-3 left-3 text-[9px] font-black uppercase tracking-widest bg-royal-dark/90 text-lime-accent border border-white/10 px-2.5 py-1 rounded-full">
@@ -489,7 +489,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
           <div className="bg-royal-dark border border-white/10 w-full max-w-2xl rounded-3xl shadow-2xl relative flex flex-col max-h-[85vh] text-left">
-            
+
             {/* Locked Modal Header */}
             <div className="flex items-center justify-between border-b border-white/10 p-6 shrink-0">
               <h3 className="text-lg font-black uppercase tracking-wider text-gray-canvas flex items-center gap-2">
@@ -503,11 +503,11 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
 
             {/* Scrollable Form Content View Body Zone */}
             <form id="productForm" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Name *</label>
-                  <input 
+                  <input
                     type="text" required placeholder="e.g., Elite Sports Shoes" value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
@@ -519,10 +519,10 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                   <select
                     required
                     value={category}
-                    onChange={(e) => { 
-                      setCategory(e.target.value); 
-                      setSelectedSpecOptions([]); 
-                      setCustomTextInputs({}); 
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      setSelectedSpecOptions([]);
+                      setCustomTextInputs({});
                       setColorSpecificFiles({});
                       setColorSpecificPreviews({});
                     }}
@@ -540,7 +540,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Product Description</label>
-                <textarea 
+                <textarea
                   rows="2" placeholder="Provide product technical description specifications..." value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-medium text-gray-canvas focus:outline-none focus:border-lime-accent resize-none text-left"
@@ -551,7 +551,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
               {activeCategoryObject && activeCategoryObject.attributes && activeCategoryObject.attributes.length > 0 && (
                 <div className="space-y-4 border-t border-white/5 pt-4">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-lime-400">Category Configured Specifications Matrix</h4>
-                  
+
                   <div className="grid grid-cols-1 gap-4 bg-royal-main/20 p-4 rounded-2xl border border-white/5">
                     {(() => {
                       const normalAttributes = []
@@ -577,9 +577,8 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                                   return (
                                     <button
                                       type="button" key={index} onClick={() => handleSpecToggle(fullValue)}
-                                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
-                                        isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-md' : 'bg-white/5 border-white/10 text-white/60'
-                                      }`}
+                                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent shadow-md' : 'bg-white/5 border-white/10 text-white/60'
+                                        }`}
                                     >
                                       {isChecked ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 opacity-40" />}
                                       <span>{displayColor.toUpperCase()}</span>
@@ -607,8 +606,8 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                                             {previews.map((src, pIdx) => (
                                               <div key={pIdx} className="relative w-14 h-14 rounded-lg border border-white/10 overflow-hidden shrink-0">
                                                 <img src={src} alt="preview" className="w-full h-full object-cover" />
-                                                <button 
-                                                  type="button" 
+                                                <button
+                                                  type="button"
                                                   onClick={() => removeColorImageSlot(colorKey, pIdx)}
                                                   className="absolute top-0.5 right-0.5 bg-black/85 rounded-full p-0.5 hover:bg-red-500 transition-colors"
                                                 >
@@ -620,7 +619,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                                             {/* Upload Trigger Dropzone Box */}
                                             {previews.length < 5 && (
                                               <div className="relative w-14 h-14 rounded-lg bg-white/5 border border-dashed border-white/20 hover:border-lime-accent/50 transition-colors flex flex-col items-center justify-center shrink-0 cursor-pointer">
-                                                <input 
+                                                <input
                                                   type="file" multiple accept="image/*"
                                                   onChange={(e) => handleColorImageUpload(colorKey, e)}
                                                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -641,16 +640,15 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
 
                           {normalAttributes.map((attrName, index) => {
                             const isCheckboxValue = attrName.toLowerCase().includes("`kg`") || attrName.toLowerCase().includes("gram") || attrName.toLowerCase().includes("litre") || attrName.toLowerCase().includes("ml") || attrName.toLowerCase().includes("resistant")
-                            
+
                             if (isCheckboxValue) {
                               const isChecked = selectedSpecOptions.includes(attrName)
                               return (
                                 <div key={index} className="flex items-center gap-2 py-1">
                                   <button
                                     type="button" onClick={() => handleSpecToggle(attrName)}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-bold ${
-                                      isChecked ? 'bg-lime-accent/10 border-lime-accent text-lime-400' : 'bg-royal-dark border-white/5 text-gray-canvas/50'
-                                    }`}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-bold ${isChecked ? 'bg-lime-accent/10 border-lime-accent text-lime-400' : 'bg-royal-dark border-white/5 text-gray-canvas/50'
+                                      }`}
                                   >
                                     {isChecked ? <CheckSquare className="w-3.5 h-3.5 text-lime-400" /> : <Square className="w-3.5 h-3.5 text-gray-canvas/30" />}
                                     <span>{attrName}</span>
@@ -662,7 +660,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                             return (
                               <div key={index} className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/50 text-left block">{attrName}</label>
-                                <input 
+                                <input
                                   type="text"
                                   placeholder={`Enter ${attrName} configuration...`}
                                   value={customTextInputs[attrName] || ''}
@@ -689,9 +687,8 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                       return (
                         <button
                           key={sz} type="button" onClick={() => handleSpecToggle(sz)}
-                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
-                            isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
-                          }`}
+                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
+                            }`}
                         >
                           {sz}
                         </button>
@@ -710,9 +707,8 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                       return (
                         <button
                           key={sz} type="button" onClick={() => handleSpecToggle(sz)}
-                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${
-                            isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
-                          }`}
+                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider border transition-all cursor-pointer ${isChecked ? 'bg-lime-accent text-royal-dark border-lime-accent font-black shadow-md' : 'bg-white/5 text-gray-canvas/60 border-white/10'
+                            }`}
                         >
                           UK/US {sz}
                         </button>
@@ -735,8 +731,8 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                     {baseImages.map((img, idx) => (
                       <div key={idx} className="relative w-14 h-14 rounded-lg border border-white/10 overflow-hidden">
                         <img src={img} alt="preview" className="w-full h-full object-cover" />
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => {
                             setBaseImages(baseImages.filter((_, i) => i !== idx));
                             setBaseRawFiles(baseRawFiles.filter((_, i) => i !== idx));
@@ -757,7 +753,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 text-left block">Original Price *</label>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
-                    <input 
+                    <input
                       type="number" required placeholder="2499" value={originalPrice}
                       onChange={(e) => setOriginalPrice(e.target.value)}
                       className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
@@ -769,7 +765,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 text-left block">Offer Price *</label>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
-                    <input 
+                    <input
                       type="number" required placeholder="1899" value={offerPrice}
                       onChange={(e) => setOfferPrice(e.target.value)}
                       className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
@@ -781,7 +777,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 text-left block">Branch Admin *</label>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-xs font-mono text-gray-canvas/40">₹</span>
-                    <input 
+                    <input
                       type="number" required placeholder="1350" value={branchAdminPrice}
                       onChange={(e) => setBranchAdminPrice(e.target.value)}
                       className="w-full bg-royal-main/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
@@ -791,7 +787,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60 text-left block">Stock Count *</label>
-                  <input 
+                  <input
                     type="number" required min="0" placeholder="50" value={count}
                     onChange={(e) => setCount(e.target.value)}
                     className="w-full bg-royal-main/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-gray-canvas focus:outline-none focus:border-lime-accent text-left"
@@ -800,7 +796,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
               </div>
 
               <div className="flex items-center gap-3 bg-royal-main/20 border border-white/5 p-4 rounded-xl">
-                <input 
+                <input
                   type="checkbox" id="featuredCheckbox" checked={isFeatured}
                   onChange={(e) => setIsFeatured(e.target.checked)}
                   className="w-4 h-4 rounded accent-lime-accent bg-royal-dark border-white/10 cursor-pointer"
@@ -827,7 +823,7 @@ const response = await fetch(`${API_BASE_URL}/${id}`, {
       {viewProduct && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
           <div className="bg-royal-dark border border-white/10 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative space-y-6 text-left">
-            
+
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <span className="text-[9px] font-black uppercase tracking-widest text-lime-accent font-mono">Product Inspection Mode</span>

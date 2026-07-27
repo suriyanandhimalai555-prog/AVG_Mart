@@ -150,7 +150,7 @@ const BranchOrders = () => {
   const customScrollbarClasses = "scrollbar-none [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
 
   return (
-    <div className="space-y-6 sm:space-y-10 text-white relative">
+    <div className="space-y-6 sm:space-y-10 text-white relative bg-royal-dark min-h-screen p-4 sm:p-6 lg:p-10 rounded-2xl">
       
       {/* Dynamic Header Section */}
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/5 pb-6 text-left">

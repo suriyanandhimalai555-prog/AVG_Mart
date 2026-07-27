@@ -56,7 +56,7 @@ const SellerList = () => {
   })
 
   return (
-    <div className="bg-royal-dark text-white min-h-screen p-6 md:p-10 relative overflow-hidden">
+    <div className="bg-royal-dark text-white min-h-screen p-6 md:p-10 relative overflow-hidden rounded-2xl">
       {/* Background Grids */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
@@ -69,7 +69,7 @@ const SellerList = () => {
               <ShieldCheck className="w-3.5 h-3.5 text-lime-accent" /> Merchant Ledger
             </div>
             <h1 className="text-3xl md:text-4xl font-black uppercase tracking-wider text-white">
-              Registered <span className="text-lime-accent font-light">Sellers</span> Directory
+              Registered <span className="text-lime-accent">Sellers</span> Directory
             </h1>
             <p className="text-xs text-white/50 mt-1">
               Manage onboarded store partners, financial credentials, and fulfillment locations.
