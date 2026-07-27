@@ -145,3 +145,23 @@ export const getSellerProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get all registered sellers (For Admin View)
+// Get all registered sellers (For Admin View)
+export const getAllSellers = async (req, res) => {
+  try {
+    const sellers = await Seller.findAll();
+
+    return res.status(200).json({
+      success: true,
+      count: sellers.length,
+      sellers
+    });
+  } catch (error) {
+    console.error("Error in getAllSellers:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: error.message || "Failed to retrieve sellers from database." 
+    });
+  }
+};

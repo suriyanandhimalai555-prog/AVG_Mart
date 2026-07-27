@@ -29,6 +29,19 @@ const Seller = {
     return await pool.query(query);
   },
 
+  // NEW METHOD: Fetch all sellers for admin dashboard
+  findAll: async () => {
+    const res = await pool.query(
+      `SELECT 
+        id, owner_name, email, phone, gst_number, pan_number, 
+        store_name, store_description, pickup_address, city, state, 
+        pincode, shipping_type, account_holder, bank_name, ifsc_code, 
+        account_number, status, created_at 
+       FROM sellers ORDER BY created_at DESC`
+    );
+    return res.rows;
+  },
+
   findByEmail: async (email) => {
     const res = await pool.query('SELECT * FROM sellers WHERE email = $1', [email]);
     return res.rows[0];

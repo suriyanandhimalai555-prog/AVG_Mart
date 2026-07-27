@@ -24,6 +24,7 @@ import AddProducts from './pages/admin/AddProducts'
 import CustomerOrders from './pages/admin/CustomerOrders'
 import AddCategory from './pages/admin/AddCategory'
 import RequestStockBranch from './pages/admin/RequestStockBranch'
+import SellerList from './pages/admin/SellerList'
 
 // Route Protection Guards
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoutes'
@@ -118,6 +119,7 @@ const App = () => {
                     <Route path="orders" element={<CustomerOrders />} />
                     <Route path="create-branch-admin" element={<BranchAdmin />} />
                     <Route path='stock-request' element={<RequestStockBranch />} />
+                    <Route path='sellers' element={<SellerList />} />
                   </Routes>
                 </div>
               </div>
