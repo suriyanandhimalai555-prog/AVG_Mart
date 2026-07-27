@@ -54,6 +54,9 @@ import MarketLogin from './pages/marketing/MarketLogin'
 import MarketSignup from './pages/marketing/MarketSignup'
 import MarketDashboard from './pages/marketing/MarketDashboard'
 
+
+import TempNavigation from './components/TempNavigation'
+
 const App = () => {
   return (
     <div className="min-h-screen font-sans selection:bg-lime-accent selection:text-royal-dark">
@@ -78,6 +81,8 @@ const App = () => {
           <Route path="/seller/signup" element={<SellerRegister />} />
           <Route path="/marketing/login" element={<MarketLogin />} />
           <Route path="/marketing/signup" element={<MarketSignup />} />
+
+          <Route path="/temp-navigation" element={<TempNavigation />} />
         </Route>
 
         {/* SECURED SELLER */}
