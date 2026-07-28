@@ -1,7 +1,10 @@
+import { OAuth2Client } from "google-auth-library";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { createUserModel, findUserByEmailModel } from "../models/userModel.js";
+import { createUserModel, findUserByEmailModel, findOrCreateGoogleUserModel } from "../models/userModel.js";
 import BranchAdminModel from "../models/branchAdminModel.js"; // 👈 Import branch admin model
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // SIGNUP CONTROLLER
 export const signup = async (req, res) => {
@@ -101,5 +104,52 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error("Login Error:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const googleAuth = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: "Google ID Token is required" });
+    }
+
+    // Verify token with Google API
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name } = payload;
+
+    if (!email) {
+      return res.status(400).json({ message: "Invalid Google token data" });
+    }
+
+    // Find existing user or create a new profile
+    const user = await findOrCreateGoogleUserModel(name, email);
+
+    // Issue JWT token
+    const jwtToken = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    return res.status(200).json({
+      message: "Google login successful",
+      token: jwtToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Google Auth Error:", error);
+    return res.status(401).json({ message: "Google authentication failed" });
   }
 };

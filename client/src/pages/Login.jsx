@@ -11,6 +11,7 @@ import {
 import Logo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'react-hot-toast';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
   const cardRef = useRef(null);
@@ -20,7 +21,7 @@ const Login = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({ email: "", password: "" });
 
-  // 3D Tilt State variables
+  // 3D Tilt State
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
   const [glowX, setGlowX] = useState(50);
@@ -31,7 +32,6 @@ const Login = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Real-time 3D Mouse Tracking Calculation
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
     const card = cardRef.current;
@@ -55,48 +55,91 @@ const Login = () => {
     setRotateY(0);
   };
 
-  // BACKEND INTEGRATION SUBMIT WITH ROLE REDIRECTS
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  setErrorMessage("");
+  // --- GOOGLE AUTH HANDLER ---
+  const handleGoogleSuccess = async (tokenResponse) => {
+    setIsSubmitting(true);
+    setErrorMessage("");
+    try {
+      // Get user info using access token or fetch ID token
+      const res = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+      });
+      const googleUser = await res.json();
 
-  try {
-    const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: formData.email, password: formData.password }),
-    });
+      // Send credential to backend
+      const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: tokenResponse.id_token || tokenResponse.access_token, email: googleUser.email, name: googleUser.name }),
+      });
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Invalid email or password.");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Google auth failed.");
 
-    // Store state keys locally
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("userRole", data.user.role);
-    localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userRole", data.user.role);
+      localStorage.setItem("userName", data.user.name);
 
-    toast.success(`Welcome back, ${data.user.name || 'Operator'}!`);
+      toast.success(`Welcome, ${data.user.name || 'Operator'}!`);
 
-    // --- UPDATED ROLE REDIRECT SWITCH CONDITIONAL BLOCK ---
-    if (data.user.role === "admin") {
-      navigate("/admin/dashboard");
-    } else if (data.user.role === "branch_admin") {
-      navigate("/branch-admin/dashboard"); // 👈 Send to your branch admin workspace shell
-    } else {
-      navigate("/profile");
+      if (data.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (data.user.role === "branch_admin") {
+        navigate("/branch-admin/dashboard");
+      } else {
+        navigate("/profile");
+      }
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-  } catch (error) {
-    setErrorMessage(error.message);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: () => setErrorMessage("Google Sign-In was unsuccessful. Try again."),
+  });
+
+  // STANDARD EMAIL/PASSWORD SUBMIT
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Invalid email or password.");
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userRole", data.user.role);
+      localStorage.setItem("userName", data.user.name);
+
+      toast.success(`Welcome back, ${data.user.name || 'Operator'}!`);
+
+      if (data.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (data.user.role === "branch_admin") {
+        navigate("/branch-admin/dashboard");
+      } else {
+        navigate("/profile");
+      }
+
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#071640] text-white flex items-center justify-center p-4 relative overflow-hidden select-none perspective-1000">
-      
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes subtle-float {
           0%, 100% { transform: translateY(0px); }
@@ -107,15 +150,11 @@ const handleSubmit = async (e) => {
         .translate-z-3d { transform: translateZ(40px); }
       `}} />
 
-      {/* BACKGROUND EFFECTS */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-lime-400/10 rounded-full blur-[140px] animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-white/5 rounded-full blur-[140px]" />
-        <div className="absolute top-1/4 left-10 w-72 h-72 border border-white/[0.02] rounded-full pointer-events-none" style={{ animation: 'subtle-float 6s infinite ease-in-out' }} />
-        <div className="absolute bottom-1/4 right-10 w-96 h-96 border border-lime-400/[0.02] rounded-full pointer-events-none" style={{ animation: 'subtle-float 8s infinite ease-in-out 1s' }} />
       </div>
 
-      {/* 3D CARD BOX */}
       <div
         ref={cardRef}
         onMouseMove={handleMouseMove}
@@ -126,13 +165,11 @@ const handleSubmit = async (e) => {
         }}
         className="w-full max-w-md bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-8 md:p-10 preserve-3d relative z-10 group hover:border-lime-400/40 transition-colors duration-300"
       >
-        
         <div 
           style={{ background: `radial-gradient(circle 250px at ${glowX}% ${glowY}%, rgba(165, 206, 0, 0.12), transparent)` }}
           className="absolute inset-0 pointer-events-none rounded-3xl transition-opacity duration-300 opacity-0 group-hover:opacity-100"
         />
 
-        {/* Brand Header */}
         <div className="flex flex-col items-center text-center space-y-3 mb-8 translate-z-3d">
           <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center p-2.5 shadow-inner group-hover:border-lime-400/30 transition-all duration-300">
             <img src={Logo} alt="AVG MART Core" className="w-full h-full object-contain" />
@@ -148,8 +185,11 @@ const handleSubmit = async (e) => {
         </div>
 
         <div className="space-y-5 translate-z-3d">
+          {/* GOOGLE BUTTON TRIGGER */}
           <button
             type="button"
+            onClick={() => loginWithGoogle()}
+            disabled={isSubmitting}
             className="w-full bg-white/[0.02] border border-white/10 rounded-xl py-3.5 px-4 text-xs font-black tracking-widest uppercase flex items-center justify-center gap-3 transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 active:scale-[0.99] group/btn"
           >
             <FaGoogle className="text-lime-400 text-sm group-hover/btn:scale-110 transition-transform" />
@@ -162,7 +202,6 @@ const handleSubmit = async (e) => {
             <div className="flex-1 h-[1px] bg-white/5" />
           </div>
 
-          {/* Error Message Panel */}
           {errorMessage && (
             <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center">
               {errorMessage}
@@ -170,8 +209,6 @@ const handleSubmit = async (e) => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 text-left">
-            
-            {/* Input Node: Email */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Email Address</label>
               <div className="relative flex items-center">
@@ -188,7 +225,6 @@ const handleSubmit = async (e) => {
               </div>
             </div>
 
-            {/* Input Node: Password */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Password</label>
@@ -215,7 +251,6 @@ const handleSubmit = async (e) => {
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
@@ -230,7 +265,6 @@ const handleSubmit = async (e) => {
                 </>
               )}
             </button>
-
           </form>
 
           <div className="pt-4 text-center">
@@ -241,7 +275,6 @@ const handleSubmit = async (e) => {
               </a>
             </p>
           </div>
-
         </div>
       </div>
     </div>

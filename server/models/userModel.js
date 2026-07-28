@@ -29,6 +29,23 @@ export const updatePasswordModel = async (id, hashedPassword) => {
   await pool.query(query, [hashedPassword, id]);
 };
 
+export const findOrCreateGoogleUserModel = async (name, email) => {
+  // Check if user already exists
+  const existingUser = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+  
+  if (existingUser.rows.length > 0) {
+    return existingUser.rows[0];
+  }
+
+  // If not, create a new user (password is NULL or empty string for Google accounts)
+  const newUser = await pool.query(
+    "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *",
+    [name, email, "", "user"]
+  );
+
+  return newUser.rows[0];
+};
+
 
 // --- ADDRESS CRUD OPERATIONS ---
 export const getAddressesByUserId = async (userId) => {
