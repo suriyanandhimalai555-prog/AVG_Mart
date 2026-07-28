@@ -62,33 +62,6 @@ export const verifyRazorpayPayment = async (req, res) => {
 
     await client.query("BEGIN");
 
-    // Fetch the target pincode for this order using address_id
-    const addressQuery = "SELECT pincode FROM addresses WHERE id = $1 LIMIT 1;";
-    const { rows: addressRows } = await client.query(addressQuery, [address_id]);
-    
-    if (addressRows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ message: "Delivery address node not found." });
-    }
-    const orderPincode = String(addressRows[0].pincode).trim();
-
-    // DYNAMIC MATCHING ENGINE: Find branch admin that has this pincode assigned
-    // This matches the comma-separated string formatting in your database table
-    const findBranchQuery = `
-      SELECT id, node_id FROM branch_admins 
-      WHERE pincodes LIKE $1 OR pincodes LIKE $2 OR pincodes LIKE $3 OR pincodes = $4 LIMIT 1;
-    `;
-    // Formulate padding safeguards for comma-delimited matching variants
-    const searchPatterns = [
-      `%, ${orderPincode},%`, // Middle
-      `${orderPincode},%`,    // Front
-      `%, ${orderPincode}`,   // End
-      orderPincode            // Single isolated value
-    ];
-    
-    const { rows: branchRows } = await client.query(findBranchQuery, searchPatterns);
-    const assignedBranchNodeId = branchRows.length > 0 ? branchRows[0].node_id : null;
-
     // Fetch contents of the cart before wiping
     const cartQuery = "SELECT * FROM cart WHERE user_id = $1;";
     const { rows: cartItems } = await client.query(cartQuery, [req.user.id]);
@@ -98,7 +71,56 @@ export const verifyRazorpayPayment = async (req, res) => {
       return res.status(400).json({ message: "Cannot checkout an empty loadout terminal registry." });
     }
 
-    // Insert into master orders ledger along with its assigned branch identity trace
+    // 2. STOCK CHECK & DECREMENT: Check available inventory for each item
+    for (const item of cartItems) {
+      const productRes = await client.query("SELECT count FROM products WHERE id = $1 FOR UPDATE;", [item.product_id]);
+      
+      if (productRes.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: `Product ID ${item.product_id} no longer exists.` });
+      }
+
+      const currentCount = Number(productRes.rows[0].count || 0);
+      const requestedQty = Number(item.quantity || 1);
+
+      if (currentCount < requestedQty) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: `Product "${item.name}" is out of stock or insufficient quantity available.` });
+      }
+
+      // Decrement the product count
+      await client.query(
+        "UPDATE products SET count = GREATEST(count - $1, 0) WHERE id = $2;",
+        [requestedQty, item.product_id]
+      );
+    }
+
+    // Fetch target pincode for this order using address_id
+    const addressQuery = "SELECT pincode FROM addresses WHERE id = $1 LIMIT 1;";
+    const { rows: addressRows } = await client.query(addressQuery, [address_id]);
+    
+    if (addressRows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "Delivery address node not found." });
+    }
+    const orderPincode = String(addressRows[0].pincode).trim();
+
+    // Match branch admin based on pincodes
+    const findBranchQuery = `
+      SELECT id, node_id FROM branch_admins 
+      WHERE pincodes LIKE $1 OR pincodes LIKE $2 OR pincodes LIKE $3 OR pincodes = $4 LIMIT 1;
+    `;
+    const searchPatterns = [
+      `%, ${orderPincode},%`,
+      `${orderPincode},%`,
+      `%, ${orderPincode}`,
+      orderPincode
+    ];
+    
+    const { rows: branchRows } = await client.query(findBranchQuery, searchPatterns);
+    const assignedBranchNodeId = branchRows.length > 0 ? branchRows[0].node_id : null;
+
+    // Insert into master orders ledger
     const insertOrderQuery = `
       INSERT INTO orders (id, user_id, address_id, total_price, payment_id, branch_node_id)
       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
@@ -112,13 +134,12 @@ export const verifyRazorpayPayment = async (req, res) => {
       assignedBranchNodeId
     ]);
 
-    // Snapshot individual items into structural rows
+    // Snapshot individual order items
     const insertItemQuery = `
       INSERT INTO order_items (order_id, product_id, name, price, quantity, image, selected_size)
       VALUES ($1, $2, $3, $4, $5, $6, $7);
     `;
     for (const item of cartItems) {
-      // Capture the size parameter safely from your cart database row
       const productSize = item.selected_size || item.size || null;
 
       await client.query(insertItemQuery, [
@@ -128,16 +149,16 @@ export const verifyRazorpayPayment = async (req, res) => {
         item.price, 
         item.quantity, 
         item.image,
-        productSize // <-- Pass it here as the 7th argument ($7)
+        productSize
       ]);
     }
 
-    // Clear active cart parameters completely
+    // Clear active user cart
     const clearCartQuery = "DELETE FROM cart WHERE user_id = $1;";
     await client.query(clearCartQuery, [req.user.id]);
 
     await client.query("COMMIT");
-    return res.status(200).json({ message: "Order processed and routed seamlessly." });
+    return res.status(200).json({ message: "Order processed, stock updated, and routed seamlessly." });
 
   } catch (error) {
     await client.query("ROLLBACK");

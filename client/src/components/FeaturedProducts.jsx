@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingBag, Star, Heart, Sparkles, Eye } from 'lucide-react'
-import { toast } from 'react-hot-toast' // <-- 1. Import toast engine
+import { toast } from 'react-hot-toast'
 
 const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
 
@@ -12,7 +12,6 @@ const FeaturedProducts = () => {
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
 
-  // Fetch items instantly on layout frame render trigger lifecycle hooks
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
       setIsLoading(true)
@@ -21,11 +20,9 @@ const FeaturedProducts = () => {
         if (response.ok) {
           const data = await response.json()
           
-          // Filter to show ONLY the products with the featured checkbox enabled
           const featuredOnly = data.filter(product => product.isFeatured === true)
           setProducts(featuredOnly)
 
-          // Dynamically compute layout tabs based on categories present in your live featured data
           const distinctCategories = ['All Assets', ...new Set(featuredOnly.map(p => p.category))]
           setCategories(distinctCategories)
         }
@@ -61,6 +58,12 @@ const FeaturedProducts = () => {
   }
 
   const handleAddToCart = async (product, token, navigate) => {
+    // 1. Out of stock guard condition
+    if (Number(product.count || 0) <= 0) {
+      toast.error("This item is currently out of stock!");
+      return;
+    }
+
     if (!token) {
       toast.error("Authentication required. Redirecting to access terminal...", {
         duration: 3000
@@ -69,7 +72,6 @@ const FeaturedProducts = () => {
       return;
     }
 
-    // Initialize loading toast while waiting for database response
     const loadId = toast.loading("Syncing asset loadout configuration...");
 
     try {
@@ -163,11 +165,14 @@ const FeaturedProducts = () => {
               const original = Number(product.originalPrice || 0)
               const offer = Number(product.offerPrice || original)
               const savings = original - offer;
-              
+              const isOutOfStock = Number(product.count || 0) <= 0;
+
               return (
                 <div
                   key={product.id}
-                  className="relative rounded-2xl group transition-all duration-300"
+                  className={`relative rounded-2xl group transition-all duration-300 ${
+                    isOutOfStock ? 'opacity-75' : ''
+                  }`}
                   style={{ perspective: '1000px' }}
                 >
                   <div
@@ -181,8 +186,12 @@ const FeaturedProducts = () => {
                     {/* Top Badges Meta */}
                     <div className="flex items-center justify-between relative z-10 mb-4" style={{ transform: 'translateZ(30px)' }}>
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black tracking-widest uppercase bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 group-hover:bg-lime-accent group-hover:text-royal-dark group-hover:border-transparent transition-colors">
-                          {product.count > 0 ? 'In Stock' : 'Sold Out'}
+                        <span className={`text-[9px] font-black tracking-widest uppercase px-2.5 py-1 rounded-md border transition-colors ${
+                          isOutOfStock 
+                            ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                            : 'bg-white/10 text-white border-white/10 backdrop-blur-md group-hover:bg-lime-accent group-hover:text-royal-dark group-hover:border-transparent'
+                        }`}>
+                          {isOutOfStock ? 'OUT OF STOCK' : 'IN STOCK'}
                         </span>
                         {savings > 0 && (
                           <span className="text-[9px] font-bold tracking-wider uppercase bg-red-500/20 text-red-400 px-2.5 py-1 rounded-md border border-red-500/20">
@@ -204,7 +213,9 @@ const FeaturedProducts = () => {
                       <img
                         src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"}
                         alt={product.name}
-                        className="w-full h-full object-cover filter grayscale contrast-125 group-hover:scale-105 group-hover:grayscale-0 transition-all duration-700 ease-out"
+                        className={`w-full h-full object-cover filter contrast-125 transition-all duration-700 ease-out ${
+                          isOutOfStock ? 'grayscale opacity-50' : 'grayscale group-hover:scale-105 group-hover:grayscale-0'
+                        }`}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-royal-dark/40 to-transparent" />
                       
@@ -253,12 +264,17 @@ const FeaturedProducts = () => {
                           <Eye className="w-3.5 h-3.5 text-lime-accent" /> Details
                         </button>
                         <button 
+                          disabled={isOutOfStock}
                           onClick={(e) => { 
                             e.stopPropagation(); 
                             const token = localStorage.getItem("token");
                             handleAddToCart(product, token, navigate);
                           }}
-                          className="inline-flex items-center justify-center gap-1.5 bg-white text-royal-dark hover:bg-lime-accent px-3 py-2.5 font-black uppercase tracking-wider text-[10px] rounded-xl hover:shadow-[0_4px_20px_rgba(165,206,0,0.4)] active:scale-95 transition-all duration-300"
+                          className={`inline-flex items-center justify-center gap-1.5 px-3 py-2.5 font-black uppercase tracking-wider text-[10px] rounded-xl transition-all duration-300 ${
+                            isOutOfStock 
+                              ? 'bg-gray-600/50 text-gray-400 cursor-not-allowed border border-gray-500/30' 
+                              : 'bg-white text-royal-dark hover:bg-lime-accent hover:shadow-[0_4px_20px_rgba(165,206,0,0.4)] active:scale-95'
+                          }`}
                         >
                           <ShoppingBag className="w-3.5 h-3.5" /> Add To Cart
                         </button>

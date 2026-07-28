@@ -6,7 +6,7 @@ import crypto from 'crypto';
 export const createProduct = async (req, res) => {
   try {
     const { name, category, sizes, description, originalPrice, offerPrice, branchAdminPrice, count, isFeatured, sellerId } = req.body;
-    
+
     let parsedSizes = [];
     if (sizes) {
       parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
@@ -14,8 +14,8 @@ export const createProduct = async (req, res) => {
 
     const featuredBool = isFeatured === 'true' || isFeatured === true;
 
-    const filesToUpload = req.files 
-      ? (Array.isArray(req.files) ? req.files : req.files['productImages'] || []) 
+    const filesToUpload = req.files
+      ? (Array.isArray(req.files) ? req.files : req.files['productImages'] || [])
       : [];
 
     const uploadedImageUrls = [];
@@ -39,31 +39,31 @@ export const createProduct = async (req, res) => {
     }
 
     // Assign seller_id based on logged-in user role
-let assignedSellerId = null;
+    let assignedSellerId = null;
 
-if (req.user.role === "seller") {
-  assignedSellerId = req.user.sellerId || req.user.id;
-}
+    if (req.user.role === "seller") {
+      assignedSellerId = req.user.sellerId || req.user.id;
+    }
 
-// Admin products will have seller_id = NULL
-if (req.user.role === "admin") {
-  assignedSellerId = null;
-}
+    // Admin products will have seller_id = NULL
+    if (req.user.role === "admin") {
+      assignedSellerId = null;
+    }
 
     // Include both seller_id and sellerId so SQL models handle column binding properly
     const newProduct = await ProductModel.create({
-  name,
-  category,
-  sizes: parsedSizes,
-  description,
-  originalPrice,
-  offerPrice,
-  branchAdminPrice,
-  count: count || 0,
-  images: uploadedImageUrls,
-  isFeatured: featuredBool,
-  sellerId: assignedSellerId
-});
+      name,
+      category,
+      sizes: parsedSizes,
+      description,
+      originalPrice,
+      offerPrice,
+      branchAdminPrice,
+      count: count || 0,
+      images: uploadedImageUrls,
+      isFeatured: featuredBool,
+      sellerId: assignedSellerId
+    });
 
     return res.status(201).json({ success: true, message: 'Product added successfully', product: newProduct });
   } catch (error) {

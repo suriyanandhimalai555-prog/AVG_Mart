@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, SlidersHorizontal, ArrowUpRight, ShoppingBag, Eye, Sparkles, Sliders } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { toast } from 'react-hot-toast' // <-- 1. Import toast engine
+import { toast } from 'react-hot-toast'
 
 const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
 
@@ -18,7 +18,7 @@ const AllProducts = () => {
   // Filtering System Management Panels
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
-  const [maxPrice, setMaxPrice] = useState(15000) // Adjusted ceiling bounds for INR metrics
+  const [maxPrice, setMaxPrice] = useState(15000)
   const [sortBy, setSortBy] = useState('featured')
 
   // Synchronize live inventory data array from backend database on render lifecycle mount
@@ -31,11 +31,9 @@ const AllProducts = () => {
           const data = await response.json()
           setProducts(data)
 
-          // Dynamically gather distinct operational categories found in database loadouts
           const distinctCategories = ['All', ...new Set(data.map(p => p.category))]
           setCategoriesList(distinctCategories)
 
-          // Dynamically locate peak price bounds to align default slider positions comfortably
           if (data.length > 0) {
             const peakPrice = Math.max(...data.map(p => Number(p.offerPrice || p.originalPrice || 0)))
             setMaxPrice(peakPrice > 0 ? peakPrice : 15000)
@@ -72,11 +70,16 @@ const AllProducts = () => {
 
       if (sortBy === 'low-to-high') return priceA - priceB
       if (sortBy === 'high-to-low') return priceB - priceA
-      return b.id - a.id // Core sorting logic sequence layout
+      return b.id - a.id
     })
   }, [products, searchQuery, selectedCategory, maxPrice, sortBy])
 
   const handleAddToCart = async (product, token, navigate) => {
+    if (Number(product.count || 0) <= 0) {
+      toast.error("This item is currently out of stock!");
+      return;
+    }
+
     if (!token) {
       toast.error("Authentication required. Redirecting to access terminal...", {
         duration: 3000
@@ -85,7 +88,6 @@ const AllProducts = () => {
       return;
     }
 
-    // Initialize loading toast while waiting for database response
     const loadId = toast.loading("Syncing asset loadout configuration...");
 
     try {
@@ -259,12 +261,10 @@ const AllProducts = () => {
               </div>
 
               {isLoading ? (
-                /* LOADING PLACEHOLDER LAYOUT */
                 <div className="text-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse py-32">
                   Accessing active inventory system matrix files...
                 </div>
               ) : filteredProducts.length === 0 ? (
-                /* EMPTY FILTER ERROR PANEL BOX */
                 <div className="border border-dashed border-white/10 bg-white/[0.01] rounded-2xl p-20 text-center space-y-4 backdrop-blur-md">
                   <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-white/20">
                     <Sliders className="w-5 h-5" />
@@ -277,31 +277,39 @@ const AllProducts = () => {
                   </div>
                 </div>
               ) : (
-                /* HIGHLY RESPONSIVE PREMIUM LIVE S3 ENGINE CARD MATRIX GRID */
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredProducts.map((product) => {
                     const original = Number(product.originalPrice || 0)
                     const offer = Number(product.offerPrice || original)
                     const reduction = original - offer
+                    const isOutOfStock = Number(product.count || 0) <= 0;
 
                     return (
                       <div
                         key={product.id}
                         onClick={() => navigate(`/product/${product.id}`)}
-                        className="group bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-white/10 rounded-2xl p-4 transition-all duration-500 hover:bg-white/[0.05] relative overflow-hidden flex flex-col justify-between h-full cursor-pointer text-left shadow-lg"
+                        className={`group bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-white/10 rounded-2xl p-4 transition-all duration-500 hover:bg-white/[0.05] relative overflow-hidden flex flex-col justify-between h-full cursor-pointer text-left shadow-lg ${
+                          isOutOfStock ? 'opacity-70' : ''
+                        }`}
                       >
                         {/* Image Frame Node Area Container */}
                         <div className="w-full aspect-[4/5] rounded-xl overflow-hidden border border-white/5 bg-black/40 relative flex-shrink-0">
                           <img 
                             src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"} 
                             alt={product.name} 
-                            className="w-full h-full object-cover filter contrast-110 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" 
+                            className={`w-full h-full object-cover filter contrast-110 transition-all duration-700 ${
+                              isOutOfStock ? 'grayscale opacity-50' : 'grayscale group-hover:grayscale-0 group-hover:scale-105'
+                            }`}
                           />
                           
-                          {/* Conditional Tags Status Badges */}
+                          {/* Dynamic Stock & Featured Badges */}
                           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-                            <span className="inline-flex items-center text-[8px] font-black tracking-widest uppercase bg-royal-dark/90 backdrop-blur-md border border-white/10 text-lime-accent px-2.5 py-1 rounded-md">
-                              {product.count > 0 ? 'AVAILABLE NODE' : 'SOLD OUT OUTPOST'}
+                            <span className={`inline-flex items-center text-[8px] font-black tracking-widest uppercase px-2.5 py-1 rounded-md border ${
+                              isOutOfStock 
+                                ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                                : 'bg-royal-dark/90 text-lime-accent border-white/10 backdrop-blur-md'
+                            }`}>
+                              {isOutOfStock ? 'OUT OF STOCK' : 'IN STOCK'}
                             </span>
                             {product.isFeatured && (
                               <span className="inline-flex items-center text-[8px] font-black tracking-widest uppercase bg-lime-accent text-royal-dark font-black px-2.5 py-1 rounded-md shadow-md">
@@ -310,7 +318,7 @@ const AllProducts = () => {
                             )}
                           </div>
 
-                          {/* Interactive Cyber Action Hover Utilities */}
+                          {/* Hover Utilities */}
                           <div className="absolute inset-0 bg-royal-dark/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
                             <button 
                               onClick={(e) => { e.stopPropagation(); navigate(`/product/${product.id}`); }}
@@ -319,19 +327,24 @@ const AllProducts = () => {
                               <Eye className="w-4 h-4" />
                             </button>
                             <button 
+                              disabled={isOutOfStock}
                               onClick={(e) => { 
                                 e.stopPropagation(); 
                                 const token = localStorage.getItem("token");
                                 handleAddToCart(product, token, navigate);
                               }}
-                              className="p-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-xl hover:bg-lime-accent hover:text-royal-dark hover:scale-110 transition-all shadow-xl"
+                              className={`p-3 rounded-xl backdrop-blur-md border transition-all shadow-xl ${
+                                isOutOfStock 
+                                  ? 'bg-gray-600/50 text-gray-400 border-gray-500/30 cursor-not-allowed' 
+                                  : 'bg-white/10 border-white/20 text-white hover:bg-lime-accent hover:text-royal-dark hover:scale-110'
+                              }`}
                             >
                               <ShoppingBag className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
 
-                        {/* Content Descriptor Metrics Frame Footer */}
+                        {/* Content Descriptor Metrics */}
                         <div className="pt-4 flex flex-col justify-between flex-grow space-y-4">
                           <div className="space-y-1">
                             <div className="flex items-center justify-between">
@@ -351,7 +364,7 @@ const AllProducts = () => {
                             </p>
                           </div>
 
-                          {/* Valuation Footer Line Meta */}
+                          {/* Price Footer */}
                           <div className="flex items-center justify-between pt-1 border-t border-white/5">
                             <div className="flex flex-col">
                               <span className="text-[8px] font-bold tracking-wider uppercase text-white/30">Acquisition</span>

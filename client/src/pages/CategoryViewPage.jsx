@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast'
 const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
 
 const CategoryViewPage = () => {
-  const { categoryName } = useParams() // Dynamic router catch
+  const { categoryName } = useParams()
   const navigate = useNavigate()
 
   // Live Server State Modules
@@ -17,10 +17,9 @@ const CategoryViewPage = () => {
 
   // Filter Engine Controls
   const [searchQuery, setSearchQuery] = useState('')
-  const [maxPrice, setMaxPrice] = useState(10000) // Default higher range boundary for INR calculations
+  const [maxPrice, setMaxPrice] = useState(10000)
   const [sortBy, setSortBy] = useState('featured')
 
-  // Synchronize category records live from the API setup matching current url parameter
   useEffect(() => {
     const fetchCategoryInventory = async () => {
       setIsLoading(true)
@@ -29,13 +28,11 @@ const CategoryViewPage = () => {
         if (response.ok) {
           const data = await response.json()
           
-          // CRITICAL LAYER: Filter strictly to show only items matching URL parameter
           const categoryFiltered = data.filter(
             (product) => product.category && product.category.toLowerCase() === categoryName.toLowerCase()
           )
           setProducts(categoryFiltered)
 
-          // Set the slider's default dynamic ceiling boundary based on the highest-priced item
           if (categoryFiltered.length > 0) {
             const peakPrice = Math.max(...categoryFiltered.map(p => Number(p.offerPrice || p.originalPrice || 0)))
             setMaxPrice(peakPrice > 0 ? peakPrice : 5000)
@@ -50,9 +47,8 @@ const CategoryViewPage = () => {
     }
 
     fetchCategoryInventory()
-  }, [categoryName]) // Sync updates when changing route tabs
+  }, [categoryName])
 
-  // Reactive Filtration Stack (Exact computation logic)
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
       const activePrice = Number(product.offerPrice || product.originalPrice || 0)
@@ -70,11 +66,16 @@ const CategoryViewPage = () => {
 
       if (sortBy === 'low-to-high') return priceA - priceB
       if (sortBy === 'high-to-low') return priceB - priceA
-      return b.id - a.id // Newest drops fallback algorithm
+      return b.id - a.id
     })
   }, [products, searchQuery, maxPrice, sortBy])
 
   const handleAddToCart = async (product, token, navigate) => {
+    if (Number(product.count || 0) <= 0) {
+      toast.error("This item is currently out of stock!");
+      return;
+    }
+
     if (!token) {
       toast.error("Access terminal restricted. Redirecting to login sequence...", {
         duration: 3000
@@ -83,7 +84,6 @@ const CategoryViewPage = () => {
       return;
     }
 
-    // Trigger an inline loading sequence tracker toast instance
     const syncToastId = toast.loading("Syncing asset to user profile database...");
 
     try {
@@ -120,7 +120,6 @@ const CategoryViewPage = () => {
   return (
     <>
       <Navbar />
-      {/* Background with exact royal dark, neon lines grid layer, and lime glow nodes */}
       <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden selection:bg-lime-accent selection:text-royal-dark">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:50px_50px]" />
         <div className="absolute top-[10%] right-[-10%] w-[400px] h-[400px] bg-lime-accent/5 rounded-full blur-[130px] pointer-events-none" />
@@ -130,7 +129,6 @@ const CategoryViewPage = () => {
 
         <div className="max-w-7xl mx-auto relative z-10 mt-6">
           
-          {/* HEADER HERO TITLE TRACK */}
           <div className="space-y-4 mb-12 text-left border-b border-white/5 pb-8">
               <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] uppercase bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-lime-accent">
                 <Sparkles className="w-3 h-3 text-lime-accent" /> Premium Collection
@@ -140,10 +138,8 @@ const CategoryViewPage = () => {
               </h1>
           </div>
 
-          {/* DYNAMIC PIPELINE CONTROL LAYER */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             
-            {/* FILTER SIDEBAR FRAME CONTAINER */}
             <div className="lg:col-span-3 lg:sticky lg:top-28 lg:max-h-[calc(100vh-160px)] lg:overflow-y-auto space-y-8 bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md custom-scrollbar text-left">
               <div className="flex items-center justify-between border-b border-white/5 pb-4">
                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-white">
@@ -164,7 +160,6 @@ const CategoryViewPage = () => {
                 </button>
               </div>
 
-              {/* TEXT FIELD MATRIX SEARCH BLOCK */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/50">Search Profile</label>
                 <div className="flex items-center bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 focus-within:border-lime-accent transition-colors">
@@ -179,7 +174,6 @@ const CategoryViewPage = () => {
                 </div>
               </div>
 
-              {/* RANGING METRICS INDEX TRACK */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/50">
                   <span>Price Filter</span>
@@ -200,7 +194,6 @@ const CategoryViewPage = () => {
                 </div>
               </div>
 
-              {/* ORDER SEQUENCING OPTION COMPONENT */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/50">Sort Order</label>
                 <select 
@@ -215,7 +208,6 @@ const CategoryViewPage = () => {
               </div>
             </div>
 
-            {/* PRODUCT SHOWCASE CARDS MATRIX ARRAYS */}
             <div className="lg:col-span-9 space-y-6">
               
               {isLoading ? (
@@ -236,24 +228,32 @@ const CategoryViewPage = () => {
                     const original = Number(product.originalPrice || 0)
                     const offer = Number(product.offerPrice || original)
                     const discount = original - offer
+                    const isOutOfStock = Number(product.count || 0) <= 0;
 
                     return (
                       <div 
                         key={product.id} 
                         onClick={() => navigate(`/product/${product.id}`)} 
-                        className="group bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-white/10 rounded-2xl p-4 transition-all duration-500 hover:bg-white/[0.05] relative flex flex-col justify-between h-full cursor-pointer text-left shadow-lg"
+                        className={`group bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-white/10 rounded-2xl p-4 transition-all duration-500 hover:bg-white/[0.05] relative flex flex-col justify-between h-full cursor-pointer text-left shadow-lg ${
+                          isOutOfStock ? 'opacity-70' : ''
+                        }`}
                       >
                         <div className="w-full aspect-[4/5] rounded-xl overflow-hidden bg-black/40 relative">
                           <img 
                             src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"} 
                             alt={product.name} 
-                            className="w-full h-full object-cover filter contrast-110 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" 
+                            className={`w-full h-full object-cover filter contrast-110 transition-all duration-700 ${
+                              isOutOfStock ? 'grayscale opacity-50' : 'grayscale group-hover:grayscale-0 group-hover:scale-105'
+                            }`}
                           />
                           
-                          {/* Top Placement Tags Status Badges */}
                           <div className="absolute top-3 left-3 flex flex-col gap-1">
-                            <span className="text-[8px] font-black tracking-widest uppercase bg-royal-dark/90 border border-white/10 text-lime-accent px-2.5 py-1 rounded-md">
-                              {product.count > 0 ? 'IN STOCK' : 'SOLD OUT'}
+                            <span className={`text-[8px] font-black tracking-widest uppercase px-2.5 py-1 rounded-md border ${
+                              isOutOfStock 
+                                ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                                : 'bg-royal-dark/90 text-lime-accent border-white/10 backdrop-blur-md'
+                            }`}>
+                              {isOutOfStock ? 'OUT OF STOCK' : 'IN STOCK'}
                             </span>
                             {product.isFeatured && (
                               <span className="text-[8px] font-black tracking-widest uppercase bg-lime-accent text-royal-dark px-2.5 py-1 rounded-md font-black shadow-md">
@@ -264,15 +264,24 @@ const CategoryViewPage = () => {
 
                           <div className="absolute inset-0 bg-royal-dark/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
                             <button onClick={(e) => { e.stopPropagation(); navigate(`/product/${product.id}`); }} className="p-3 bg-white text-royal-dark rounded-xl hover:bg-lime-accent transition-colors shadow-lg transform active:scale-95"><Eye className="w-4 h-4" /></button>
-                            <button onClick={(e) => { 
-                              e.stopPropagation(); 
-                              const token = localStorage.getItem("token");
-                              handleAddToCart(product, token, navigate);
-                            }} className="p-3 bg-white/10 border border-white/20 text-white rounded-xl hover:bg-lime-accent hover:text-royal-dark transition-all shadow-lg transform active:scale-95"><ShoppingBag className="w-4 h-4" /></button>
+                            <button 
+                              disabled={isOutOfStock}
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                const token = localStorage.getItem("token");
+                                handleAddToCart(product, token, navigate);
+                              }} 
+                              className={`p-3 rounded-xl border transition-all shadow-lg transform active:scale-95 ${
+                                isOutOfStock 
+                                  ? 'bg-gray-600/50 text-gray-400 border-gray-500/30 cursor-not-allowed' 
+                                  : 'bg-white/10 border-white/20 text-white hover:bg-lime-accent hover:text-royal-dark'
+                              }`}
+                            >
+                              <ShoppingBag className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
 
-                        {/* Description Text Layout Module Fields */}
                         <div className="pt-4 flex flex-col justify-between flex-grow space-y-4">
                           <div className="space-y-1">
                             <div className="flex items-center justify-between">
@@ -285,7 +294,6 @@ const CategoryViewPage = () => {
                             </p>
                           </div>
 
-                          {/* Acquisition Valuation Line Section */}
                           <div className="flex items-center justify-between pt-1 border-t border-white/5">
                             <div className="flex flex-col">
                               <span className="text-[8px] text-white/30 uppercase tracking-wider font-bold">Acquisition</span>
