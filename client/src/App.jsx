@@ -56,6 +56,7 @@ import MarketDashboard from './pages/marketing/MarketDashboard'
 
 
 import TempNavigation from './components/TempNavigation'
+import { EcommerceLoader } from './components/EcommerceLoader'
 
 const App = () => {
   return (
@@ -72,6 +73,8 @@ const App = () => {
         
         <Route path="/product/:id" element={<ProductDetailView />} />
         <Route path="/about" element={<About />} />
+
+        <Route path="loader" element={<EcommerceLoader />} />
 
         {/* AUTH BLOCKING ENTRY CHANNELS */}
         <Route element={<PublicOnlyRoute />}>

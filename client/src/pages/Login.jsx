@@ -6,18 +6,20 @@ import {
   FaEye,
   FaEyeSlash,
   FaChevronRight,
-  FaCircleNotch,
 } from "react-icons/fa";
 import Logo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useGoogleLogin } from "@react-oauth/google";
+import { EcommerceLoader, ButtonCartLoader } from "../components/EcommerceLoader";
 
 const Login = () => {
   const cardRef = useRef(null);
   const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingText, setLoadingText] = useState("Logging in...");
   const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({ email: "", password: "" });
 
@@ -37,16 +39,12 @@ const Login = () => {
     const box = card.getBoundingClientRect();
     const centerX = box.left + box.width / 2;
     const centerY = box.top + box.height / 2;
-    const rotateYVal = (e.clientX - centerX) / (box.width / 2);
-    const rotateXVal = (e.clientY - centerY) / (box.height / 2);
 
-    setRotateY(rotateYVal * 15);
-    setRotateX(-rotateXVal * 15);
+    setRotateY(((e.clientX - centerX) / (box.width / 2)) * 15);
+    setRotateX(-((e.clientY - centerY) / (box.height / 2)) * 15);
 
-    const glowXPercentage = ((e.clientX - box.left) / box.width) * 100;
-    const glowYPercentage = ((e.clientY - box.top) / box.height) * 100;
-    setGlowX(glowXPercentage);
-    setGlowY(glowYPercentage);
+    setGlowX(((e.clientX - box.left) / box.width) * 100);
+    setGlowY(((e.clientY - box.top) / box.height) * 100);
   };
 
   const handleMouseLeave = () => {
@@ -54,18 +52,15 @@ const Login = () => {
     setRotateY(0);
   };
 
-  // --- GOOGLE AUTH HANDLER ---
   const handleGoogleSuccess = async (tokenResponse) => {
     setIsSubmitting(true);
+    setLoadingText("Verifying Google Credentials...");
     setErrorMessage("");
     try {
-      // Send access_token directly to backend
       const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          access_token: tokenResponse.access_token,
-        }),
+        body: JSON.stringify({ access_token: tokenResponse.access_token }),
       });
 
       const data = await response.json();
@@ -77,13 +72,9 @@ const Login = () => {
 
       toast.success(`Welcome, ${data.user.name || "Operator"}!`);
 
-      if (data.user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (data.user.role === "branch_admin") {
-        navigate("/branch-admin/dashboard");
-      } else {
-        navigate("/profile");
-      }
+      if (data.user.role === "admin") navigate("/admin/dashboard");
+      else if (data.user.role === "branch_admin") navigate("/branch-admin/dashboard");
+      else navigate("/profile");
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
@@ -99,6 +90,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setLoadingText("Authenticating User...");
     setErrorMessage("");
 
     try {
@@ -117,13 +109,9 @@ const Login = () => {
 
       toast.success(`Welcome back, ${data.user.name || "Operator"}!`);
 
-      if (data.user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (data.user.role === "branch_admin") {
-        navigate("/branch-admin/dashboard");
-      } else {
-        navigate("/profile");
-      }
+      if (data.user.role === "admin") navigate("/admin/dashboard");
+      else if (data.user.role === "branch_admin") navigate("/branch-admin/dashboard");
+      else navigate("/profile");
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
@@ -133,15 +121,12 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-[#071640] text-white flex items-center justify-center p-4 relative overflow-hidden select-none perspective-1000">
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes subtle-float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-        }
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes subtle-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
         .perspective-1000 { perspective: 1200px; }
         .preserve-3d { transform-style: preserve-3d; transition: transform 0.15s ease-out, box-shadow 0.3s ease; }
         .translate-z-3d { transform: translateZ(40px); }
-      `}} />
+      ` }} />
 
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-lime-400/10 rounded-full blur-[140px] animate-pulse" />
@@ -156,8 +141,11 @@ const Login = () => {
           transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
           boxShadow: `${-rotateY * 2}px ${rotateX * 2}px 35px rgba(0, 0, 0, 0.5), 0 0 40px rgba(165, 206, 0, 0.05)`
         }}
-        className="w-full max-w-md bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-8 md:p-10 preserve-3d relative z-10 group hover:border-lime-400/40 transition-colors duration-300"
+        className="w-full max-w-md bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-8 md:p-10 preserve-3d relative z-10 group hover:border-lime-400/40 transition-colors duration-300 overflow-hidden"
       >
+        {/* REUSABLE SEPARATE E-COMMERCE LOADER */}
+        {isSubmitting && <EcommerceLoader message={loadingText} />}
+
         <div 
           style={{ background: `radial-gradient(circle 250px at ${glowX}% ${glowY}%, rgba(165, 206, 0, 0.12), transparent)` }}
           className="absolute inset-0 pointer-events-none rounded-3xl transition-opacity duration-300 opacity-0 group-hover:opacity-100"
@@ -249,7 +237,7 @@ const Login = () => {
               className="w-full bg-lime-400 disabled:bg-lime-400/50 disabled:cursor-not-allowed text-[#071640] font-black text-xs uppercase tracking-widest py-4 rounded-xl flex items-center justify-center gap-2 mt-6 group/submit hover:shadow-[0_0_25px_rgba(165,206,0,0.35)] transition-all duration-300"
             >
               {isSubmitting ? (
-                <FaCircleNotch className="text-sm animate-spin" />
+                <ButtonCartLoader text="Signing In..." />
               ) : (
                 <>
                   <span>Login</span>
