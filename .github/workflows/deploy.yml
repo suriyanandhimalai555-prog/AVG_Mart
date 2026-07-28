@@ -48,6 +48,7 @@ jobs:
             echo "Creating frontend .env..."
             cat > client/.env <<EOF
             VITE_APP_BASE_URL=${{ secrets.VITE_APP_BASE_URL }}
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
             EOF
 
             echo "Stopping old containers..."
