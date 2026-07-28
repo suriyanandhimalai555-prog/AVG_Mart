@@ -4,10 +4,13 @@ import { Trash2, Plus, Minus, ShoppingBag, ShieldCheck, ArrowRight, Sparkles, Ca
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast'
+import { EcommerceLoader } from '../components/EcommerceLoader'
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState("Processing...")
   const navigate = useNavigate()
   const token = localStorage.getItem("token")
 
@@ -52,7 +55,8 @@ const Cart = () => {
     const targetQty = currentQty + adjustment;
     if (targetQty < 1 && adjustment !== -1) return; // Prevent setting quantity to 0 unless deliberately removing
 
-    const toastId = toast.loading("Updating item quantity...");
+    setActionLoading(true);
+    setLoadingMessage(targetQty <= 0 ? "Removing Item..." : "Updating Item Quantity...");
 
     try {
       const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/cart/${id}`, {
@@ -67,22 +71,25 @@ const Cart = () => {
       if (res.ok) {
         if (targetQty <= 0) {
           setCartItems(prev => prev.filter(item => item.id !== id));
-          toast.success("Item removed from cart.", { id: toastId });
+          toast.success("Item removed from cart.");
         } else {
           setCartItems(prev => prev.map(item => item.id === id ? { ...item, quantity: targetQty } : item));
-          toast.success("Cart updated successfully.", { id: toastId });
+          toast.success("Cart updated successfully.");
         }
       } else {
-        toast.error("Could not update item quantity.", { id: toastId });
+        toast.error("Could not update item quantity.");
       }
     } catch (err) {
       console.error("Quantity sync manipulation anomaly:", err);
-      toast.error("Network problem. Cart update failed.", { id: toastId });
+      toast.error("Network problem. Cart update failed.");
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const removeItem = async (id) => {
-    const toastId = toast.loading("Removing item from cart...");
+    setActionLoading(true);
+    setLoadingMessage("Removing Item from Cart...");
 
     try {
       const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/cart/${id}`, {
@@ -91,13 +98,15 @@ const Cart = () => {
       });
       if (res.ok) {
         setCartItems(prev => prev.filter(item => item.id !== id));
-        toast.success("Item successfully deleted.", { id: toastId });
+        toast.success("Item successfully deleted.");
       } else {
-        toast.error("Could not remove the item.", { id: toastId });
+        toast.error("Could not remove the item.");
       }
     } catch (err) {
       console.error("Purging element route fault:", err);
-      toast.error("Network problem. Item removal failed.", { id: toastId });
+      toast.error("Network problem. Item removal failed.");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -165,8 +174,8 @@ const Cart = () => {
           </div>
 
           {isLoading ? (
-            <div className="text-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse py-20">
-              Querying localized db payload structures...
+            <div className="relative min-h-[400px] flex items-center justify-center border border-white/5 rounded-2xl overflow-hidden bg-white/[0.01]">
+              <EcommerceLoader message="Loading Cart Registry..." />
             </div>
           ) : cartItems.length === 0 ? (
             <div className="border border-dashed border-white/10 bg-white/[0.01] rounded-2xl p-20 text-center space-y-6 max-w-2xl mx-auto">
@@ -186,7 +195,10 @@ const Cart = () => {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
               
-              <div className="lg:col-span-8 space-y-4">
+              <div className="lg:col-span-8 space-y-4 relative overflow-hidden rounded-2xl">
+                {/* ACTION OVERLAY LOADER FOR QUANTITY/DELETE CHANGES */}
+                {actionLoading && <EcommerceLoader message={loadingMessage} />}
+
                 {cartItems.map((item) => {
                   const activeSizeValue = item.selected_size || item.size;
 
@@ -227,11 +239,19 @@ const Cart = () => {
 
                       <div className="flex items-center justify-between w-full sm:w-auto gap-8 border-t sm:border-t-0 border-white/5 pt-4 sm:pt-0">
                         <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-1">
-                          <button onClick={() => updateQuantity(item.id, item.quantity, -1)} className="p-2 hover:text-lime-accent transition-colors">
+                          <button 
+                            disabled={actionLoading}
+                            onClick={() => updateQuantity(item.id, item.quantity, -1)} 
+                            className="p-2 hover:text-lime-accent transition-colors disabled:opacity-50"
+                          >
                             <Minus className="w-3 h-3" />
                           </button>
                           <span className="text-xs font-mono font-bold px-3 text-white">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.id, item.quantity, 1)} className="p-2 hover:text-lime-accent transition-colors">
+                          <button 
+                            disabled={actionLoading}
+                            onClick={() => updateQuantity(item.id, item.quantity, 1)} 
+                            className="p-2 hover:text-lime-accent transition-colors disabled:opacity-50"
+                          >
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
@@ -240,7 +260,11 @@ const Cart = () => {
                           <p className="text-sm font-mono font-black text-white">₹{(Number(item.price) * item.quantity).toLocaleString('en-IN')}</p>
                         </div>
 
-                        <button onClick={() => removeItem(item.id)} className="p-2.5 bg-white/5 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 text-white/40 hover:text-red-400 rounded-xl transition-all">
+                        <button 
+                          disabled={actionLoading}
+                          onClick={() => removeItem(item.id)} 
+                          className="p-2.5 bg-white/5 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 text-white/40 hover:text-red-400 rounded-xl transition-all disabled:opacity-50"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -269,7 +293,8 @@ const Cart = () => {
 
                 <button 
                   onClick={handleProceedToCheckout}
-                  className="w-full inline-flex items-center justify-center gap-2.5 bg-lime-accent hover:bg-lime-400 text-royal-dark px-6 py-4 font-black uppercase tracking-[0.15em] text-[11px] rounded-xl shadow-lg transition-transform transform active:scale-95 group"
+                  disabled={actionLoading}
+                  className="w-full inline-flex items-center justify-center gap-2.5 bg-lime-accent hover:bg-lime-400 text-royal-dark px-6 py-4 font-black uppercase tracking-[0.15em] text-[11px] rounded-xl shadow-lg transition-transform transform active:scale-95 group disabled:opacity-50"
                 >
                   Proceed to Secure Checkout
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
