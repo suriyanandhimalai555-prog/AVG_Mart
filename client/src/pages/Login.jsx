@@ -10,8 +10,8 @@ import {
 } from "react-icons/fa";
 import Logo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
-import { toast } from 'react-hot-toast';
-import { useGoogleLogin } from '@react-oauth/google';
+import { toast } from "react-hot-toast";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const Login = () => {
   const cardRef = useRef(null);
@@ -21,7 +21,6 @@ const Login = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({ email: "", password: "" });
 
-  // 3D Tilt State
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
   const [glowX, setGlowX] = useState(50);
@@ -60,17 +59,13 @@ const Login = () => {
     setIsSubmitting(true);
     setErrorMessage("");
     try {
-      // Get user info using access token or fetch ID token
-      const res = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
-        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-      });
-      const googleUser = await res.json();
-
-      // Send credential to backend
+      // Send access_token directly to backend
       const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: tokenResponse.id_token || tokenResponse.access_token, email: googleUser.email, name: googleUser.name }),
+        body: JSON.stringify({
+          access_token: tokenResponse.access_token,
+        }),
       });
 
       const data = await response.json();
@@ -80,7 +75,7 @@ const Login = () => {
       localStorage.setItem("userRole", data.user.role);
       localStorage.setItem("userName", data.user.name);
 
-      toast.success(`Welcome, ${data.user.name || 'Operator'}!`);
+      toast.success(`Welcome, ${data.user.name || "Operator"}!`);
 
       if (data.user.role === "admin") {
         navigate("/admin/dashboard");
@@ -101,7 +96,6 @@ const Login = () => {
     onError: () => setErrorMessage("Google Sign-In was unsuccessful. Try again."),
   });
 
-  // STANDARD EMAIL/PASSWORD SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -121,7 +115,7 @@ const Login = () => {
       localStorage.setItem("userRole", data.user.role);
       localStorage.setItem("userName", data.user.name);
 
-      toast.success(`Welcome back, ${data.user.name || 'Operator'}!`);
+      toast.success(`Welcome back, ${data.user.name || "Operator"}!`);
 
       if (data.user.role === "admin") {
         navigate("/admin/dashboard");
@@ -130,7 +124,6 @@ const Login = () => {
       } else {
         navigate("/profile");
       }
-
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
@@ -185,7 +178,6 @@ const Login = () => {
         </div>
 
         <div className="space-y-5 translate-z-3d">
-          {/* GOOGLE BUTTON TRIGGER */}
           <button
             type="button"
             onClick={() => loginWithGoogle()}

@@ -109,26 +109,45 @@ export const login = async (req, res) => {
 
 export const googleAuth = async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, access_token } = req.body;
+    const googleToken = token || access_token;
 
-    if (!token) {
-      return res.status(400).json({ message: "Google ID Token is required" });
+    if (!googleToken) {
+      return res.status(400).json({ message: "Google Token is required" });
     }
 
-    // Verify token with Google API
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    let email = "";
+    let name = "";
 
-    const payload = ticket.getPayload();
-    const { email, name } = payload;
+    // 1. Try verifying as ID Token (JWT with 3 segments)
+    if (typeof googleToken === "string" && googleToken.split(".").length === 3) {
+      const ticket = await client.verifyIdToken({
+        idToken: googleToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      email = payload?.email;
+      name = payload?.name;
+    } else {
+      // 2. Fallback: Treat as Access Token (ya29...) and fetch profile from Google API
+      const googleRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${googleToken}` },
+      });
+
+      if (!googleRes.ok) {
+        return res.status(401).json({ message: "Invalid Google Access Token" });
+      }
+
+      const googleUser = await googleRes.json();
+      email = googleUser.email;
+      name = googleUser.name;
+    }
 
     if (!email) {
-      return res.status(400).json({ message: "Invalid Google token data" });
+      return res.status(400).json({ message: "Failed to obtain email from Google token" });
     }
 
-    // Find existing user or create a new profile
+    // Find existing user or create a new profile in DB
     const user = await findOrCreateGoogleUserModel(name, email);
 
     // Issue JWT token
@@ -139,7 +158,7 @@ export const googleAuth = async (req, res) => {
     );
 
     return res.status(200).json({
-      message: "Google login successful",
+      message: "Google authentication successful",
       token: jwtToken,
       user: {
         id: user.id,

@@ -65,22 +65,13 @@ const Signup = () => {
     setIsSubmitting(true);
     setErrorMessage("");
     try {
-      // Fetch profile details from Google API
-      const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-      });
-      const googleUser = await res.json();
-
-      // Send payload to backend
       const response = await fetch(
         `${import.meta.env.VITE_APP_BASE_URL}/api/auth/google`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            token: tokenResponse.id_token || tokenResponse.access_token,
-            email: googleUser.email,
-            name: googleUser.name,
+            access_token: tokenResponse.access_token,
           }),
         }
       );
@@ -88,14 +79,12 @@ const Signup = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Google registration failed.");
 
-      // Store tokens and identity
       localStorage.setItem("token", data.token);
       localStorage.setItem("userRole", data.user.role);
       localStorage.setItem("userName", data.user.name);
 
       toast.success(`Account ready! Welcome, ${data.user.name || "Operator"}!`);
 
-      // Dynamic role redirects
       if (data.user.role === "admin") {
         navigate("/admin/dashboard");
       } else if (data.user.role === "branch_admin") {
