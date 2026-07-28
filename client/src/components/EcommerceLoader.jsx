@@ -2,7 +2,7 @@ import React from "react";
 
 export const EcommerceLoader = ({ message = "Processing..." }) => {
   return (
-    <div className="absolute inset-0 bg-[#071640]/90 backdrop-blur-md z-30 flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden">
+    <div className="absolute inset-0 bg-[#071640] backdrop-blur-xl z-30 flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden">
       {/* Custom Keyframe Styles */}
       <style>{`
         @keyframes scanline {
