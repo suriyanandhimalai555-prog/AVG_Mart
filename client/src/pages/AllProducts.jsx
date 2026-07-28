@@ -275,12 +275,41 @@ const AllProducts = () => {
 
               <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-white/40 px-2">
                 <span>All Products</span>
-                <span>[{filteredProducts.length}] Items Showing</span>
+                <span>[{isLoading ? '...' : filteredProducts.length}] Items Showing</span>
               </div>
 
               {isLoading ? (
-                <div className="text-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse py-32">
-                  Accessing active inventory system matrix files...
+                /* LOADING SKELETON GRID */
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="w-full h-[460px] bg-white/[0.04] border border-white/10 rounded-[2.5rem] p-4 flex flex-col justify-between backdrop-blur-md animate-pulse"
+                    >
+                      {/* Image Placeholder */}
+                      <div className="w-full h-56 rounded-[2rem] bg-white/5 border border-white/5" />
+
+                      {/* Content Placeholder */}
+                      <div className="p-3 pt-3 flex flex-col justify-between flex-1 space-y-4">
+                        <div className="space-y-3">
+                          <div className="h-5 bg-white/10 rounded-md w-3/4" />
+                          <div className="flex gap-2">
+                            <div className="h-4 bg-white/5 rounded-full w-16" />
+                            <div className="h-4 bg-white/5 rounded-full w-12" />
+                          </div>
+                        </div>
+
+                        {/* Bottom Bar Placeholder */}
+                        <div className="pt-3 flex items-center justify-between border-t border-white/5">
+                          <div className="space-y-1">
+                            <div className="h-6 bg-white/10 rounded-md w-16" />
+                            <div className="h-2 bg-white/5 rounded-md w-12" />
+                          </div>
+                          <div className="h-9 bg-white/10 rounded-full w-28" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : filteredProducts.length === 0 ? (
                 <div className="border border-dashed border-white/10 bg-white/[0.01] rounded-2xl p-20 text-center space-y-4 backdrop-blur-md">

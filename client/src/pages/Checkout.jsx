@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { MapPin, Plus, ShieldCheck, CreditCard, Sparkles, User, Mail, ArrowLeft, Calendar } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { toast } from 'react-hot-toast' // <-- Imported toast engine
+import { toast } from 'react-hot-toast'
+import EcommerceLoader from '../components/EcommerceLoader' // Adjust path if needed
 
 const Checkout = () => {
   const location = useLocation()
@@ -15,6 +16,7 @@ const Checkout = () => {
   const [addresses, setAddresses] = useState([])
   const [selectedAddressId, setSelectedAddressId] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(false)
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [addressForm, setAddressForm] = useState({
@@ -133,8 +135,12 @@ const Checkout = () => {
             });
 
             if (verifyRes.ok) {
-              toast.success("Payment successful! Your order has been placed.", { id: verificationToastId, duration: 4000 });
-              navigate("/orders"); 
+              toast.success("Payment successful! Redirecting to orders...", { id: verificationToastId, duration: 3000 });
+              // Trigger full-screen loader for smooth page transition
+              setIsProcessingRedirect(true);
+              setTimeout(() => {
+                navigate("/orders"); 
+              }, 1200);
             } else {
               toast.error("Payment validation signature check failed.", { id: verificationToastId });
             }
@@ -182,8 +188,8 @@ const Checkout = () => {
 
   if (isLoading) {
     return (
-      <div className="bg-royal-dark text-white min-h-screen flex items-center justify-center text-xs font-mono tracking-widest text-lime-accent uppercase animate-pulse">
-        Decompressing transactional sector layers arrays...
+      <div className="relative min-h-screen bg-royal-dark">
+        <EcommerceLoader message="Initializing Checkout Protocol..." />
       </div>
     )
   }
@@ -192,12 +198,17 @@ const Checkout = () => {
     <>
       <Navbar />
       <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px]" />
+        {/* Post-Payment Fullscreen Redirection Loader */}
+        {isProcessingRedirect && (
+          <div className="fixed inset-0 z-50">
+            <EcommerceLoader message="Payment Confirmed! Preparing Order Ledger..." />
+          </div>
+        )}
 
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:40px_40px]" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-lime-accent/5 rounded-full blur-[180px] pointer-events-none" />
 
-        
         <div className="max-w-6xl mx-auto relative z-10 mt-6">
           <button onClick={() => navigate('/cart')} className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-white/40 hover:text-white transition-colors mb-8">
             <ArrowLeft className="w-3 h-3" /> Back to Cart

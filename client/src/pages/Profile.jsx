@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { User, Mail, Lock, MapPin, Plus, Trash2, ShieldCheck, Save, Edit2, Phone, X } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { toast } from 'react-hot-toast' // <-- 1. Import toast engine
+import { toast } from 'react-hot-toast'
+import { EcommerceLoader } from '../components/EcommerceLoader'
 
 const INDIA_LOCATION_DATA = {
   "Andhra Pradesh": ["Anantapur", "Chittoor", "East Godavari", "Guntur", "Krishna", "Kurnool", "Prakasam", "Srikakulam", "Sri Potti Sriramulu Nellore", "Visakhapatnam", "Vizianagaram", "West Godavari", "YSR Kadapa"],
@@ -38,6 +39,10 @@ const INDIA_LOCATION_DATA = {
 const Profile = () => {
   const [userData, setUserData] = useState({ name: "", email: "" })
   const [addresses, setAddresses] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSavingAddress, setIsSavingAddress] = useState(false)
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+
   const [isEditingAddress, setIsEditingAddress] = useState(false)
   const [editAddressId, setEditAddressId] = useState(null)
 
@@ -53,7 +58,6 @@ const Profile = () => {
   const [selectedDistrict, setSelectedDistrict] = useState("")
   const [pincode, setPincode] = useState("")
 
-  // Fetch token from local storage
   const token = localStorage.getItem("token");
   const API_BASE = `${import.meta.env.VITE_APP_BASE_URL}/api/auth`;
 
@@ -81,6 +85,8 @@ const Profile = () => {
     } catch (err) {
       console.error("Network or Parsing Error:", err);
       toast.error("Network configuration sync down.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,6 +96,9 @@ const Profile = () => {
       toast.error("New password configurations do not match!");
       return;
     }
+
+    setIsUpdatingPassword(true);
+
     try {
       const res = await fetch(`${API_BASE}/profile/password`, {
         method: "PUT",
@@ -112,6 +121,8 @@ const Profile = () => {
     } catch (err) {
       console.error(err);
       toast.error("Password change terminal request failed.");
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -121,6 +132,8 @@ const Profile = () => {
       toast.error("Please populate mandatory fields.");
       return;
     }
+
+    setIsSavingAddress(true);
 
     const addressPayload = {
       tag: addressTag,
@@ -157,6 +170,8 @@ const Profile = () => {
     } catch (err) {
       console.error(err);
       toast.error("Address persistence pipeline error.");
+    } finally {
+      setIsSavingAddress(false);
     }
   };
 
@@ -173,7 +188,6 @@ const Profile = () => {
     toast.loading("Editing mode active", { id: "edit-status", duration: 1500 });
   };
 
-  // Custom Toast Dialog Integration instead of basic window.confirm
   const handleDeleteAddress = (id) => {
     toast((t) => (
       <div className="flex flex-col gap-2 p-1 text-left">
@@ -236,240 +250,253 @@ const Profile = () => {
   return (
     <>
       <Navbar />
-      <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden">
+      <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden font-sans select-none">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px]" />
-        
-        <div className="max-w-5xl mx-auto relative z-10 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
-          
-          {/* --- LEFT PROFILE SIDE PANEL --- */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-3xl p-6 text-center shadow-2xl">
-              <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-2xl mx-auto flex items-center justify-center text-lime-accent shadow-inner relative">
-                <User className="w-10 h-10" />
-                <span className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-lime-accent" />
-              </div>
-              <div className="mt-4 space-y-1">
-                <h2 className="text-xl font-bold tracking-wide text-white">{userData.name || "Loading..."}</h2>
-                <span className="text-[10px] font-mono text-lime-accent uppercase tracking-widest bg-lime-accent/10 border border-lime-accent/20 px-2.5 py-0.5 rounded">Verified Account</span>
-              </div>
-              <div className="mt-6 pt-6 border-t border-white/5 space-y-3 text-left font-mono text-xs text-white/60">
-                <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
-                  <Mail className="w-4 h-4 text-white/30 flex-shrink-0" />
-                  <span className="truncate">{userData.email || "---"}</span>
+
+        <div className="max-w-5xl mx-auto relative z-10 mt-6 space-y-8">
+
+          {isLoading ? (
+            <div className="relative min-h-[500px] border border-white/5 rounded-3xl overflow-hidden bg-white/[0.01]">
+              <EcommerceLoader message="Syncing Profile Credentials..." />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
+              
+              {/* --- LEFT PROFILE SIDE PANEL --- */}
+              <div className="lg:col-span-4 space-y-6">
+                <div className="bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-3xl p-6 text-center shadow-2xl">
+                  <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-2xl mx-auto flex items-center justify-center text-lime-accent shadow-inner relative">
+                    <User className="w-10 h-10" />
+                    <span className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-lime-accent" />
+                  </div>
+                  <div className="mt-4 space-y-1">
+                    <h2 className="text-xl font-bold tracking-wide text-white">{userData.name || "Customer Node"}</h2>
+                    <span className="text-[10px] font-mono text-lime-accent uppercase tracking-widest bg-lime-accent/10 border border-lime-accent/20 px-2.5 py-0.5 rounded">Verified Account</span>
+                  </div>
+                  <div className="mt-6 pt-6 border-t border-white/5 space-y-3 text-left font-mono text-xs text-white/60">
+                    <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
+                      <Mail className="w-4 h-4 text-white/30 flex-shrink-0" />
+                      <span className="truncate">{userData.email || "---"}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                  <ShieldCheck className="w-5 h-5 text-lime-accent/40" /> Secure 256-Bit SSL Connection Active
                 </div>
               </div>
-            </div>
-            <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-white/40">
-              <ShieldCheck className="w-5 h-5 text-lime-accent/40" /> Secure 256-Bit SSL Connection Active
-            </div>
-          </div>
 
-          {/* --- RIGHT MANAGEMENT MAIN PANEL --- */}
-          <div className="lg:col-span-8 space-y-8">
-            
-            {/* ADDRESS LIST SECTION */}
-            <div className="bg-gradient-to-b from-white/[0.02] to-transparent border border-white/5 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
-              <div className="flex items-center gap-2 border-b border-white/5 pb-4">
-                <MapPin className="w-5 h-5 text-lime-accent" />
-                <h3 className="text-lg font-bold tracking-wide uppercase">Saved Shipping Addresses</h3>
-              </div>
+              {/* --- RIGHT MANAGEMENT MAIN PANEL --- */}
+              <div className="lg:col-span-8 space-y-8">
+                
+                {/* ADDRESS LIST SECTION */}
+                <div className="bg-gradient-to-b from-white/[0.02] to-transparent border border-white/5 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
+                  <div className="flex items-center gap-2 border-b border-white/5 pb-4">
+                    <MapPin className="w-5 h-5 text-lime-accent" />
+                    <h3 className="text-lg font-bold tracking-wide uppercase">Saved Shipping Addresses</h3>
+                  </div>
 
-              <div className="space-y-4">
-                {addresses.length === 0 ? (
-                  <p className="text-xs text-white/30 py-4 text-center">No addresses added yet.</p>
-                ) : (
-                  addresses.map((address) => (
-                    <div key={address.id} className="flex items-start justify-between bg-white/[0.02] border border-white/5 p-4 rounded-xl gap-4 hover:border-white/10 transition-colors">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block text-[9px] font-bold uppercase tracking-wider bg-white/5 text-lime-accent border border-white/10 px-2 py-0.5 rounded">
-                            {address.tag}
-                          </span>
-                          <span className="text-[11px] font-mono text-white/50 flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-white/30" /> {address.phone}
-                          </span>
+                  <div className="space-y-4">
+                    {addresses.length === 0 ? (
+                      <p className="text-xs text-white/30 py-4 text-center">No addresses added yet.</p>
+                    ) : (
+                      addresses.map((address) => (
+                        <div key={address.id} className="flex items-start justify-between bg-white/[0.02] border border-white/5 p-4 rounded-xl gap-4 hover:border-white/10 transition-colors">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-block text-[9px] font-bold uppercase tracking-wider bg-white/5 text-lime-accent border border-white/10 px-2 py-0.5 rounded">
+                                {address.tag}
+                              </span>
+                              <span className="text-[11px] font-mono text-white/50 flex items-center gap-1">
+                                <Phone className="w-3 h-3 text-white/30" /> {address.phone}
+                              </span>
+                            </div>
+                            <p className="text-xs text-white/70 font-medium leading-relaxed">
+                              {address.street_name}, {address.landmark && `Landmark: ${address.landmark}, `} {address.city}, {address.district}, {address.state} - {address.pincode}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => startEditAddress(address)}
+                              className="p-2 rounded-lg bg-white/5 text-white/40 hover:bg-lime-accent/10 hover:text-lime-accent transition-all border border-transparent hover:border-lime-accent/20 cursor-pointer"
+                              title="Edit Address"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAddress(address.id)}
+                              className="p-2 rounded-lg bg-white/5 text-white/40 hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20 cursor-pointer"
+                              title="Delete Address"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-xs text-white/70 font-medium leading-relaxed">
-                          {address.street_name}, {address.landmark && `Landmark: ${address.landmark}, `} {address.city}, {address.district}, {address.state} - {address.pincode}
-                        </p>
+                      ))
+                    )}
+                  </div>
+
+                  {/* DYNAMIC ADDRESS CRUD FORM */}
+                  <form onSubmit={handleSaveAddress} className="border-t border-white/5 pt-6 space-y-4 relative">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
+                        {isEditingAddress ? "Modify Address Details" : "Add New Address"}
+                      </h4>
+                      {isEditingAddress && (
+                        <button type="button" onClick={clearAddressForm} className="text-xs text-red-400 flex items-center gap-1 hover:underline">
+                          <X className="w-3 h-3"/> Cancel Edit
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">Address Tag</label>
+                        <input
+                          type="text" required placeholder="e.g. Home, Office"
+                          value={addressTag} onChange={(e) => setAddressTag(e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
+                        />
                       </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => startEditAddress(address)}
-                          className="p-2 rounded-lg bg-white/5 text-white/40 hover:bg-lime-accent/10 hover:text-lime-accent transition-all border border-transparent hover:border-lime-accent/20 cursor-pointer"
-                          title="Edit Address"
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">Phone Number</label>
+                        <input
+                          type="tel" required placeholder="10-Digit Mobile Number" maxLength="12"
+                          value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                          className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
+                        />
+                      </div>
+
+                      <div className="space-y-1 md:col-span-2">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">Street Name / Flat No.</label>
+                        <input
+                          type="text" required placeholder="Flat No, Apartment Name, Street Name"
+                          value={streetName} onChange={(e) => setStreetName(e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">Landmark</label>
+                        <input
+                          type="text" placeholder="Near Bus Stop or Tech Park (Optional)"
+                          value={landmark} onChange={(e) => setLandmark(e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">City</label>
+                        <input
+                          type="text" required placeholder="City Name"
+                          value={city} onChange={(e) => setCity(e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">State</label>
+                        <select
+                          required value={selectedState}
+                          onChange={(e) => { setSelectedState(e.target.value); setSelectedDistrict(""); }}
+                          className="w-full bg-black border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
                         >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAddress(address.id)}
-                          className="p-2 rounded-lg bg-white/5 text-white/40 hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20 cursor-pointer"
-                          title="Delete Address"
+                          <option value="">Select State</option>
+                          {Object.keys(INDIA_LOCATION_DATA).map((state) => (
+                            <option key={state} value={state}>{state}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">District</label>
+                        <select
+                          required disabled={!selectedState} value={selectedDistrict}
+                          onChange={(e) => setSelectedDistrict(e.target.value)}
+                          className="w-full bg-black border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white disabled:opacity-30 transition-colors"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          <option value="">Select District</option>
+                          {selectedState && INDIA_LOCATION_DATA[selectedState].map((district) => (
+                            <option key={district} value={district}>{district}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">Pincode</label>
+                        <input
+                          type="text" required maxLength="6" placeholder="6-Digit Pincode"
+                          value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
+                          className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
+                        />
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
 
-              {/* DYNAMIC ADDRESS CRUD FORM */}
-              <form onSubmit={handleSaveAddress} className="border-t border-white/5 pt-6 space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
-                    {isEditingAddress ? "Modify Address Details" : "Add New Address"}
-                  </h4>
-                  {isEditingAddress && (
-                    <button type="button" onClick={clearAddressForm} className="text-xs text-red-400 flex items-center gap-1 hover:underline">
-                      <X className="w-3 h-3"/> Cancel Edit
+                    <button
+                      type="submit"
+                      disabled={isSavingAddress}
+                      className="inline-flex items-center gap-2 bg-white/5 hover:bg-lime-accent hover:text-royal-dark border border-white/10 hover:border-transparent text-white px-5 py-3 rounded-xl text-xs font-bold tracking-widest uppercase transition-all duration-300 cursor-pointer disabled:opacity-50"
+                    >
+                      {isEditingAddress ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />} 
+                      {isSavingAddress ? "Committing Entry..." : isEditingAddress ? "Update Address Entry" : "Save Address Entry"}
                     </button>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">Address Tag</label>
-                    <input
-                      type="text" required placeholder="e.g. Home, Office"
-                      value={addressTag} onChange={(e) => setAddressTag(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">Phone Number</label>
-                    <input
-                      type="tel" required placeholder="10-Digit Mobile Number" maxLength="12"
-                      value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                      className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    />
-                  </div>
-
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">Street Name / Flat No.</label>
-                    <input
-                      type="text" required placeholder="Flat No, Apartment Name, Street Name"
-                      value={streetName} onChange={(e) => setStreetName(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">Landmark</label>
-                    <input
-                      type="text" placeholder="Near Bus Stop or Tech Park (Optional)"
-                      value={landmark} onChange={(e) => setLandmark(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">City</label>
-                    <input
-                      type="text" required placeholder="City Name"
-                      value={city} onChange={(e) => setCity(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">State</label>
-                    <select
-                      required value={selectedState}
-                      onChange={(e) => { setSelectedState(e.target.value); setSelectedDistrict(""); }}
-                      className="w-full bg-black border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    >
-                      <option value="">Select State</option>
-                      {Object.keys(INDIA_LOCATION_DATA).map((state) => (
-                        <option key={state} value={state}>{state}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">District</label>
-                    <select
-                      required disabled={!selectedState} value={selectedDistrict}
-                      onChange={(e) => setSelectedDistrict(e.target.value)}
-                      className="w-full bg-black border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white disabled:opacity-30 transition-colors"
-                    >
-                      <option value="">Select District</option>
-                      {selectedState && INDIA_LOCATION_DATA[selectedState].map((district) => (
-                        <option key={district} value={district}>{district}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">Pincode</label>
-                    <input
-                      type="text" required maxLength="6" placeholder="6-Digit Pincode"
-                      value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
-                      className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    />
-                  </div>
+                  </form>
                 </div>
 
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 bg-white/5 hover:bg-lime-accent hover:text-royal-dark border border-white/10 hover:border-transparent text-white px-5 py-3 rounded-xl text-xs font-bold tracking-widest uppercase transition-all duration-300 cursor-pointer"
-                >
-                  {isEditingAddress ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />} 
-                  {isEditingAddress ? "Update Address Entry" : "Save Address Entry"}
-                </button>
-              </form>
-            </div>
+                {/* PASSWORD EDIT PANEL */}
+                <div className="bg-gradient-to-b from-white/[0.02] to-transparent border border-white/5 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
+                  <div className="flex items-center gap-2 border-b border-white/5 pb-4">
+                    <Lock className="w-5 h-5 text-lime-accent" />
+                    <h3 className="text-lg font-bold tracking-wide uppercase">Change Account Password</h3>
+                  </div>
 
-            {/* PASSWORD EDIT PANEL */}
-            <div className="bg-gradient-to-b from-white/[0.02] to-transparent border border-white/5 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
-              <div className="flex items-center gap-2 border-b border-white/5 pb-4">
-                <Lock className="w-5 h-5 text-lime-accent" />
-                <h3 className="text-lg font-bold tracking-wide uppercase">Change Account Password</h3>
+                  <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">Current Password</label>
+                        <input
+                          type="password" required placeholder="••••••••"
+                          value={passwordState.currentPassword}
+                          onChange={(e) => setPasswordState({...passwordState, currentPassword: e.target.value})}
+                          className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">New Password</label>
+                        <input
+                          type="password" required placeholder="••••••••"
+                          value={passwordState.newPassword}
+                          onChange={(e) => setPasswordState({...passwordState, newPassword: e.target.value})}
+                          className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/40 uppercase">Confirm Password</label>
+                        <input
+                          type="password" required placeholder="••••••••"
+                          value={passwordState.confirmPassword}
+                          onChange={(e) => setPasswordState({...passwordState, confirmPassword: e.target.value})}
+                          className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
+                        />
+                      </div>
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={isUpdatingPassword}
+                        className="inline-flex items-center gap-2 bg-lime-accent text-royal-dark px-6 py-3 rounded-xl text-xs font-bold tracking-widest uppercase hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-[0_10px_30px_rgba(165,206,0,0.3)] cursor-pointer disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4" />
+                        {isUpdatingPassword ? "Updating..." : "Save Password Changes"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
               </div>
-
-              <form onSubmit={handlePasswordUpdate} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">Current Password</label>
-                    <input
-                      type="password" required placeholder="••••••••"
-                      value={passwordState.currentPassword}
-                      onChange={(e) => setPasswordState({...passwordState, currentPassword: e.target.value})}
-                      className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">New Password</label>
-                    <input
-                      type="password" required placeholder="••••••••"
-                      value={passwordState.newPassword}
-                      onChange={(e) => setPasswordState({...passwordState, newPassword: e.target.value})}
-                      className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-white/40 uppercase">Confirm Password</label>
-                    <input
-                      type="password" required placeholder="••••••••"
-                      value={passwordState.confirmPassword}
-                      onChange={(e) => setPasswordState({...passwordState, confirmPassword: e.target.value})}
-                      className="w-full bg-black/40 border border-white/10 focus:border-lime-accent rounded-xl px-4 py-3 text-xs outline-none text-white transition-colors"
-                    />
-                  </div>
-                </div>
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-2 bg-lime-accent text-royal-dark px-6 py-3 rounded-xl text-xs font-bold tracking-widest uppercase hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-[0_10px_30px_rgba(165,206,0,0.3)] cursor-pointer"
-                  >
-                    <Save className="w-4 h-4" /> Save Password Changes
-                  </button>
-                </div>
-              </form>
             </div>
+          )}
 
-          </div>
         </div>
       </div>
       <Footer />

@@ -1,45 +1,61 @@
-import React, { useState } from 'react'
-import { Sparkles, Terminal, ShieldCheck, Cpu, Globe2, ArrowUpRight, Award, Users } from 'lucide-react'
-import Navbar from '../components/Navbar'
-import Footer from '../components/Footer'
+import React, { useState, useEffect } from "react";
+import { Sparkles, Terminal, ShieldCheck, Cpu, Globe2, ArrowUpRight, Award, Users } from "lucide-react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import { EcommerceLoader } from "../components/EcommerceLoader"; // Import the loader component
 
 const About = () => {
+  const [loading, setLoading] = useState(true);
+  
   // Local state to track 3D tilt interaction for structural cards
-  const [tiltStyle, setTiltStyle] = useState({ card1: {}, card2: {}, card3: {} })
+  const [tiltStyle, setTiltStyle] = useState({ card1: {}, card2: {}, card3: {} });
+
+  // Simulate loading sequence on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500); // Loader displays for 1.5 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Interactive mouse tracker computing real-time 3D rotation geometry
   const handleMouseMove = (e, cardKey) => {
-    const card = e.currentTarget
-    const rect = card.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    const rotateX = ((y / rect.height) - 0.5) * -15 // Vertical rotation pitch
-    const rotateY = ((x / rect.width) - 0.5) * 15   // Horizontal rotation yaw
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-    setTiltStyle(prev => ({
+    const rotateX = ((y / rect.height) - 0.5) * -15; // Vertical rotation pitch
+    const rotateY = ((x / rect.width) - 0.5) * 15;  // Horizontal rotation yaw
+
+    setTiltStyle((prev) => ({
       ...prev,
       [cardKey]: {
         transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.03, 1.03, 1.03)`,
-        transition: 'transform 0.1s ease-out'
-      }
-    }))
-  }
+        transition: "transform 0.1s ease-out",
+      },
+    }));
+  };
 
   const resetTilt = (cardKey) => {
-    setTiltStyle(prev => ({
+    setTiltStyle((prev) => ({
       ...prev,
       [cardKey]: {
-        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
-        transition: 'transform 0.5s ease-out'
-      }
-    }))
+        transform: "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)",
+        transition: "transform 0.5s ease-out",
+      },
+    }));
+  };
+
+  if (loading) {
+    return <EcommerceLoader message="INITIALIZING CORE MATRIX..." />;
   }
 
   return (
     <>
       <Navbar />
-      
+
       {/* Structural Layout Root Container */}
       <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden select-none">
         
@@ -68,8 +84,8 @@ const About = () => {
             
             {/* CARD 01 - CORE ARCHITECTURE */}
             <div
-              onMouseMove={(e) => handleMouseMove(e, 'card1')}
-              onMouseLeave={() => resetTilt('card1')}
+              onMouseMove={(e) => handleMouseMove(e, "card1")}
+              onMouseLeave={() => resetTilt("card1")}
               style={tiltStyle.card1}
               className="bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 rounded-2xl p-8 flex flex-col justify-between h-[360px] text-left transition-all duration-300 relative group shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-default overflow-hidden"
             >
@@ -91,8 +107,8 @@ const About = () => {
 
             {/* CARD 02 - GLOBAL ESCALATION */}
             <div
-              onMouseMove={(e) => handleMouseMove(e, 'card2')}
-              onMouseLeave={() => resetTilt('card2')}
+              onMouseMove={(e) => handleMouseMove(e, "card2")}
+              onMouseLeave={() => resetTilt("card2")}
               style={tiltStyle.card2}
               className="bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 rounded-2xl p-8 flex flex-col justify-between h-[360px] text-left transition-all duration-300 relative group shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-default overflow-hidden"
             >
@@ -114,8 +130,8 @@ const About = () => {
 
             {/* CARD 03 - SECURITY INTEGRITY */}
             <div
-              onMouseMove={(e) => handleMouseMove(e, 'card3')}
-              onMouseLeave={() => resetTilt('card3')}
+              onMouseMove={(e) => handleMouseMove(e, "card3")}
+              onMouseLeave={() => resetTilt("card3")}
               style={tiltStyle.card3}
               className="bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 rounded-2xl p-8 flex flex-col justify-between h-[360px] text-left transition-all duration-300 relative group shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-default overflow-hidden"
             >
@@ -186,7 +202,7 @@ const About = () => {
 
       <Footer />
     </>
-  )
-}
+  );
+};
 
-export default About
+export default About;
