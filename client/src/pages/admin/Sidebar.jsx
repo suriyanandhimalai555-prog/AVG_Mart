@@ -12,7 +12,7 @@ import {
   CassetteTape,
   Boxes,
   Users,
-  Megaphone
+  Megaphone,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast' // <-- Imported toast engine
 import Logo from "../../assets/logo.png"
@@ -30,6 +30,7 @@ const Sidebar = () => {
     { name: 'Stock Request', path: '/admin/stock-request', icon: <Boxes className="w-5 h-5" /> },
     { name: 'Seller List', path: '/admin/sellers-list', icon: <Users className="w-5 h-5" /> },
     { name: 'Marketing List', path: '/admin/marketers-list', icon: <Megaphone className="w-5 h-5" /> },
+    { name: 'App Settings', path: '/admin/app-settings', icon: <ShieldAlert className="w-5 h-5" /> },
   ]
 
   // Handle system logout parameters instantly with toast feedback

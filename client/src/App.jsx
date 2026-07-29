@@ -26,6 +26,7 @@ import AddCategory from './pages/admin/AddCategory'
 import RequestStockBranch from './pages/admin/RequestStockBranch'
 import SellerList from './pages/admin/SellerList'
 import MarketersList from './pages/admin/MarketersList'
+import AppSettings from './pages/admin/AppSetting'
 
 // Route Protection Guards
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoutes'
@@ -150,6 +151,7 @@ const App = () => {
                     <Route path="stock-request" element={<RequestStockBranch />} />
                     <Route path="sellers-list" element={<SellerList />} />
                     <Route path="marketers-list" element={<MarketersList />} />
+                    <Route path="app-settings" element={<AppSettings />} />
                   </Routes>
                 </div>
               </div>

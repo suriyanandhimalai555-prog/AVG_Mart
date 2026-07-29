@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Menu, X, ShoppingBag, Search, ChevronDown, ArrowRight, Layers, LogIn, LogOut, ShoppingCart, User, HelpCircle } from 'lucide-react'
 import Logo from "../assets/logo.png"
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 
 const API_CAT_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/categories`
@@ -11,10 +11,25 @@ const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false)
     const [activeDropdown, setActiveDropdown] = useState(null)
     const [cartCount, setCartCount] = useState(0)
-    const [categories, setCategories] = useState([]) // <-- Dynamic state bucket
+    const [categories, setCategories] = useState([])
+    const [isSearchOpen, setIsSearchOpen] = useState(false)
+    
+    // Navbar Search Form State
+    const [navSearchQuery, setNavSearchQuery] = useState('')
+    const [selectedNavCategory, setSelectedNavCategory] = useState('')
+
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     const isLoggedIn = !!localStorage.getItem("token");
+
+    // Sync search input if URL already has a search query
+    useEffect(() => {
+        const queryParam = searchParams.get('search');
+        if (queryParam) {
+            setNavSearchQuery(queryParam);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -33,7 +48,7 @@ const Navbar = () => {
         return () => { document.body.style.overflow = 'unset' }
     }, [isOpen])
 
-    // Load layout categories dynamically from S3/DB tables instantly
+    // Load layout categories dynamically
     useEffect(() => {
         const loadActiveCategories = async () => {
             try {
@@ -85,7 +100,20 @@ const Navbar = () => {
         navigate("/");
     };
 
-    // Splitting the dynamic categories equally between two display column lists
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        const params = new URLSearchParams();
+        if (navSearchQuery.trim()) {
+            params.set('search', navSearchQuery.trim());
+        }
+        if (selectedNavCategory) {
+            params.set('category', selectedNavCategory);
+        }
+        
+        setIsSearchOpen(false);
+        navigate(`/allproducts?${params.toString()}`);
+    };
+
     const midPoint = Math.ceil(categories.length / 2)
     const columnOneItems = categories.slice(0, midPoint)
     const columnTwoItems = categories.slice(midPoint)
@@ -110,13 +138,12 @@ const Navbar = () => {
     const handleItemNavigation = (categoryName) => {
         setIsOpen(false);
         setActiveDropdown(null);
-        // Direct route redirect pointing straight into our dynamic catch handler matching route configurations
         navigate(`/products/${categoryName.toLowerCase()}`);
     }
 
     return (
         <>
-            <nav className={`fixed top-0 left-0 w-full z-40 px-6 py-4 md:px-12 transition-all duration-500 ${isScrolled ? 'bg-royal-main/95 backdrop-blur-xl border-b border-white/5 shadow-2xl py-3 text-white' : 'bg-transparent border-b border-white/10 py-5 text-white'}`}>
+            <nav className={`fixed top-0 left-0 w-full z-40 px-4 md:px-12 transition-all duration-500 ${isScrolled || isSearchOpen ? 'bg-royal-main/95 backdrop-blur-xl border-b border-white/5 shadow-2xl py-3 text-white' : 'bg-transparent border-b border-white/10 py-4 md:py-5 text-white'}`}>
                 <div className="max-w-7xl mx-auto flex items-center justify-between relative">
 
                     <div className={`flex md:hidden z-50 transition-opacity duration-300 ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
@@ -185,13 +212,23 @@ const Navbar = () => {
                         })}
                     </div>
 
+                    {/* LOGO */}
                     <div onClick={() => { if (!isOpen) navigate("/"); }} className="flex items-center gap-2.5 cursor-pointer select-none absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 z-50">
-                        <img src={Logo} alt="Logo" className="w-7 h-7 object-contain" />
-                        <h1 className="text-lg md:text-xl font-black tracking-widest uppercase text-white">AVG <span className="text-lime-accent font-light">MART</span></h1>
+                        <img src={Logo} alt="Logo" className="w-6 h-6 md:w-7 md:h-7 object-contain" />
+                        <h1 className="text-base md:text-xl font-black tracking-widest uppercase text-white">AVG <span className="text-lime-accent font-light">MART</span></h1>
                     </div>
 
-                    <div className="flex items-center space-x-2 md:space-x-4 z-50">
-                        <button onClick={() => navigate("/cart")} className="p-2.5 rounded-full hover:bg-white/5 transition-all relative group text-white cursor-pointer">
+                    {/* ACTIONS: SEARCH, CART, LOGIN/LOGOUT */}
+                    <div className="flex items-center space-x-1 md:space-x-3 z-50">
+                        {/* SEARCH TRIGGER BUTTON */}
+                        <button 
+                            onClick={() => setIsSearchOpen(!isSearchOpen)} 
+                            className={`p-2 rounded-full transition-all hover:bg-white/10 cursor-pointer ${isSearchOpen ? 'bg-lime-accent text-royal-dark hover:text-royal-dark' : 'text-white'}`}
+                        >
+                            <Search className="w-4 h-4" />
+                        </button>
+
+                        <button onClick={() => navigate("/cart")} className="p-2 md:p-2.5 rounded-full hover:bg-white/5 transition-all relative group text-white cursor-pointer">
                             <ShoppingBag className="w-4 h-4 transition-transform group-hover:scale-110" />
                             {cartCount > 0 && (
                                 <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-lime-accent text-royal-dark text-[9px] font-black tracking-tighter flex items-center justify-center animate-fadeIn shadow-[0_0_10px_rgba(165,206,0,0.6)] border border-royal-main/80">
@@ -210,6 +247,56 @@ const Navbar = () => {
                     </div>
 
                 </div>
+
+                {/* --- RESPONSIVE SEARCH FLOATING BAR OVERLAY --- */}
+                {isSearchOpen && (
+                    <div className="mt-3 max-w-5xl mx-auto animate-fadeIn duration-300 px-2 md:px-0">
+                        <form 
+                            onSubmit={handleSearchSubmit} 
+                            className="bg-royal-dark/95 border border-lime-accent/30 rounded-2xl md:rounded-full p-2 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-stretch md:items-center backdrop-blur-xl gap-2 md:gap-0"
+                        >
+                            {/* Search Keyword Input */}
+                            <div className="flex items-center flex-1 px-3 md:px-5 py-1.5 md:py-2 bg-white/5 md:bg-transparent rounded-xl md:rounded-none">
+                                <Search className="w-4 h-4 text-white/40 mr-2.5 shrink-0" />
+                                <input 
+                                    type="text" 
+                                    value={navSearchQuery}
+                                    onChange={(e) => setNavSearchQuery(e.target.value)}
+                                    placeholder="Search products..."
+                                    className="bg-transparent text-xs md:text-sm text-white placeholder-white/40 outline-none w-full font-medium"
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="hidden md:block w-[1px] h-8 bg-white/10" />
+
+                            {/* Category Dropdown */}
+                            <div className="flex items-center px-3 md:px-4 py-1.5 md:py-2 bg-white/5 md:bg-transparent rounded-xl md:rounded-none">
+                                <select 
+                                    value={selectedNavCategory}
+                                    onChange={(e) => setSelectedNavCategory(e.target.value)}
+                                    className="bg-transparent text-xs text-white/80 font-bold outline-none cursor-pointer w-full capitalize"
+                                >
+                                    <option value="" className="bg-royal-dark text-white">Select Category</option>
+                                    {categories.map((cat) => (
+                                        <option key={cat.id} value={cat.name} className="bg-royal-dark text-white capitalize">
+                                            {cat.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Submit Search Button */}
+                            <button 
+                                type="submit" 
+                                className="w-full md:w-auto bg-lime-accent hover:bg-white text-royal-dark font-black px-6 md:px-8 py-2.5 md:py-3 rounded-xl md:rounded-full text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                            >
+                                <Search className="w-3.5 h-3.5" />
+                                <span>Search</span>
+                            </button>
+                        </form>
+                    </div>
+                )}
             </nav>
 
             {/* --- MOBILE TAKEOVER PORTAL --- */}

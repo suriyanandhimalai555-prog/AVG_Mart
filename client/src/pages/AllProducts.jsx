@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Search, SlidersHorizontal, ShoppingBag, Eye, Sparkles, Sliders, Star, Heart } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Search, SlidersHorizontal, ShoppingBag, Eye, Sparkles, Sliders, Star, Heart, Check } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast'
@@ -9,6 +9,7 @@ const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
 
 const AllProducts = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   // Live Database Core States
   const [products, setProducts] = useState([])
@@ -18,8 +19,26 @@ const AllProducts = () => {
   // Filtering System Management Panels
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
-  const [maxPrice, setMaxPrice] = useState(15000)
+  
+  // Price Filter States (Slider state vs Applied State)
+  const [sliderMaxPrice, setSliderMaxPrice] = useState(15000)
+  const [appliedMaxPrice, setAppliedMaxPrice] = useState(15000)
+  const [maxAvailablePrice, setMaxAvailablePrice] = useState(15000)
+  
   const [sortBy, setSortBy] = useState('featured')
+
+  // Synchronize URL params coming from the Navbar search bar
+  useEffect(() => {
+    const searchFromUrl = searchParams.get('search')
+    const categoryFromUrl = searchParams.get('category')
+
+    if (searchFromUrl !== null) {
+      setSearchQuery(searchFromUrl)
+    }
+    if (categoryFromUrl !== null && categoryFromUrl.trim() !== '') {
+      setSelectedCategory(categoryFromUrl)
+    }
+  }, [searchParams])
 
   // Synchronize live inventory data array from backend database on render lifecycle mount
   useEffect(() => {
@@ -31,12 +50,15 @@ const AllProducts = () => {
           const data = await response.json()
           setProducts(data)
 
-          const distinctCategories = ['All', ...new Set(data.map(p => p.category))]
+          const distinctCategories = ['All', ...new Set(data.map(p => p.category).filter(Boolean))]
           setCategoriesList(distinctCategories)
 
           if (data.length > 0) {
             const peakPrice = Math.max(...data.map(p => Number(p.offerPrice || p.offer_price || p.originalPrice || p.original_price || 0)))
-            setMaxPrice(peakPrice > 0 ? peakPrice : 15000)
+            const topBoundary = peakPrice > 0 ? peakPrice : 15000
+            setMaxAvailablePrice(topBoundary)
+            setSliderMaxPrice(topBoundary)
+            setAppliedMaxPrice(topBoundary)
           }
         }
       } catch (err) {
@@ -50,6 +72,22 @@ const AllProducts = () => {
     fetchAllInventoryProducts()
   }, [])
 
+  // Apply Price Filter Action Trigger
+  const handleApplyPriceFilter = () => {
+    setAppliedMaxPrice(sliderMaxPrice)
+    toast.success(`Price threshold updated to ₹${sliderMaxPrice}`, { duration: 2000 })
+  }
+
+  // Reset Filters Handler
+  const handleResetFilters = () => {
+    setSearchQuery('')
+    setSelectedCategory('All')
+    setSortBy('featured')
+    setSliderMaxPrice(maxAvailablePrice)
+    setAppliedMaxPrice(maxAvailablePrice)
+    navigate('/allproducts')
+  }
+
   // Live Responsive Compute Filter Logic Layout Map Matrix
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
@@ -60,8 +98,10 @@ const AllProducts = () => {
         (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (product.category && product.category.toLowerCase().includes(searchQuery.toLowerCase()))
 
-      const matchesCategory = selectedCategory === 'All' || (product.category && product.category.toLowerCase() === selectedCategory.toLowerCase())
-      const matchesPrice = targetPrice <= maxPrice
+      const matchesCategory = selectedCategory === 'All' || 
+        (product.category && product.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase())
+      
+      const matchesPrice = targetPrice <= appliedMaxPrice
 
       return matchesSearch && matchesCategory && matchesPrice
     }).sort((a, b) => {
@@ -72,9 +112,8 @@ const AllProducts = () => {
       if (sortBy === 'high-to-low') return priceB - priceA
       return b.id - a.id
     })
-  }, [products, searchQuery, selectedCategory, maxPrice, sortBy])
+  }, [products, searchQuery, selectedCategory, appliedMaxPrice, sortBy])
 
-  // Mouse move handler for 3D tilt effect on product cards
   const handleMouseMove = (e) => {
     const card = e.currentTarget
     const box = card.getBoundingClientRect()
@@ -146,17 +185,12 @@ const AllProducts = () => {
       <Navbar />
       <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden selection:bg-lime-accent selection:text-royal-dark">
 
-        {/* Ambient Cyber Light Matrix Grids */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:50px_50px]" />
         <div className="absolute top-[5%] right-[-10%] w-[500px] h-[500px] bg-lime-accent/5 rounded-full blur-[150px] pointer-events-none" />
         <div className="absolute bottom-[20%] left-[-10%] w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[180px] pointer-events-none" />
 
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:40px_40px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-lime-accent/5 rounded-full blur-[180px] pointer-events-none" />
-
         <div className="max-w-7xl mx-auto relative z-10 mt-6">
 
-          {/* HEADER HERO BANNER TRACK */}
           <div className="space-y-4 mb-16 text-left border-b border-white/5 pb-8">
             <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] uppercase bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-lime-accent">
               <Sparkles className="w-3 h-3 text-lime-accent" /> All Products
@@ -169,10 +203,8 @@ const AllProducts = () => {
             </p>
           </div>
 
-          {/* DYNAMIC PIPELINE CONTROL LAYER (Search, Filter Panels) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
 
-            {/* LEFT FILTER BAR MODULE SHEETS */}
             <div className="lg:col-span-3 space-y-8 bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md sticky top-28">
 
               <div className="flex items-center justify-between border-b border-white/5 pb-4">
@@ -180,15 +212,7 @@ const AllProducts = () => {
                   <SlidersHorizontal className="w-4 h-4 text-lime-accent" /> Filter Console
                 </div>
                 <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('All');
-                    setSortBy('featured');
-                    if (products.length > 0) {
-                      const peakPrice = Math.max(...products.map(p => Number(p.offerPrice || p.offer_price || p.originalPrice || p.original_price || 0)))
-                      setMaxPrice(peakPrice);
-                    }
-                  }}
+                  onClick={handleResetFilters}
                   className="text-[10px] font-bold text-white/40 hover:text-lime-accent transition-colors uppercase tracking-wider cursor-pointer"
                 >
                   Reset Ledger
@@ -218,44 +242,60 @@ const AllProducts = () => {
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
-                      className={`w-full text-left text-xs font-bold py-2.5 px-3.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer group ${selectedCategory === cat
+                      className={`w-full text-left text-xs font-bold py-2.5 px-3.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer group ${
+                        selectedCategory.toLowerCase() === cat.toLowerCase()
                           ? 'bg-lime-accent/10 border-lime-accent/20 text-lime-accent'
                           : 'bg-transparent border-transparent text-white/50 hover:bg-white/5 hover:text-white'
                         }`}
                     >
                       <span className="tracking-wide capitalize">{cat}</span>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border transition-colors ${selectedCategory === cat ? 'bg-lime-accent/10 border-lime-accent/20' : 'bg-white/5 border-white/5'
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
+                        selectedCategory.toLowerCase() === cat.toLowerCase() ? 'bg-lime-accent/10 border-lime-accent/20' : 'bg-white/5 border-white/5'
                         }`}>
-                        {cat === 'All' ? products.length : products.filter(p => p.category && p.category.toLowerCase() === cat.toLowerCase()).length}
+                        {cat === 'All' 
+                          ? products.length 
+                          : products.filter(p => p.category && p.category.toLowerCase() === cat.toLowerCase()).length
+                        }
                       </span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* PRICE INDEX SLIDER CONTROLLER */}
-              <div className="space-y-3 text-left">
+              {/* PRICE INDEX SLIDER CONTROLLER WITH APPLY BUTTON */}
+              <div className="space-y-3 text-left border-t border-white/5 pt-4">
                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/50">
                   <span>Price Filter</span>
-                  <span className="text-lime-accent font-mono text-xs font-black">₹{maxPrice}</span>
+                  <span className="text-lime-accent font-mono text-xs font-black">₹{sliderMaxPrice}</span>
                 </div>
+                
                 <input
                   type="range"
                   min="0"
-                  max="50000"
+                  max={maxAvailablePrice > 0 ? maxAvailablePrice : 50000}
                   step="100"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  value={sliderMaxPrice}
+                  onChange={(e) => setSliderMaxPrice(Number(e.target.value))}
                   className="w-full accent-lime-accent bg-white/10 h-1 rounded-lg cursor-pointer"
                 />
+                
                 <div className="flex justify-between text-[9px] font-mono text-white/30">
                   <span>₹0</span>
-                  <span>₹50,000</span>
+                  <span>₹{maxAvailablePrice}</span>
                 </div>
+
+                {/* DIRECT APPLY PRICE FILTER BUTTON */}
+                <button
+                  onClick={handleApplyPriceFilter}
+                  className="w-full mt-2 bg-lime-accent/10 hover:bg-lime-accent text-lime-accent hover:text-royal-dark border border-lime-accent/30 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-3 h-3" />
+                  <span>Apply Price Filter</span>
+                </button>
               </div>
 
               {/* SORT MATRIX INDEX */}
-              <div className="space-y-2 text-left">
+              <div className="space-y-2 text-left border-t border-white/5 pt-4">
                 <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/50">Sort Ordering</label>
                 <select
                   value={sortBy}
@@ -279,17 +319,13 @@ const AllProducts = () => {
               </div>
 
               {isLoading ? (
-                /* LOADING SKELETON GRID */
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
                   {Array.from({ length: 6 }).map((_, index) => (
                     <div
                       key={index}
                       className="w-full h-[460px] bg-white/[0.04] border border-white/10 rounded-[2.5rem] p-4 flex flex-col justify-between backdrop-blur-md animate-pulse"
                     >
-                      {/* Image Placeholder */}
                       <div className="w-full h-56 rounded-[2rem] bg-white/5 border border-white/5" />
-
-                      {/* Content Placeholder */}
                       <div className="p-3 pt-3 flex flex-col justify-between flex-1 space-y-4">
                         <div className="space-y-3">
                           <div className="h-5 bg-white/10 rounded-md w-3/4" />
@@ -299,7 +335,6 @@ const AllProducts = () => {
                           </div>
                         </div>
 
-                        {/* Bottom Bar Placeholder */}
                         <div className="pt-3 flex items-center justify-between border-t border-white/5">
                           <div className="space-y-1">
                             <div className="h-6 bg-white/10 rounded-md w-16" />
@@ -322,6 +357,12 @@ const AllProducts = () => {
                       No hardware profile fits your current parameters. Reset adjustments to recalculate values.
                     </p>
                   </div>
+                  <button 
+                    onClick={handleResetFilters} 
+                    className="text-xs text-lime-accent border border-lime-accent/30 bg-lime-accent/10 px-4 py-2 rounded-xl font-black uppercase tracking-wider hover:bg-lime-accent hover:text-royal-dark transition-all duration-200 cursor-pointer"
+                  >
+                    Reset Filter Console
+                  </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
@@ -348,7 +389,6 @@ const AllProducts = () => {
                           className="w-full h-full bg-white/[0.04] border border-white/10 hover:border-lime-accent/40 rounded-[2.5rem] p-4 flex flex-col justify-between transition-all duration-150 ease-out shadow-2xl backdrop-blur-md relative overflow-hidden"
                           style={{ transformStyle: 'preserve-3d' }}
                         >
-                          {/* Image Container (Fixed Height) */}
                           <div
                             className="w-full h-56 rounded-[2rem] overflow-hidden relative bg-black/40 flex items-center justify-center cursor-pointer group/img shrink-0"
                             style={{ transform: 'translateZ(30px)' }}
@@ -361,7 +401,6 @@ const AllProducts = () => {
                                 }`}
                             />
 
-                            {/* Stock Badge & Wishlist Button */}
                             <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
                               <span className={`text-[9px] font-black tracking-widest uppercase px-3 py-1 rounded-full border backdrop-blur-md ${isOutOfStock
                                   ? 'bg-red-500/20 text-red-400 border-red-500/30'
@@ -379,7 +418,6 @@ const AllProducts = () => {
                               </button>
                             </div>
 
-                            {/* Inspect Overlay */}
                             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <span className="bg-lime-accent text-royal-dark px-4 py-2 rounded-full font-black text-xs uppercase flex items-center gap-1.5 shadow-lg tracking-wider">
                                 <Eye className="w-4 h-4" /> View Details
@@ -387,16 +425,13 @@ const AllProducts = () => {
                             </div>
                           </div>
 
-                          {/* Fixed Content Section */}
                           <div className="p-3 flex flex-col justify-between flex-1 z-10 text-left" style={{ transform: 'translateZ(20px)' }}>
 
                             <div className="space-y-2">
-                              {/* Product Name Slot */}
                               <h3 className="text-lg font-bold text-white group-hover:text-lime-accent transition-colors truncate h-7 leading-7">
                                 {product.name}
                               </h3>
 
-                              {/* Pill Tags Row Slot */}
                               <div className="flex flex-wrap items-center gap-2 overflow-hidden h-7">
                                 <span className="text-[10px] font-medium bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full text-white/70">
                                   {product.category}
@@ -415,10 +450,8 @@ const AllProducts = () => {
                               </div>
                             </div>
 
-                            {/* Bottom Bar (Pinned To Bottom) */}
                             <div className="pt-3 flex items-center justify-between gap-2 border-t border-white/5 mt-auto" style={{ transform: 'translateZ(25px)' }}>
 
-                              {/* Price Block */}
                               <div className="flex flex-col">
                                 <div className="flex items-baseline gap-1.5">
                                   <span className="text-xl font-black text-lime-accent">
@@ -434,7 +467,6 @@ const AllProducts = () => {
                                 <span className="text-[9px] text-white/40 font-medium">Incl. all taxes</span>
                               </div>
 
-                              {/* Add to Cart Button */}
                               <button
                                 disabled={isOutOfStock}
                                 onClick={(e) => {

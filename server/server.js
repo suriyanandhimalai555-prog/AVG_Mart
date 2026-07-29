@@ -1,60 +1,79 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import helmet from "helmet";
+
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import branchAdminRoutes from './routes/branchAdminRoutes.js';
-import stockRoutes from './routes/stockRoutes.js';             // 👈 Actual Stock Management
-import requeststockRoutes from './routes/requestStockRoutes.js'; // 👈 Stock Requests Management
+import stockRoutes from './routes/stockRoutes.js';             
+import requeststockRoutes from './routes/requestStockRoutes.js'; 
 import sellerRoutes from './routes/sellerRoutes.js';
 import marketerRoutes from './routes/marketerRoutes.js';
+import appSettingRoutes from './routes/appSettingRoutes.js';
 
 dotenv.config();
 
 const app = express();
 
-// 1. UPDATE CORS: Allow both production and local domains explicitly
+// Security HTTP headers
+app.use(helmet());
+
+// 1. CORS Configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL, 
-  'https://avgmart.com', 
+  'https://avgmart.com',
+  'https://www.avgmart.com',
   'http://localhost:5173'
-].filter(Boolean); // Removes undefined values if process.env isn't set yet
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow non-browser requests (Postman, curl, mobile apps)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('CORS policy denial: Origin not allowed'), false);
     }
-    return callback(null, true);
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// 2. INCREASE PAYLOAD LIMITS: Solves the 413 (Request Entity Too Large) error
+
+// 2. Body Parser Limits
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Main Routing mount
+// 3. API Routes
 app.use("/api/auth", authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/auth/admin', branchAdminRoutes);
-
-// PAKKA ROUTING SEPARATION FIX
 app.use('/api/branch-stock', stockRoutes);
 app.use('/api/stock-requests', requeststockRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/marketer', marketerRoutes);
+app.use('/api/settings', appSettingRoutes);
 
-// Root path test
+// Health check endpoint
 app.get("/", (req, res) => {
-  res.send("Server running cleanly.");
+  res.status(200).json({ status: "ok", message: "Server running cleanly." });
+});
+
+// 4. Global Error Handling Middleware (MUST be at the very bottom)
+app.use((err, req, res, next) => {
+  console.error(`[Error Handler]: ${err.stack || err.message}`);
+  
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    success: false,
+    message: err.message || "Internal Server Error"
+  });
 });
 
 const PORT = process.env.PORT || 5000;
