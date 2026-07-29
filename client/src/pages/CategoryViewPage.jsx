@@ -352,7 +352,7 @@ const CategoryViewPage = () => {
                             {/* Inspect Overlay */}
                             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <span className="bg-lime-accent text-royal-dark px-4 py-2 rounded-full font-black text-xs uppercase flex items-center gap-1.5 shadow-lg tracking-wider">
-                                <Eye className="w-4 h-4" /> Inspect Asset
+                                <Eye className="w-4 h-4" /> View Details
                               </span>
                             </div>
                           </div>
