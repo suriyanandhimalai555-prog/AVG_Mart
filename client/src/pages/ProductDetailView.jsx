@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, ShoppingBag, Star, Cpu, MessageSquare, Calendar, User, Plus, Minus } from 'lucide-react'
+import { ArrowLeft, ShoppingBag, Star, Cpu, MessageSquare, Calendar, User, Plus, Minus, Share2 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast'
@@ -27,6 +27,34 @@ const ProductDetailView = () => {
     const [selectedSize, setSelectedSize] = useState('')
     const [selectedColor, setSelectedColor] = useState('')
     const [quantity, setQuantity] = useState(1)
+
+    // Share functionality
+    const handleShare = async () => {
+        const shareData = {
+            title: product?.name || 'Product Details',
+            text: product?.description || 'Check out this product!',
+            url: window.location.href,
+        }
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData)
+            } catch (err) {
+                // Ignore AbortError when user cancels native share dialog
+                if (err.name !== 'AbortError') {
+                    console.error('Error sharing content:', err)
+                }
+            }
+        } else {
+            // Fallback: Copy link to clipboard
+            try {
+                await navigator.clipboard.writeText(window.location.href)
+                toast.success('Product link copied to clipboard!')
+            } catch (err) {
+                toast.error('Failed to copy link.')
+            }
+        }
+    }
 
     // --- ACCURATE SEPARATION LOGIC PATTERNS ---
     const isColorOption = (str) => {
@@ -313,9 +341,14 @@ const ProductDetailView = () => {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:40px_40px]" />
                 
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="flex justify-start mb-8 mt-5">
+                    {/* NAV HEADER WITH SHARE BUTTON */}
+                    <div className="flex justify-between items-center mb-8 mt-5">
                         <button onClick={() => navigate(-1)} className="group inline-flex items-center gap-2 text-white/50 hover:text-lime-accent text-[11px] font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 px-5 py-3 rounded-xl transition-all">
                             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1.5 transition-transform" /> BACK
+                        </button>
+
+                        <button onClick={handleShare} className="group inline-flex items-center gap-2 text-white/50 hover:text-lime-accent text-[11px] font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 px-5 py-3 rounded-xl transition-all">
+                            <Share2 className="w-4 h-4 group-hover:scale-110 transition-transform" /> SHARE
                         </button>
                     </div>
 
