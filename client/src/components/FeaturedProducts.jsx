@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingBag, Star, Heart, Sparkles, Eye } from 'lucide-react'
+import { ShoppingBag, Star, Share2, Sparkles, Eye } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
@@ -55,6 +55,32 @@ const FeaturedProducts = () => {
   const handleMouseLeave = (e) => {
     const card = e.currentTarget
     card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`
+  }
+
+  const handleShare = async (e, product) => {
+    e.stopPropagation();
+    const productUrl = `${window.location.origin}/product/${product.id}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out ${product.name} on AVG Mart!`,
+          url: productUrl,
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          toast.error("Could not share product link.");
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(productUrl);
+        toast.success("Product link copied to clipboard!");
+      } catch (err) {
+        toast.error("Failed to copy product link.");
+      }
+    }
   }
 
   const handleAddToCart = async (product, token, navigate) => {
@@ -125,7 +151,7 @@ const FeaturedProducts = () => {
           <div className="w-16 h-[2px] bg-lime-accent rounded-full mt-2" />
         </div>
 
-        {/* Responsive Tab Bar (Horizontal Touch Scroll on Mobile, Centered Wrap on Desktop) */}
+        {/* Responsive Tab Bar */}
         <div className="w-full mb-12 md:mb-16">
           <div className="flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar scroll-smooth py-2 px-1 md:justify-center -mx-4 md:mx-0 px-4 md:px-0">
             {categories.map((tab) => {
@@ -199,7 +225,7 @@ const FeaturedProducts = () => {
                         }`}
                       />
 
-                      {/* Stock Badge & Wishlist Button */}
+                      {/* Stock Badge & Share Button */}
                       <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
                         <span className={`text-[9px] font-black tracking-widest uppercase px-3 py-1 rounded-full border backdrop-blur-md ${
                           isOutOfStock 
@@ -210,11 +236,11 @@ const FeaturedProducts = () => {
                         </span>
 
                         <button 
-                          aria-label="Wishlist"
-                          onClick={(e) => e.stopPropagation()}
-                          className="pointer-events-auto p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/80 hover:text-pink-500 hover:bg-black/60 transition-all"
+                          aria-label="Share product"
+                          onClick={(e) => handleShare(e, product)}
+                          className="pointer-events-auto p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/80 hover:text-lime-accent hover:bg-black/60 transition-all"
                         >
-                          <Heart className="w-4 h-4" />
+                          <Share2 className="w-4 h-4" />
                         </button>
                       </div>
 

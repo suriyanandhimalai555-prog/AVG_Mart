@@ -7,6 +7,14 @@
   --color-lime-accent: #A5CE00;   /* Electric Lime Green */
 } 
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 body {
   font-family: "Poppins", sans-serif;
 }
