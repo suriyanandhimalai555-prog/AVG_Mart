@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { MapPin, Plus, ShieldCheck, CreditCard, Sparkles, User, Mail, ArrowLeft, Calendar } from 'lucide-react'
+import { 
+  MapPin, 
+  Plus, 
+  ShieldCheck, 
+  CreditCard, 
+  Sparkles, 
+  User, 
+  Mail, 
+  ArrowLeft, 
+  Calendar,
+  CheckCircle2,
+  Lock
+} from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast'
-import EcommerceLoader from '../components/EcommerceLoader' // Adjust path if needed
+import EcommerceLoader from '../components/EcommerceLoader'
 
 const Checkout = () => {
   const location = useLocation()
@@ -37,7 +49,7 @@ const Checkout = () => {
         })
         if (response.ok) {
           const data = await response.json()
-          setUserProfile(data.user)
+          setUserProfile(data.user || { name: '', email: '' })
           setAddresses(data.addresses || [])
           if (data.addresses && data.addresses.length > 0) {
             setSelectedAddressId(data.addresses[0].id)
@@ -90,7 +102,7 @@ const Checkout = () => {
       return;
     }
 
-    const gatewayToastId = toast.loading("Initializing payment tunnel...")
+    const gatewayToastId = toast.loading("Initializing secure payment session...")
 
     try {
       const responseOrder = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/payment/order`, {
@@ -102,21 +114,22 @@ const Checkout = () => {
         body: JSON.stringify({ amount: orderAmount })
       });
 
-      if (!responseOrder.ok) throw new Error("Could not instantiate system layer transactions options.");
+      if (!responseOrder.ok) throw new Error("Could not instantiate transaction order.");
       const orderData = await responseOrder.json();
 
-      // Dismiss initialization loader before presenting payment overlay window interface
       toast.dismiss(gatewayToastId);
 
+      // Customized Razorpay options for a cleaner brand experience
       const options = {
         key: "rzp_test_T5NEmNwILnfzHd",
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Premium Hardware Ecosystem",
-        description: "Live Resource Operational Settlement Node",
+        name: "AVG Mart",
+        description: `Order #${orderData.id ? orderData.id.slice(-8).toUpperCase() : 'CHECKOUT'}`,
+        image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200", // Brand Logo URL
         order_id: orderData.id,
         handler: async function (response) {
-          const verificationToastId = toast.loading("Verifying transaction settlement...")
+          const verificationToastId = toast.loading("Verifying transaction...")
 
           try {
             const verifyRes = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/payment/verify`, {
@@ -136,7 +149,6 @@ const Checkout = () => {
 
             if (verifyRes.ok) {
               toast.success("Payment successful! Redirecting to orders...", { id: verificationToastId, duration: 3000 });
-              // Trigger full-screen loader for smooth page transition
               setIsProcessingRedirect(true);
               setTimeout(() => {
                 navigate("/orders");
@@ -145,20 +157,26 @@ const Checkout = () => {
               toast.error("Payment validation signature check failed.", { id: verificationToastId });
             }
           } catch (verifyErr) {
-            console.error("Verification processing endpoint failure channel:", verifyErr);
-            toast.error("Network error checking payment signature state verification.", { id: verificationToastId })
+            console.error("Verification processing endpoint failure:", verifyErr);
+            toast.error("Network error checking payment signature state.", { id: verificationToastId })
           }
         },
         prefill: {
           name: userProfile.name,
           email: userProfile.email,
         },
+        notes: {
+          address_id: selectedAddressId
+        },
         theme: {
-          color: "#a5ce00"
+          color: "#a5ce00", // Custom Lime Accent
+          backdrop_color: "#0d0f12",
+          hide_topbar: false
         },
         modal: {
+          confirm_close: true,
           ondismiss: function () {
-            toast.error("Payment checkout process cancelled by user.");
+            toast.error("Payment process cancelled.");
           }
         }
       };
@@ -167,12 +185,11 @@ const Checkout = () => {
       rzp.open();
 
     } catch (error) {
-      console.error("Payment pipeline routing crash tracking diagnostic:", error);
-      toast.error("Could not initialize the checkout gateway pipeline.", { id: gatewayToastId });
+      console.error("Payment pipeline routing error:", error);
+      toast.error("Could not initialize the checkout gateway.", { id: gatewayToastId });
     }
   };
 
-  // --- PAKKA 6-DAY ARITHMETIC TRACKING LAYER SYSTEM ---
   const calculateDefaultEstimatedArrival = () => {
     try {
       const parsedDate = new Date();
@@ -197,132 +214,223 @@ const Checkout = () => {
   return (
     <>
       <Navbar />
-      <div className="bg-royal-dark text-white min-h-screen py-24 px-6 md:px-12 relative overflow-hidden">
-        {/* Post-Payment Fullscreen Redirection Loader */}
+      <div className="bg-royal-dark text-white min-h-screen py-24 px-4 sm:px-6 md:px-12 relative overflow-hidden">
+        
+        {/* Fullscreen Post-Payment Redirection Loader */}
         {isProcessingRedirect && (
           <div className="fixed inset-0 z-50">
-            <EcommerceLoader message="Payment Confirmed! Preparing Order Ledger..." />
+            <EcommerceLoader message="Payment Confirmed! Preparing Your Order..." />
           </div>
         )}
 
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:40px_40px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-lime-accent/5 rounded-full blur-[180px] pointer-events-none" />
+        {/* Ambient Grid Background Glow */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-lime-accent/5 rounded-full blur-[160px] pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto relative z-10 mt-6">
-          <button onClick={() => navigate(-1)} className="group inline-flex items-center gap-2 text-white/50 hover:text-lime-accent text-[11px] font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 px-5 py-3 rounded-xl transition-all mb-4">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1.5 transition-transform" /> BACK TO CART
-          </button>
+        <div className="max-w-6xl mx-auto relative z-10 mt-4">
+          
+          {/* Header Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <button 
+              onClick={() => navigate(-1)} 
+              className="group inline-flex items-center gap-2 text-white/70 hover:text-lime-accent text-xs font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2.5 rounded-xl transition-all"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span>Back to Cart</span>
+            </button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start text-left">
+            {/* <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-lime-accent bg-lime-accent/10 border border-lime-accent/20 px-3.5 py-1.5 rounded-full">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>256-Bit Encrypted Checkout</span>
+            </div> */}
+          </div>
 
-            <div className="lg:col-span-7 space-y-8">
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start text-left">
+
+            {/* Left Column: User Profile & Delivery Addresses */}
+            <div className="lg:col-span-7 space-y-6">
+              
+              {/* Profile Card */}
+              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 backdrop-blur-md space-y-4">
                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-lime-accent">
-                  <Sparkles className="w-4 h-4" /> Customer Details
+                  <Sparkles className="w-4 h-4" /> Account Details
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium text-white/60">
-                  <div className="flex items-center gap-3 bg-black/20 p-3.5 rounded-xl border border-white/5">
-                    <User className="w-4 h-4 text-white/30" />
-                    <div><p className="text-[9px] uppercase tracking-wider text-white/30">Name</p><p className="text-white font-bold">{userProfile.name}</p></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-medium">
+                  <div className="flex items-center gap-3 bg-black/40 p-3.5 rounded-xl border border-white/5">
+                    <User className="w-4 h-4 text-white/40 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[9px] uppercase tracking-wider text-white/40">Full Name</p>
+                      <p className="text-white font-bold truncate">{userProfile.name || 'N/A'}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 bg-black/20 p-3.5 rounded-xl border border-white/5">
-                    <Mail className="w-4 h-4 text-white/30" />
-                    <div><p className="text-[9px] uppercase tracking-wider text-white/30">Mail ID</p><p className="text-white font-bold truncate">{userProfile.email}</p></div>
+                  <div className="flex items-center gap-3 bg-black/40 p-3.5 rounded-xl border border-white/5">
+                    <Mail className="w-4 h-4 text-white/40 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[9px] uppercase tracking-wider text-white/40">Email Address</p>
+                      <p className="text-white font-bold truncate">{userProfile.email || 'N/A'}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-4">
-                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              {/* Address Selection Card */}
+              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 backdrop-blur-md space-y-5">
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
                   <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-white">
-                    <MapPin className="w-4 h-4 text-lime-accent" /> Delivery Address
+                    <MapPin className="w-4 h-4 text-lime-accent" /> Select Delivery Address
                   </div>
                   <button
                     onClick={() => setShowAddForm(!showAddForm)}
-                    className="inline-flex items-center gap-1.5 text-[9px] font-black bg-white/5 hover:bg-lime-accent hover:text-royal-dark border border-white/10 hover:border-transparent px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
+                    className="inline-flex items-center gap-1.5 text-[10px] font-black bg-lime-accent text-royal-dark hover:bg-lime-400 px-3.5 py-1.5 rounded-lg transition-all uppercase tracking-wider shadow-md active:scale-95 cursor-pointer"
                   >
-                    <Plus className="w-3 h-3" /> Add Address
+                    <Plus className="w-3.5 h-3.5" /> {showAddForm ? 'Cancel' : 'New Address'}
                   </button>
                 </div>
 
+                {/* Add Address Form Drawer */}
                 {showAddForm && (
-                  <form onSubmit={handleAddNewAddress} className="bg-black/30 border border-white/5 p-4 rounded-xl space-y-4 animate-fadeIn">
+                  <form onSubmit={handleAddNewAddress} className="bg-black/50 border border-white/10 p-5 rounded-xl space-y-4 animate-fadeIn">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Tag</label><input type="text" required value={addressForm.tag} onChange={(e) => setAddressForm({ ...addressForm, tag: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Phone</label><input type="text" required value={addressForm.phone} onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">City</label><input type="text" required value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Pincode</label><input type="text" required value={addressForm.pincode} onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-white/50 uppercase">Tag</label>
+                        <input type="text" required value={addressForm.tag} onChange={(e) => setAddressForm({ ...addressForm, tag: e.target.value })} placeholder="Home / Work" className="w-full bg-royal-dark border border-white/10 focus:border-lime-accent p-2.5 text-xs rounded-lg text-white outline-none" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-white/50 uppercase">Phone</label>
+                        <input type="text" required value={addressForm.phone} onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })} placeholder="10-digit number" className="w-full bg-royal-dark border border-white/10 focus:border-lime-accent p-2.5 text-xs rounded-lg text-white outline-none" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-white/50 uppercase">City</label>
+                        <input type="text" required value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} className="w-full bg-royal-dark border border-white/10 focus:border-lime-accent p-2.5 text-xs rounded-lg text-white outline-none" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-white/50 uppercase">Pincode</label>
+                        <input type="text" required value={addressForm.pincode} onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })} className="w-full bg-royal-dark border border-white/10 focus:border-lime-accent p-2.5 text-xs rounded-lg text-white outline-none" />
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Street Name</label><input type="text" required value={addressForm.streetName} onChange={(e) => setAddressForm({ ...addressForm, streetName: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">District</label><input type="text" required value={addressForm.district} onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">State</label><input type="text" required value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-white/50 uppercase">Street / Flat No.</label>
+                        <input type="text" required value={addressForm.streetName} onChange={(e) => setAddressForm({ ...addressForm, streetName: e.target.value })} className="w-full bg-royal-dark border border-white/10 focus:border-lime-accent p-2.5 text-xs rounded-lg text-white outline-none" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-white/50 uppercase">District</label>
+                        <input type="text" required value={addressForm.district} onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })} className="w-full bg-royal-dark border border-white/10 focus:border-lime-accent p-2.5 text-xs rounded-lg text-white outline-none" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-white/50 uppercase">State</label>
+                        <input type="text" required value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} className="w-full bg-royal-dark border border-white/10 focus:border-lime-accent p-2.5 text-xs rounded-lg text-white outline-none" />
+                      </div>
                     </div>
-                    <button type="submit" className="w-full py-2 bg-lime-accent text-royal-dark text-[10px] font-black uppercase tracking-widest rounded-lg cursor-pointer">Deploy Data Set</button>
+                    <button type="submit" className="w-full py-2.5 bg-lime-accent hover:bg-lime-400 text-royal-dark text-xs font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer shadow-md">
+                      Save Address
+                    </button>
                   </form>
                 )}
 
+                {/* Existing Address Cards Grid */}
                 {addresses.length === 0 ? (
-                  <p className="text-xs text-white/30 italic">No spatial routing entries resolved on database links. Map a node coordinates location above to proceed.</p>
+                  <div className="text-center py-8 bg-black/20 rounded-xl border border-dashed border-white/10 space-y-2">
+                    <p className="text-xs text-white/50">No delivery addresses found in your profile.</p>
+                    <p className="text-[10px] text-lime-accent uppercase font-bold">Please add an address to complete checkout.</p>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3">
-                    {addresses.map((addr) => (
-                      <div
-                        key={addr.id}
-                        onClick={() => setSelectedAddressId(addr.id)}
-                        className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3 relative overflow-hidden ${selectedAddressId === addr.id
-                            ? 'bg-lime-accent/[0.04] border-lime-accent/40 shadow-md'
-                            : 'bg-black/20 border-white/5 hover:border-white/10'
+                    {addresses.map((addr) => {
+                      const isSelected = selectedAddressId === addr.id
+                      return (
+                        <div
+                          key={addr.id}
+                          onClick={() => setSelectedAddressId(addr.id)}
+                          className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3.5 relative ${
+                            isSelected
+                              ? 'bg-lime-accent/[0.06] border-lime-accent shadow-[0_0_20px_rgba(165,206,0,0.1)]'
+                              : 'bg-black/30 border-white/5 hover:border-white/20'
                           }`}
-                      >
-                        <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border flex items-center justify-center ${selectedAddressId === addr.id ? 'border-lime-accent' : 'border-white/20'}`}>
-                          {selectedAddressId === addr.id && <div className="w-1.5 h-1.5 bg-lime-accent rounded-full" />}
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-white/5 text-white">{addr.tag}</span>
-                            <span className="text-[10px] font-mono text-white/40">{addr.phone}</span>
+                        >
+                          <div className="mt-0.5 shrink-0">
+                            {isSelected ? (
+                              <CheckCircle2 className="w-5 h-5 text-lime-accent" />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full border border-white/20" />
+                            )}
                           </div>
-                          <p className="text-xs font-medium text-white/80">{addr.street_name || addr.streetName}, {addr.landmark && `${addr.landmark},`} {addr.city}, {addr.district}, {addr.state} - <span className="font-mono font-bold text-lime-accent">{addr.pincode}</span></p>
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-white tracking-wider">
+                                {addr.tag}
+                              </span>
+                              <span className="text-[11px] font-mono text-white/50">{addr.phone}</span>
+                            </div>
+                            <p className="text-xs font-medium text-white/80 leading-relaxed">
+                              {addr.street_name || addr.streetName}, {addr.landmark && `${addr.landmark}, `}
+                              {addr.city}, {addr.district}, {addr.state} - <span className="font-mono font-bold text-lime-accent">{addr.pincode}</span>
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
 
             </div>
 
-            <div className="lg:col-span-5 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-6">
-              <h3 className="text-xs font-black uppercase tracking-widest border-b border-white/5 pb-3">Order Summary</h3>
+            {/* Right Column: Order Summary & Payment Gateway CTA */}
+            <div className="lg:col-span-5 bg-white/[0.03] border border-white/10 rounded-2xl p-6 backdrop-blur-md space-y-6 sticky top-28">
+              <h3 className="text-xs font-black uppercase tracking-widest border-b border-white/10 pb-4 text-white">
+                Order Summary
+              </h3>
 
-              <div className="space-y-3 text-xs font-medium text-white/50 border-b border-white/5 pb-4">
-                <div className="flex justify-between"><span>Total Amount</span><span className="font-mono text-white">₹{orderAmount.toLocaleString('en-IN')}</span></div>
-                <div className="flex justify-between"><span>Ecosystem Delivery Pathing</span><span className="text-lime-accent font-black text-[9px] uppercase">Free Encryption Transit</span></div>
+              <div className="space-y-3.5 text-xs font-medium text-white/60 border-b border-white/10 pb-5">
+                <div className="flex justify-between items-center">
+                  <span>Subtotal Amount</span>
+                  <span className="font-mono font-bold text-white text-sm">₹{orderAmount.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Delivery Charge</span>
+                  <span className="text-lime-accent font-black text-[10px] uppercase bg-lime-accent/10 px-2 py-0.5 rounded border border-lime-accent/20">
+                    Free Transit
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center gap-1.5 text-white/50">
+                    <Calendar className="w-3.5 h-3.5 text-lime-accent" /> Estimated Arrival
+                  </span>
+                  <span className="font-mono font-bold text-lime-accent">{calculateDefaultEstimatedArrival()}</span>
+                </div>
               </div>
 
-              {/* ESTIMATED TIMELINE BLOCK */}
-              <div className="flex justify-between items-center border-white/5 text-[11px]">
-                <span className="flex items-center gap-1 text-white/40"><Calendar className="w-3.5 h-3.5 text-lime-accent/70" /> Estimated Arrival:</span>
-                <span className="font-mono font-bold text-lime-accent">{calculateDefaultEstimatedArrival()}</span>
+              {/* Total Price Display */}
+              <div className="flex justify-between items-baseline pt-1">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wider block text-white">Grand Total</span>
+                  <span className="text-[10px] text-white/40">Includes all applicable taxes</span>
+                </div>
+                <span className="text-3xl font-mono font-black text-lime-accent">
+                  ₹{orderAmount.toLocaleString('en-IN')}
+                </span>
               </div>
 
-              <div className="flex justify-between items-baseline">
-                <span className="text-xs font-black uppercase tracking-wider">Total Amount</span>
-                <span className="text-2xl font-mono font-black text-lime-accent">₹{orderAmount.toLocaleString('en-IN')}</span>
-              </div>
-
+              {/* Action Button */}
               <button
                 onClick={handleExecutionProcessPayment}
-                className="w-full inline-flex items-center justify-center gap-2.5 bg-lime-accent hover:bg-lime-400 text-royal-dark px-6 py-4 font-black uppercase tracking-[0.15em] text-[11px] rounded-xl shadow-xl transition-all transform active:scale-95 group cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2.5 bg-lime-accent hover:bg-lime-400 text-royal-dark px-6 py-4 font-black uppercase tracking-[0.15em] text-xs rounded-xl shadow-[0_4px_25px_rgba(165,206,0,0.25)] transition-all transform active:scale-95 cursor-pointer"
               >
                 <CreditCard className="w-4 h-4" /> Pay & Place Order
               </button>
 
-              <div className="flex items-center gap-2.5 text-[9px] text-white/40 pt-2 font-medium tracking-wide">
-                <ShieldCheck className="w-4 h-4 text-lime-accent flex-shrink-0" /> Razorpay Secured Checkout Tunnel Protocol Active.
+              {/* Whitelabel / Security Badges */}
+              <div className="pt-2 border-t border-white/5 space-y-2">
+                <div className="flex items-center justify-center gap-2 text-[10px] text-white/50 font-medium">
+                  <Lock className="w-3.5 h-3.5 text-lime-accent" />
+                  <span>Secured by Razorpay Gateway</span>
+                </div>
+                <p className="text-[9px] text-white/30 text-center leading-tight">
+                  By placing this order, you agree to our Terms of Service and Privacy Policy.
+                </p>
               </div>
+
             </div>
 
           </div>
