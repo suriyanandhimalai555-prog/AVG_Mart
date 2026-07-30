@@ -65,7 +65,7 @@ const OrderStatusDetail = () => {
         const [day, month, year] = datePart.trim().split('/')
         parsedDate = new Date(year, month - 1, day)
       }
-      
+
       parsedDate.setDate(parsedDate.getDate() + 6)
 
       const targetDay = String(parsedDate.getDate()).padStart(2, '0')
@@ -99,36 +99,36 @@ const OrderStatusDetail = () => {
 
   const coreBaseDate = orderData.timeline?.preparingDate || orderData.date;
   const dispatchTimestampLog = orderData.timeline?.dispatchedDate || orderData.dispatchedDate || orderData.dispatched_at || orderData.dispatchedAt;
-  
+
   // FIXED: Read explicitly from the newly fetched delivered_at field from user backend payload
   const deliveryTimestampLog = orderData.delivered_at || orderData.timeline?.deliveredDate || orderData.deliveredDate || orderData.deliveredAt;
 
   // READ CUSTOM EXPECTED DATE DIRECTLY FROM BACKEND SQL SELECTION FIELD
   const currentSavedExpectedDate = orderData.expected_delivery || orderData.expectedDelivery;
-  
+
   // Choose custom date if available; otherwise calculate automatically
   const deliveryDisplayDeadline = (currentSavedExpectedDate && currentSavedExpectedDate !== 'Not Set' && currentSavedExpectedDate !== 'Pending')
     ? currentSavedExpectedDate
     : calculateDefaultEstimatedArrival(coreBaseDate);
 
   const stepsTimelineLayout = [
-    { 
-      level: 1, 
-      title: "Preparing for Dispatch", 
-      desc: "Warehouse operations are packaging and reinforcing the assets.", 
+    {
+      level: 1,
+      title: "Preparing for Dispatch",
+      desc: "Warehouse operations are packaging and reinforcing the assets.",
       dateLog: coreBaseDate ? new Date(coreBaseDate).toLocaleDateString('en-GB') : ''
     },
-    { 
-      level: 2, 
-      title: "Order Dispatched", 
-      desc: "Cargo cleared terminal. Fleet transit routes are actively computed.", 
-      dateLog: dispatchTimestampLog 
+    {
+      level: 2,
+      title: "Order Dispatched",
+      desc: "Cargo cleared terminal. Fleet transit routes are actively computed.",
+      dateLog: dispatchTimestampLog
     },
-    { 
-      level: 3, 
-      title: "Order Delivered", 
-      desc: "Asset handed off safely. Sequence closed successfully.", 
-      dateLog: deliveryTimestampLog 
+    {
+      level: 3,
+      title: "Order Delivered",
+      desc: "Asset handed off safely. Sequence closed successfully.",
+      dateLog: deliveryTimestampLog
     }
   ]
 
@@ -139,13 +139,10 @@ const OrderStatusDetail = () => {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:40px_40px]" />
 
         <div className="max-w-2xl mx-auto relative z-10 mt-6 space-y-10">
-          
+
           <div className="text-left">
-            <button 
-              onClick={() => navigate('/orders')}
-              className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-white/50 hover:text-lime-accent transition-colors cursor-pointer group"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to My Order
+            <button onClick={() => navigate('/orders')} className="group inline-flex items-center gap-2 text-white/50 hover:text-lime-accent text-[11px] font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 px-5 py-3 rounded-xl transition-all">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1.5 transition-transform" /> BACK TO ORDERS
             </button>
           </div>
 
@@ -164,13 +161,13 @@ const OrderStatusDetail = () => {
 
           <div className="bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-3xl p-8 md:p-12 shadow-2xl relative text-left">
             <div className="space-y-12 relative">
-              
+
               <div className="absolute top-4 left-5 bottom-4 w-0.5 bg-white/5 z-0" />
 
-              <div 
-                className="absolute top-4 left-5 w-0.5 bg-gradient-to-b from-lime-accent to-emerald-400 z-0 transition-all duration-1000 ease-in-out" 
-                style={{ 
-                  height: currentStepLevel === 1 ? '0%' : currentStepLevel === 2 ? '50%' : '100%' 
+              <div
+                className="absolute top-4 left-5 w-0.5 bg-gradient-to-b from-lime-accent to-emerald-400 z-0 transition-all duration-1000 ease-in-out"
+                style={{
+                  height: currentStepLevel === 1 ? '0%' : currentStepLevel === 2 ? '50%' : '100%'
                 }}
               />
 
@@ -180,14 +177,13 @@ const OrderStatusDetail = () => {
 
                 return (
                   <div key={step.level} className="flex gap-6 items-start relative z-10 group">
-                    
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all duration-500 shadow-xl flex-shrink-0 ${
-                      isActive 
+
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all duration-500 shadow-xl flex-shrink-0 ${isActive
                         ? 'bg-lime-accent border-lime-accent text-royal-dark animate-pulse scale-110 shadow-[0_0_20px_rgba(165,206,0,0.4)]'
                         : isCompleted
-                        ? 'bg-royal-dark border-lime-accent text-lime-accent'
-                        : 'bg-royal-dark border-white/10 text-white/20'
-                    }`}>
+                          ? 'bg-royal-dark border-lime-accent text-lime-accent'
+                          : 'bg-royal-dark border-white/10 text-white/20'
+                      }`}>
                       {step.level === 1 && <Loader2 className={`w-4 h-4 ${isActive ? 'animate-spin' : ''}`} />}
                       {step.level === 2 && <Truck className="w-4 h-4" />}
                       {step.level === 3 && <PackageCheck className="w-4 h-4" />}
@@ -195,18 +191,16 @@ const OrderStatusDetail = () => {
 
                     <div className="space-y-1 flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                        <h3 className={`text-base font-black uppercase tracking-wide transition-colors duration-300 ${
-                          isActive ? 'text-lime-accent' : isCompleted ? 'text-white' : 'text-white/20'
-                        }`}>
+                        <h3 className={`text-base font-black uppercase tracking-wide transition-colors duration-300 ${isActive ? 'text-lime-accent' : isCompleted ? 'text-white' : 'text-white/20'
+                          }`}>
                           {step.title}
                         </h3>
                         {step.dateLog && isCompleted && (
                           <span className="text-[10px] font-mono text-white/40">{step.dateLog}</span>
                         )}
                       </div>
-                      <p className={`text-xs leading-relaxed font-medium transition-colors duration-300 ${
-                        isCompleted ? 'text-white/50' : 'text-white/10'
-                      }`}>
+                      <p className={`text-xs leading-relaxed font-medium transition-colors duration-300 ${isCompleted ? 'text-white/50' : 'text-white/10'
+                        }`}>
                         {step.desc}
                       </p>
 

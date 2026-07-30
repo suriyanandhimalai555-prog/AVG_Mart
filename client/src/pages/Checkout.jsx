@@ -104,12 +104,12 @@ const Checkout = () => {
 
       if (!responseOrder.ok) throw new Error("Could not instantiate system layer transactions options.");
       const orderData = await responseOrder.json();
-      
+
       // Dismiss initialization loader before presenting payment overlay window interface
       toast.dismiss(gatewayToastId);
 
       const options = {
-        key: "rzp_test_T5NEmNwILnfzHd", 
+        key: "rzp_test_T5NEmNwILnfzHd",
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Premium Hardware Ecosystem",
@@ -117,7 +117,7 @@ const Checkout = () => {
         order_id: orderData.id,
         handler: async function (response) {
           const verificationToastId = toast.loading("Verifying transaction settlement...")
-          
+
           try {
             const verifyRes = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/payment/verify`, {
               method: "POST",
@@ -139,7 +139,7 @@ const Checkout = () => {
               // Trigger full-screen loader for smooth page transition
               setIsProcessingRedirect(true);
               setTimeout(() => {
-                navigate("/orders"); 
+                navigate("/orders");
               }, 1200);
             } else {
               toast.error("Payment validation signature check failed.", { id: verificationToastId });
@@ -157,7 +157,7 @@ const Checkout = () => {
           color: "#a5ce00"
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             toast.error("Payment checkout process cancelled by user.");
           }
         }
@@ -210,12 +210,12 @@ const Checkout = () => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-lime-accent/5 rounded-full blur-[180px] pointer-events-none" />
 
         <div className="max-w-6xl mx-auto relative z-10 mt-6">
-          <button onClick={() => navigate('/cart')} className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-white/40 hover:text-white transition-colors mb-8">
-            <ArrowLeft className="w-3 h-3" /> Back to Cart
+          <button onClick={() => navigate(-1)} className="group inline-flex items-center gap-2 text-white/50 hover:text-lime-accent text-[11px] font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 px-5 py-3 rounded-xl transition-all mb-4">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1.5 transition-transform" /> BACK TO CART
           </button>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start text-left">
-            
+
             <div className="lg:col-span-7 space-y-8">
               <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-4">
                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-lime-accent">
@@ -238,7 +238,7 @@ const Checkout = () => {
                   <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-white">
                     <MapPin className="w-4 h-4 text-lime-accent" /> Delivery Address
                   </div>
-                  <button 
+                  <button
                     onClick={() => setShowAddForm(!showAddForm)}
                     className="inline-flex items-center gap-1.5 text-[9px] font-black bg-white/5 hover:bg-lime-accent hover:text-royal-dark border border-white/10 hover:border-transparent px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider"
                   >
@@ -249,15 +249,15 @@ const Checkout = () => {
                 {showAddForm && (
                   <form onSubmit={handleAddNewAddress} className="bg-black/30 border border-white/5 p-4 rounded-xl space-y-4 animate-fadeIn">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Tag</label><input type="text" required value={addressForm.tag} onChange={(e) => setAddressForm({...addressForm, tag: e.target.value})} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Phone</label><input type="text" required value={addressForm.phone} onChange={(e) => setAddressForm({...addressForm, phone: e.target.value})} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">City</label><input type="text" required value={addressForm.city} onChange={(e) => setAddressForm({...addressForm, city: e.target.value})} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Pincode</label><input type="text" required value={addressForm.pincode} onChange={(e) => setAddressForm({...addressForm, pincode: e.target.value})} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
+                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Tag</label><input type="text" required value={addressForm.tag} onChange={(e) => setAddressForm({ ...addressForm, tag: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
+                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Phone</label><input type="text" required value={addressForm.phone} onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
+                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">City</label><input type="text" required value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
+                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Pincode</label><input type="text" required value={addressForm.pincode} onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Street Name</label><input type="text" required value={addressForm.streetName} onChange={(e) => setAddressForm({...addressForm, streetName: e.target.value})} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">District</label><input type="text" required value={addressForm.district} onChange={(e) => setAddressForm({...addressForm, district: e.target.value})} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
-                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">State</label><input type="text" required value={addressForm.state} onChange={(e) => setAddressForm({...addressForm, state: e.target.value})} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
+                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">Street Name</label><input type="text" required value={addressForm.streetName} onChange={(e) => setAddressForm({ ...addressForm, streetName: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
+                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">District</label><input type="text" required value={addressForm.district} onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
+                      <div className="space-y-1"><label className="text-[8px] font-bold text-white/40 uppercase">State</label><input type="text" required value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} className="w-full bg-royal-dark border border-white/10 p-2.5 text-xs rounded-lg text-white" /></div>
                     </div>
                     <button type="submit" className="w-full py-2 bg-lime-accent text-royal-dark text-[10px] font-black uppercase tracking-widest rounded-lg cursor-pointer">Deploy Data Set</button>
                   </form>
@@ -268,14 +268,13 @@ const Checkout = () => {
                 ) : (
                   <div className="grid grid-cols-1 gap-3">
                     {addresses.map((addr) => (
-                      <div 
+                      <div
                         key={addr.id}
                         onClick={() => setSelectedAddressId(addr.id)}
-                        className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3 relative overflow-hidden ${
-                          selectedAddressId === addr.id 
-                            ? 'bg-lime-accent/[0.04] border-lime-accent/40 shadow-md' 
+                        className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3 relative overflow-hidden ${selectedAddressId === addr.id
+                            ? 'bg-lime-accent/[0.04] border-lime-accent/40 shadow-md'
                             : 'bg-black/20 border-white/5 hover:border-white/10'
-                        }`}
+                          }`}
                       >
                         <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border flex items-center justify-center ${selectedAddressId === addr.id ? 'border-lime-accent' : 'border-white/20'}`}>
                           {selectedAddressId === addr.id && <div className="w-1.5 h-1.5 bg-lime-accent rounded-full" />}
@@ -297,7 +296,7 @@ const Checkout = () => {
 
             <div className="lg:col-span-5 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-6">
               <h3 className="text-xs font-black uppercase tracking-widest border-b border-white/5 pb-3">Order Summary</h3>
-              
+
               <div className="space-y-3 text-xs font-medium text-white/50 border-b border-white/5 pb-4">
                 <div className="flex justify-between"><span>Total Amount</span><span className="font-mono text-white">₹{orderAmount.toLocaleString('en-IN')}</span></div>
                 <div className="flex justify-between"><span>Ecosystem Delivery Pathing</span><span className="text-lime-accent font-black text-[9px] uppercase">Free Encryption Transit</span></div>
@@ -314,7 +313,7 @@ const Checkout = () => {
                 <span className="text-2xl font-mono font-black text-lime-accent">₹{orderAmount.toLocaleString('en-IN')}</span>
               </div>
 
-              <button 
+              <button
                 onClick={handleExecutionProcessPayment}
                 className="w-full inline-flex items-center justify-center gap-2.5 bg-lime-accent hover:bg-lime-400 text-royal-dark px-6 py-4 font-black uppercase tracking-[0.15em] text-[11px] rounded-xl shadow-xl transition-all transform active:scale-95 group cursor-pointer"
               >

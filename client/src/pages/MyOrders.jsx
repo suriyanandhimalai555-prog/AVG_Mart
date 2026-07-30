@@ -148,7 +148,7 @@ const MyOrders = () => {
               <ClipboardList className="w-6 h-6 text-lime-accent" />
               My <span className="text-lime-accent">Purchase Loadouts</span>
             </h2>
-            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-mono">
+            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">
               Track shipment timelines and update historical product reviews.
             </p>
           </div>
