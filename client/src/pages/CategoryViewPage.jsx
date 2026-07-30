@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Search, SlidersHorizontal, ShoppingBag, Eye, Sparkles, Sliders, Star, Heart } from 'lucide-react'
+import { Search, SlidersHorizontal, ShoppingBag, Eye, Sparkles, Sliders, Star, Share2 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast'
@@ -86,6 +86,34 @@ const CategoryViewPage = () => {
   const handleMouseLeave = (e) => {
     const card = e.currentTarget
     card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`
+  }
+
+  // Universal Share Handler
+  const handleShareProduct = async (e, product) => {
+    e.stopPropagation()
+    const shareUrl = `${window.location.origin}/product/${product.id}`
+    const shareData = {
+      title: product.name,
+      text: `Check out ${product.name} on our store!`,
+      url: shareUrl
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Error sharing product:', err)
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl)
+        toast.success("Product link copied to clipboard!")
+      } catch (err) {
+        toast.error("Failed to copy link.")
+      }
+    }
   }
 
   const handleAddToCart = async (product, token, navigate) => {
@@ -331,7 +359,7 @@ const CategoryViewPage = () => {
                                 }`}
                             />
 
-                            {/* Stock Badge & Wishlist Button */}
+                            {/* Stock Badge & Share Button */}
                             <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
                               <span className={`text-[9px] font-black tracking-widest uppercase px-3 py-1 rounded-full border backdrop-blur-md ${isOutOfStock
                                   ? 'bg-red-500/20 text-red-400 border-red-500/30'
@@ -340,12 +368,13 @@ const CategoryViewPage = () => {
                                 {isOutOfStock ? 'OUT OF STOCK' : 'IN STOCK'}
                               </span>
 
+                              {/* SHARE BUTTON REPLACING HEART ICON */}
                               <button
-                                aria-label="Wishlist"
-                                onClick={(e) => e.stopPropagation()}
-                                className="pointer-events-auto p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/80 hover:text-pink-500 hover:bg-black/60 transition-all"
+                                aria-label="Share Product"
+                                onClick={(e) => handleShareProduct(e, product)}
+                                className="pointer-events-auto p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/80 hover:text-lime-accent hover:border-lime-accent/40 hover:bg-black/60 transition-all cursor-pointer"
                               >
-                                <Heart className="w-4 h-4" />
+                                <Share2 className="w-4 h-4" />
                               </button>
                             </div>
 
@@ -418,7 +447,7 @@ const CategoryViewPage = () => {
                                   }`}
                               >
                                 <ShoppingBag className="w-3.5 h-3.5" />
-                                <span>{isOutOfStock ? 'Sold Out' : 'Add to Cart'}</span>
+                                <span>{isOutOfStock ? '' : ''}</span>
                               </button>
 
                             </div>
