@@ -74,7 +74,6 @@ const FeaturedProducts = () => {
     const loadId = toast.loading("Adding item to cart...");
 
     try {
-      // Calculate numeric price values cleanly
       const originalPrice = Number(product.originalPrice || 0);
       const offerPrice = Number(product.offerPrice || originalPrice);
 
@@ -90,7 +89,7 @@ const FeaturedProducts = () => {
           category: product.category,
           originalPrice: originalPrice,
           offerPrice: offerPrice,
-          price: offerPrice, // Fallback key for standard cart APIs
+          price: offerPrice,
           image: product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"
         })
       });
@@ -108,7 +107,7 @@ const FeaturedProducts = () => {
   };
 
   return (
-    <section className="bg-royal-dark text-white py-24 px-6 md:px-12 relative overflow-hidden min-h-screen">
+    <section className="bg-royal-dark text-white py-16 md:py-10 px-4 md:px-12 relative overflow-hidden min-h-screen">
       {/* Background Glow & Mesh */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_5px),linear-gradient(to_bottom,#ffffff03_1px,transparent_5px)] bg-[size:40px_40px]" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-lime-accent/5 rounded-full blur-[180px] pointer-events-none" />
@@ -116,7 +115,7 @@ const FeaturedProducts = () => {
       <div className="max-w-7xl mx-auto relative z-10">
         
         {/* Header Title Block */}
-        <div className="flex flex-col items-center text-center space-y-4 mb-16">
+        <div className="flex flex-col items-center text-center space-y-4 mb-10">
           <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] uppercase bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-lime-accent">
             <Sparkles className="w-3 h-3 text-lime-accent" /> Premium Hardware Ecosystem
           </div>
@@ -126,31 +125,35 @@ const FeaturedProducts = () => {
           <div className="w-16 h-[2px] bg-lime-accent rounded-full mt-2" />
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex flex-wrap justify-center items-center gap-2 md:gap-3 mb-16 max-w-4xl mx-auto">
-          {categories.map((tab) => {
-            const count = tab === 'All Assets' ? products.length : products.filter(p => p.category === tab).length
-            const isActive = activeTab === tab
+        {/* Responsive Tab Bar (Horizontal Touch Scroll on Mobile, Centered Wrap on Desktop) */}
+        <div className="w-full mb-12 md:mb-16">
+          <div className="flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar scroll-smooth py-2 px-1 md:justify-center -mx-4 md:mx-0 px-4 md:px-0">
+            {categories.map((tab) => {
+              const count = tab === 'All Assets' ? products.length : products.filter(p => p.category === tab).length
+              const isActive = activeTab === tab
 
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`group relative px-5 py-2.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-2 ${
-                  isActive
-                    ? 'bg-lime-accent text-royal-dark border-transparent shadow-[0_10px_25px_rgba(165,206,0,0.3)]'
-                    : 'bg-white/5 text-white/60 border-white/5 hover:border-white/20 hover:text-white'
-                }`}
-              >
-                <span className="uppercase">{tab}</span>
-                <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                  isActive ? 'bg-royal-dark/15 text-royal-dark' : 'bg-white/10 text-white/40 group-hover:text-white'
-                }`}>
-                  {count}
-                </span>
-              </button>
-            )
-          })}
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`group shrink-0 relative px-4 md:px-5 py-2.5 rounded-full text-[11px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-2 ${
+                    isActive
+                      ? 'bg-lime-accent text-royal-dark border-transparent shadow-[0_8px_20px_rgba(165,206,0,0.3)] scale-[1.02]'
+                      : 'bg-white/5 text-white/70 border-white/10 hover:border-white/30 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <span className="whitespace-nowrap">{tab}</span>
+                  <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
+                    isActive 
+                      ? 'bg-royal-dark/20 text-royal-dark' 
+                      : 'bg-white/10 text-white/60 group-hover:bg-white/20 group-hover:text-white'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Products Grid */}

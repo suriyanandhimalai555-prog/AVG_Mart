@@ -56,50 +56,21 @@ const Category = () => {
       {/* Background Matrix Effect */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_5px),linear-gradient(to_bottom,#ffffff03_1px,transparent_5px)] bg-[size:40px_40px]" />
       {/* <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-lime-accent/5 rounded-full blur-[180px] pointer-events-none" /> */}
-      
+
       {/* Ambient Lime Spotlight */}
       {/* <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-lime-accent/10 rounded-full blur-[140px] pointer-events-none" /> */}
 
       <div className="max-w-7xl mx-auto relative z-10">
-        
-        {/* Header Bar */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-lime-accent/10 border border-lime-accent/30 text-lime-accent shadow-[0_0_15px_rgba(163,230,53,0.2)]">
-              <Sparkles className="w-5 h-5 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-lime-accent">
-                  Featured Collections
-                </span>
-                <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
-                  <Flame className="w-2.5 h-2.5 animate-bounce" /> Hot Drops
-                </span>
-              </div>
-              <h2 className="text-xl md:text-3xl font-black uppercase tracking-wider text-white">
-                Shop By <span className="text-lime-accent font-light">Category</span>
-              </h2>
-            </div>
-          </div>
 
-          {/* Navigation Controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => scroll('left')}
-              className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-royal-dark hover:bg-lime-accent transition-all active:scale-95"
-              aria-label="Scroll Left"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => scroll('right')}
-              className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-royal-dark hover:bg-lime-accent transition-all active:scale-95"
-              aria-label="Scroll Right"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+        {/* Header Title Block */}
+        <div className="flex flex-col items-center text-center space-y-4 mb-10">
+          <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] uppercase bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-lime-accent">
+            <Sparkles className="w-3 h-3 text-lime-accent" /> Featured Collections
           </div>
+          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-wider">
+            Shop By <span className="text-lime-accent font-light">Category</span>
+          </h2>
+          <div className="w-16 h-[2px] bg-lime-accent rounded-full mt-2" />
         </div>
 
         {/* Category Carousel Row */}
@@ -120,10 +91,10 @@ const Category = () => {
                   alt={cat.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 filter brightness-95 group-hover:brightness-110"
                 />
-                
+
                 {/* Overlay Gradient on Hover */}
                 <div className="absolute inset-0 bg-gradient-to-t from-royal-dark/80 via-transparent to-transparent opacity-60 group-hover:opacity-20 transition-opacity" />
-                
+
                 {/* Top Corner Badge */}
                 <span className="absolute top-1.5 right-1.5 text-[8px] font-black uppercase tracking-widest bg-lime-accent text-royal-dark px-1.5 py-0.5 rounded shadow-md">
                   NEW
@@ -135,7 +106,7 @@ const Category = () => {
                 <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white group-hover:text-lime-accent transition-colors line-clamp-1">
                   {cat.name}
                 </h3>
-                
+
                 <div className="flex items-center justify-center gap-1 text-[10px] text-white/50 font-semibold group-hover:text-white/90 transition-colors">
                   <span>Explore Collection</span>
                   <ArrowRight className="w-3 h-3 text-lime-accent opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0" />
@@ -146,6 +117,24 @@ const Category = () => {
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-[2px] bg-lime-accent opacity-0 group-hover:opacity-100 group-hover:w-24 transition-all duration-300 rounded-full shadow-[0_0_8px_#a3e635]" />
             </div>
           ))}
+        </div>
+
+        {/* Navigation Controls */}
+        <div className="flex items-center justify-end gap-2 mt-4">
+          <button
+            onClick={() => scroll('left')}
+            className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-royal-dark hover:bg-lime-accent transition-all active:scale-95"
+            aria-label="Scroll Left"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => scroll('right')}
+            className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-royal-dark hover:bg-lime-accent transition-all active:scale-95"
+            aria-label="Scroll Right"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
 
       </div>
