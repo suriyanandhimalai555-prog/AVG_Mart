@@ -58,6 +58,7 @@ import MarketDashboard from './pages/marketing/MarketDashboard'
 
 import TempNavigation from './components/TempNavigation'
 import { EcommerceLoader } from './components/EcommerceLoader'
+import NotFound from './pages/NotFound'
 
 const App = () => {
   return (
@@ -181,7 +182,7 @@ const App = () => {
           />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
   )
