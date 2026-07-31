@@ -119,7 +119,6 @@ const Checkout = () => {
 
       toast.dismiss(gatewayToastId);
 
-      // Customized Razorpay options for a cleaner brand experience
       const options = {
         key: "rzp_test_T5NEmNwILnfzHd",
         amount: orderData.amount,
