@@ -59,6 +59,9 @@ import MarketDashboard from './pages/marketing/MarketDashboard'
 import TempNavigation from './components/TempNavigation'
 import { EcommerceLoader } from './components/EcommerceLoader'
 import NotFound from './pages/NotFound'
+import TermsCondition from './pages/Terms&condition'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import ShippingPolicy from './pages/ShippingPolicy'
 
 const App = () => {
   return (
@@ -88,6 +91,10 @@ const App = () => {
           <Route path="/marketing/signup" element={<MarketSignup />} />
 
           <Route path="/temp-navigation" element={<TempNavigation />} />
+
+          <Route path="terms-and-conditions" element={<TermsCondition />} />
+          <Route path="privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="shipping-policy" element={<ShippingPolicy />} />
         </Route>
 
         {/* SECURED SELLER */}

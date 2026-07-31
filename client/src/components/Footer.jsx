@@ -140,8 +140,9 @@ const Footer = () => {
           </div>
           <p className="text-white/40 text-[11px] font-bold tracking-wider">© {currentYear} AVG MART. ALL RIGHTS RESERVED.</p>
           <div className="flex gap-6 text-[11px] font-bold tracking-wider">
-            <Link to="/privacy" className="text-white/40 hover:text-white transition-colors">PRIVACY_POLICY</Link>
-            <Link to="/terms" className="text-white/40 hover:text-white transition-colors">TERMS_AND_CONDITIONS</Link>
+            <Link to="/privacy-policy" className="text-white/40 hover:text-white transition-colors">PRIVACY_POLICY</Link>
+            <Link to="/terms-and-conditions" className="text-white/40 hover:text-white transition-colors">TERMS_AND_CONDITIONS</Link>
+            <Link to="/shipping-policy" className="text-white/40 hover:text-white transition-colors">SHIPPING_POLICY</Link>
           </div>
         </div>
       </div>
