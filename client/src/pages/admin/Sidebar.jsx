@@ -14,7 +14,7 @@ import {
   Users,
   Megaphone,
 } from 'lucide-react'
-import { toast } from 'react-hot-toast' // <-- Imported toast engine
+import { toast } from 'react-hot-toast'
 import Logo from "../../assets/logo.png"
 
 const Sidebar = () => {
@@ -31,17 +31,13 @@ const Sidebar = () => {
     { name: 'Seller List', path: '/admin/sellers-list', icon: <Users className="w-5 h-5" /> },
     { name: 'Marketing List', path: '/admin/marketers-list', icon: <Megaphone className="w-5 h-5" /> },
     { name: 'App Settings', path: '/admin/app-settings', icon: <ShieldAlert className="w-5 h-5" /> },
+    { name: 'App Banner', path: '/admin/app-banner', icon: <CassetteTape className="w-5 h-5" /> },
   ]
 
-  // Handle system logout parameters instantly with toast feedback
   const handleLogout = () => {
-    // 1. Initialize a quick status feedback toast
     const logoutToastId = toast.loading("Terminating admin session...")
-
-    // 2. Clear stored auth tokens securely
     localStorage.removeItem('token')
 
-    // 3. Resolve success state and route back to standard storefront layout
     setTimeout(() => {
       toast.success("Logged out successfully.", { id: logoutToastId })
       navigate('/')
@@ -78,10 +74,11 @@ const Sidebar = () => {
         lg:sticky lg:top-0 lg:transform-none lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="space-y-8">
+        {/* SCROLLABLE WRAPPER (HIDDEN SCROLLBAR) */}
+        <div className="space-y-6 overflow-y-auto flex-1 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
           {/* BRAND HEADER LAYOUT PANEL */}
-          <div className="flex items-center justify-between px-2 border-b border-white/10 pb-5">
+          <div className="flex items-center justify-between px-2 border-b border-white/10 pb-5 sticky top-0 bg-royal-dark z-10">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-lime-accent/10 text-lime-accent rounded-xl border border-lime-accent/20">
                 <img src={Logo} className='w-9 h-9' alt="Logo" />
@@ -91,7 +88,6 @@ const Sidebar = () => {
               </div>
             </div>
 
-            {/* HIGHLY VISIBLE MOBILE CLOSE TRIGGER ACTION BUTTON */}
             <button
               onClick={() => setIsOpen(false)}
               className="lg:hidden p-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-canvas hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
@@ -123,7 +119,7 @@ const Sidebar = () => {
         </div>
 
         {/* TERMINAL FOOTER ACTIONS ROW */}
-        <div className="border-t border-white/10 pt-4">
+        <div className="border-t border-white/10 pt-4 mt-auto">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-canvas/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 text-left cursor-pointer"

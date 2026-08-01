@@ -12,6 +12,7 @@ import requeststockRoutes from './routes/requestStockRoutes.js';
 import sellerRoutes from './routes/sellerRoutes.js';
 import marketerRoutes from './routes/marketerRoutes.js';
 import appSettingRoutes from './routes/appSettingRoutes.js';
+import appBannerRoutes from './routes/appBannerRoutes.js'
 
 dotenv.config();
 
@@ -59,6 +60,7 @@ app.use('/api/stock-requests', requeststockRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/marketer', marketerRoutes);
 app.use('/api/settings', appSettingRoutes);
+app.use('/api/banners', appBannerRoutes)
 
 // Health check endpoint
 app.get("/", (req, res) => {

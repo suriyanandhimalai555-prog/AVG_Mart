@@ -27,6 +27,7 @@ import RequestStockBranch from './pages/admin/RequestStockBranch'
 import SellerList from './pages/admin/SellerList'
 import MarketersList from './pages/admin/MarketersList'
 import AppSettings from './pages/admin/AppSetting'
+import AppBanner from './pages/admin/AppBanner'
 
 // Route Protection Guards
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoutes'
@@ -160,6 +161,7 @@ const App = () => {
                     <Route path="sellers-list" element={<SellerList />} />
                     <Route path="marketers-list" element={<MarketersList />} />
                     <Route path="app-settings" element={<AppSettings />} />
+                    <Route path="app-banner" element={<AppBanner />} />
                   </Routes>
                 </div>
               </div>
