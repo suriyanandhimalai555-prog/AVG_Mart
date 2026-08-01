@@ -109,6 +109,47 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
+export const getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const item = await ProductModel.findById(id);
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
+      });
+    }
+
+    const data = {
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      sizes: item.sizes,
+      description: item.description,
+      originalPrice: item.original_price,
+      offerPrice: item.offer_price,
+      branchAdminPrice: item.branch_admin_price,
+      count: item.count,
+      images: item.images,
+      isFeatured: item.is_featured,
+      sellerId: item.seller_id
+    };
+
+    return res.status(200).json({
+      success: true,
+      product: data
+    });
+
+  } catch (err) {
+    console.error("Error in getProductById Controller:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
+  }
+};
+
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
   const { name, category, description, originalPrice, offerPrice, branchAdminPrice, count, sizes, isFeatured } = req.body;

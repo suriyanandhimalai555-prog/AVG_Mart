@@ -82,6 +82,26 @@ const AddProducts = () => {
     }
   }
 
+  // --- DYNAMICALLY FETCH SINGLE PRODUCT BY ID FOR INSPECTION OVERLAY ---
+  const handleViewTrigger = async (productId) => {
+    const loadId = toast.loading("Fetching product details...")
+    try {
+      const response = await fetch(`${API_BASE_URL}/${productId}`)
+      const resData = await response.json()
+
+      if (response.ok && (resData.success || resData.product)) {
+        toast.dismiss(loadId)
+        // Set the inspect product state from API response data
+        setViewProduct(resData.product || resData)
+      } else {
+        toast.error(resData.message || "Failed to load product details.", { id: loadId })
+      }
+    } catch (err) {
+      console.error("Error fetching single product:", err)
+      toast.error("Network error. Could not fetch product details.", { id: loadId })
+    }
+  }
+
   const handleBaseImageUpload = (e) => {
     const files = Array.from(e.target.files)
     if (!files.length) return
@@ -97,7 +117,6 @@ const AddProducts = () => {
     toast.success("General image staged.")
   }
 
-  // Refactored Multi-Image support up to 5 per variant color choice
   const handleColorImageUpload = (colorKey, e) => {
     const files = Array.from(e.target.files)
     if (!files.length) return
@@ -174,7 +193,6 @@ const AddProducts = () => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault()
 
-    // Validation checks for color images when adding a new item
     if (!isEditing) {
       const activeColorKeys = selectedSpecOptions.filter(key => key.startsWith("Color: "))
       for (const colorKey of activeColorKeys) {
@@ -204,18 +222,15 @@ const AddProducts = () => {
     formData.append('count', count || '0')
     formData.append('isFeatured', isFeatured)
 
-    // Append standard fallback asset files
     const trackingUploadFiles = [...baseRawFiles]
     const activeColorKeys = Object.keys(colorSpecificFiles).filter(key => selectedSpecOptions.includes(key))
 
-    // Map dynamically keeping tracking index records accurate
     let colorIndexOffsetMap = {}
     let runningIndexSum = baseRawFiles.length
 
     activeColorKeys.forEach((colorKey) => {
       const filesForColor = colorSpecificFiles[colorKey] || []
       if (filesForColor.length > 0) {
-        // Record starting location index of files for this color
         colorIndexOffsetMap[colorKey] = runningIndexSum
         filesForColor.forEach(file => {
           trackingUploadFiles.push(file)
@@ -224,14 +239,12 @@ const AddProducts = () => {
       }
     })
 
-    // Enforce max 15 limitation cleanly before submitting to backend middleware
     if (trackingUploadFiles.length > 15) {
       toast.dismiss(actionToastId)
       toast.error("Total image attachments cross the maximum layout limit (Max 15).")
       return
     }
 
-    // Fixed key name string parameter securely targeting backend endpoint arrays map layout
     trackingUploadFiles.forEach((file) => {
       formData.append('productImages', file)
     })
@@ -241,7 +254,6 @@ const AddProducts = () => {
     selectedSpecOptions.forEach(item => {
       if (item.startsWith("Color: ")) {
         if (colorIndexOffsetMap[item] !== undefined) {
-          // Send back index key metadata string to database backend tracking
           finalPayloadSpecs.push(`${item}__imgIdx:${colorIndexOffsetMap[item]}`)
         } else {
           finalPayloadSpecs.push(`${item}__imgIdx:0`)
@@ -469,7 +481,8 @@ const AddProducts = () => {
               </div>
 
               <div className="px-5 pb-5 pt-2 grid grid-cols-3 gap-2 border-t border-white/5 bg-royal-dark/20">
-                <button onClick={() => setViewProduct(product)} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-canvas/80 hover:bg-royal-main hover:text-white transition-all cursor-pointer">
+                {/* --- TRIGGER API CALL ON VIEW CLICK --- */}
+                <button onClick={() => handleViewTrigger(product.id)} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-canvas/80 hover:bg-royal-main hover:text-white transition-all cursor-pointer">
                   <Eye className="w-3.5 h-3.5" /> <span>View</span>
                 </button>
                 <button onClick={() => handleEditTrigger(product)} className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-blue-500/20 bg-blue-500/5 text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer">
@@ -847,8 +860,8 @@ const AddProducts = () => {
             <div className="space-y-4 text-xs font-medium">
               <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Showcase Level:</span>
-                <span className={`font-black uppercase tracking-wider ${viewProduct.isFeatured ? 'text-lime-accent' : 'text-gray-canvas/40'}`}>
-                  {viewProduct.isFeatured ? '★ Featured Product' : 'Standard Product'}
+                <span className={`font-black uppercase tracking-wider ${viewProduct.isFeatured || viewProduct.is_featured ? 'text-lime-accent' : 'text-gray-canvas/40'}`}>
+                  {viewProduct.isFeatured || viewProduct.is_featured ? '★ Featured Product' : 'Standard Product'}
                 </span>
               </div>
 
@@ -864,7 +877,7 @@ const AddProducts = () => {
 
               <div className="flex justify-between items-center bg-royal-main/20 p-3 rounded-xl border border-white/5">
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Branch Admin Price:</span>
-                <span className="text-white font-mono font-bold">₹{viewProduct.branch_admin_price !== undefined ? viewProduct.branch_admin_price : viewProduct.branchAdminPrice || 0}</span>
+                <span className="text-white font-mono font-bold">₹{viewProduct.branchAdminPrice !== undefined ? viewProduct.branchAdminPrice : viewProduct.branch_admin_price || 0}</span>
               </div>
 
               <div className="space-y-1.5">
@@ -891,10 +904,10 @@ const AddProducts = () => {
                 <span className="text-gray-canvas/40 uppercase font-bold text-[10px]">Price Details:</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-lg font-black font-mono text-lime-accent">
-                    ₹{viewProduct.offer_price !== undefined ? viewProduct.offer_price : viewProduct.offerPrice}
+                    ₹{viewProduct.offerPrice !== undefined ? viewProduct.offerPrice : viewProduct.offer_price}
                   </span>
                   <span className="text-xs font-mono text-gray-canvas/40 line-through">
-                    ₹{viewProduct.original_price !== undefined ? viewProduct.original_price : viewProduct.originalPrice}
+                    ₹{viewProduct.originalPrice !== undefined ? viewProduct.originalPrice : viewProduct.original_price}
                   </span>
                 </div>
               </div>

@@ -35,6 +35,12 @@ export const ProductModel = {
     return rows;
   },
 
+  findById: async (id) => {
+    const query = 'SELECT * FROM products WHERE id = $1';
+    const { rows } = await pool.query(query, [id]);
+    return rows[0] || null;
+  },
+
   update: async (id, { name, category, sizes, description, originalPrice, offerPrice, branchAdminPrice, count, images, isFeatured }) => {
     const findQuery = 'SELECT * FROM products WHERE id = $1';
     const currentRes = await pool.query(findQuery, [id]);
