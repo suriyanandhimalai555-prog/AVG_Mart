@@ -639,7 +639,8 @@ const AddProducts = () => {
                           )}
 
                           {normalAttributes.map((attrName, index) => {
-                            const isCheckboxValue = attrName.toLowerCase().includes("`kg`") || attrName.toLowerCase().includes("gram") || attrName.toLowerCase().includes("litre") || attrName.toLowerCase().includes("ml") || attrName.toLowerCase().includes("resistant")
+                            const isStandardSize = /^(s|m|l|xl|xxl|xxxl|uk\s?\d+|\d+)$/i.test(attrName.trim());
+                            const isCheckboxValue = attrName.toLowerCase().includes("`kg`") || attrName.toLowerCase().includes("gram") || attrName.toLowerCase().includes("litre") || attrName.toLowerCase().includes("ml") || attrName.toLowerCase().includes("resistant") || isStandardSize;
 
                             if (isCheckboxValue) {
                               const isChecked = selectedSpecOptions.includes(attrName)

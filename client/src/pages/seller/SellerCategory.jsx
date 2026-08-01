@@ -6,7 +6,7 @@ const API_CAT_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/categories`
 
 const BASELINE_PRESETS = [
   "100gram", "200gram", "250gram", "1/2 kg", "1kg", "100ml", "200ml", "250ml", 
-  "1/2 litre", "1 litre", "Brand Name", "RAM and ROM", "Water Resistant", "Battery", "Color"
+  "1/2 litre", "1 litre", "Brand Name", "RAM and ROM", "Water Resistant", "Battery", "Color", "Size"
 ]
 
 const SellerCategory = () => {
@@ -26,6 +26,10 @@ const SellerCategory = () => {
   const [colorInput, setColorInput] = useState('')
   const [definedColors, setDefinedColors] = useState([])
 
+  // Specific Nested Size Tabs State (Creation)
+  const [sizeInput, setSizeInput] = useState('')
+  const [definedSizes, setDefinedSizes] = useState([])
+
   // --- Editing State Matrix ---
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
@@ -34,23 +38,25 @@ const SellerCategory = () => {
   const [editImagePreview, setEditImagePreview] = useState(null)
   const [editRawFile, setEditRawFile] = useState(null)
   
-  // Specific Nested Color Tabs State (Editing)
+  // Specific Nested Color & Size Tabs State (Editing)
   const [editColorInput, setEditColorInput] = useState('')
   const [editDefinedColors, setEditDefinedColors] = useState([])
+  const [editSizeInput, setEditSizeInput] = useState('')
+  const [editDefinedSizes, setEditDefinedSizes] = useState([])
 
   useEffect(() => {
     fetchCategories()
   }, [])
 
-  // Auto extract historical presets from DB to handle page refreshes seamlessly
   useEffect(() => {
     if (categories.length > 0) {
       const uniqueSpecs = new Set([...BASELINE_PRESETS])
+      const standardSizesRegex = /^(s|m|l|xl|xxl|xxxl|uk\s?\d+|\d+)$/i
+
       categories.forEach(cat => {
         if (cat.attributes && Array.isArray(cat.attributes)) {
           cat.attributes.forEach(attr => {
-            // If it's a structural color specification placeholder, separate it
-            if (attr && !attr.startsWith("Color: ")) {
+            if (attr && !attr.startsWith("Color: ") && !standardSizesRegex.test(attr)) {
               uniqueSpecs.add(attr)
             }
           })
@@ -60,31 +66,51 @@ const SellerCategory = () => {
     }
   }, [categories])
 
-  // Add individual Color values into tabs
   const handleAddColorTab = (isEditMode = false) => {
     const targetInput = isEditMode ? editColorInput : colorInput
     const trimmed = targetInput.trim()
     if (!trimmed) return
-
     if (isEditMode) {
-      if (!editDefinedColors.includes(trimmed)) {
-        setEditDefinedColors([...editDefinedColors, trimmed])
-      }
+      if (!editDefinedColors.includes(trimmed)) setEditDefinedColors([...editDefinedColors, trimmed])
       setEditColorInput('')
     } else {
-      if (!definedColors.includes(trimmed)) {
-        setDefinedColors([...definedColors, trimmed])
-      }
+      if (!definedColors.includes(trimmed)) setDefinedColors([...definedColors, trimmed])
       setColorInput('')
     }
   }
 
-  // Remove individual color tabs
   const handleRemoveColorTab = (colorToRemove, isEditMode = false) => {
+    if (isEditMode) setEditDefinedColors(editDefinedColors.filter(c => c !== colorToRemove))
+    else setDefinedColors(definedColors.filter(c => c !== colorToRemove))
+  }
+
+  const handleAddSizeTab = (isEditMode = false) => {
+    const targetInput = isEditMode ? editSizeInput : sizeInput
+    const trimmed = targetInput.trim()
+    if (!trimmed) return
     if (isEditMode) {
-      setEditDefinedColors(editDefinedColors.filter(c => c !== colorToRemove))
+      if (!editDefinedSizes.includes(trimmed)) setEditDefinedSizes([...editDefinedSizes, trimmed])
+      setEditSizeInput('')
     } else {
-      setDefinedColors(definedColors.filter(c => c !== colorToRemove))
+      if (!definedSizes.includes(trimmed)) setDefinedSizes([...definedSizes, trimmed])
+      setSizeInput('')
+    }
+  }
+
+  const handleRemoveSizeTab = (sizeToRemove, isEditMode = false) => {
+    if (isEditMode) setEditDefinedSizes(editDefinedSizes.filter(s => s !== sizeToRemove))
+    else setDefinedSizes(definedSizes.filter(s => s !== sizeToRemove))
+  }
+
+  const loadPresetSizes = (type, isEditMode = false) => {
+    const presets = type === 'clothing' 
+      ? ['S', 'M', 'L', 'XL', 'XXL'] 
+      : ['UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10', 'UK 11']
+    
+    if (isEditMode) {
+      setEditDefinedSizes([...new Set([...editDefinedSizes, ...presets])])
+    } else {
+      setDefinedSizes([...new Set([...definedSizes, ...presets])])
     }
   }
 
@@ -96,7 +122,6 @@ const SellerCategory = () => {
     if (!dynamicPresets.some(p => p.toLowerCase() === trimmed.toLowerCase())) {
       setDynamicPresets([...dynamicPresets, trimmed])
     }
-
     if (isEditMode) {
       if (!editSpecs.includes(trimmed)) setEditSpecs([...editSpecs, trimmed])
       setEditCustomSpec('')
@@ -129,19 +154,20 @@ const SellerCategory = () => {
     }
   }
 
-  // CREATE SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!rawFile) return toast.error("Please upload a category image.")
-
     setIsSubmitting(true)
     const loadId = toast.loading("Deploying category matrix...")
 
-    // Merge standard selected attributes with custom added color variables
-    let finalAttributes = [...selectedSpecs]
+    // Filter out the meta-tags "Color" and "Size" before saving
+    let finalAttributes = selectedSpecs.filter(spec => spec !== "Color" && spec !== "Size")
+    
     if (selectedSpecs.includes("Color") && definedColors.length > 0) {
-      // Append each individual color explicitly to the matrix payload
       definedColors.forEach(col => finalAttributes.push(`Color: ${col}`))
+    }
+    if (selectedSpecs.includes("Size") && definedSizes.length > 0) {
+      definedSizes.forEach(sz => finalAttributes.push(sz))
     }
 
     const formData = new FormData()
@@ -153,7 +179,7 @@ const SellerCategory = () => {
       const response = await fetch(API_CAT_URL, { method: 'POST', body: formData })
       if (response.ok) {
         toast.success("Deployed completely!", { id: loadId })
-        setName(''); setImagePreview(null); setRawFile(null); setSelectedSpecs([]); setDefinedColors([])
+        setName(''); setImagePreview(null); setRawFile(null); setSelectedSpecs([]); setDefinedColors([]); setDefinedSizes([])
         fetchCategories()
       } else {
         toast.error("Deployment failure.", { id: loadId })
@@ -165,48 +191,54 @@ const SellerCategory = () => {
     }
   }
 
-  // START EDIT MODE INITIALIZER
   const startEdit = (cat) => {
     setEditingId(cat.id)
     setEditName(cat.name)
     setEditImagePreview(cat.image_url || cat.imageUrl)
     setEditRawFile(null)
 
-    // Separate plain specifications from historical color keys string tags
     const plainSpecs = []
     const parsedColors = []
+    const parsedSizes = []
+    const standardSizesRegex = /^(s|m|l|xl|xxl|xxxl|uk\s?\d+|\d+)$/i
 
     if (cat.attributes) {
       cat.attributes.forEach(attr => {
         if (attr.startsWith("Color: ")) {
           parsedColors.push(attr.replace("Color: ", ""))
+        } else if (standardSizesRegex.test(attr)) {
+          parsedSizes.push(attr)
         } else {
           plainSpecs.push(attr)
         }
       })
     }
 
+    if (parsedColors.length > 0) plainSpecs.push("Color")
+    if (parsedSizes.length > 0) plainSpecs.push("Size")
+
     setEditSpecs(plainSpecs)
     setEditDefinedColors(parsedColors)
+    setEditDefinedSizes(parsedSizes)
   }
 
-  // UPDATE SUBMIT
   const handleUpdate = async (id) => {
     const loadId = toast.loading("Updating category matrix details...")
     
-    let finalEditAttributes = [...editSpecs]
+    let finalEditAttributes = editSpecs.filter(spec => spec !== "Color" && spec !== "Size")
+    
     if (editSpecs.includes("Color") && editDefinedColors.length > 0) {
       editDefinedColors.forEach(col => finalEditAttributes.push(`Color: ${col}`))
+    }
+    if (editSpecs.includes("Size") && editDefinedSizes.length > 0) {
+      editDefinedSizes.forEach(sz => finalEditAttributes.push(sz))
     }
 
     const formData = new FormData()
     formData.append('name', editName)
     formData.append('attributes', JSON.stringify(finalEditAttributes))
-    if (editRawFile) {
-      formData.append('categoryImage', editRawFile)
-    } else {
-      formData.append('imageUrl', editImagePreview)
-    }
+    if (editRawFile) formData.append('categoryImage', editRawFile)
+    else formData.append('imageUrl', editImagePreview)
 
     try {
       const response = await fetch(`${API_CAT_URL}/${id}`, { method: 'PUT', body: formData })
@@ -257,10 +289,9 @@ const SellerCategory = () => {
     <div className="p-4 sm:p-6 lg:p-10 bg-royal-dark min-h-screen text-gray-canvas max-w-6xl mx-auto space-y-10 rounded-2xl">
       <div className="border-b border-white/10 pb-6">
         <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider"><span className='text-lime-400'>Global</span> Category Configuration</h2>
-        <p className="text-xs text-gray-canvas/50 font-medium mt-1">Configure parameters and handle specific color variants dynamically.</p>
+        <p className="text-xs text-gray-canvas/50 font-medium mt-1">Configure parameters and handle specific color/size variants dynamically.</p>
       </div>
 
-      {/* CREATE SPEC MAIN CONTAINER FORM */}
       <form onSubmit={handleSubmit} className="space-y-6 bg-royal-main/40 border border-white/5 rounded-3xl p-6 backdrop-blur-sm shadow-xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -283,7 +314,6 @@ const SellerCategory = () => {
           </div>
         </div>
 
-        {/* Dynamic Spec Matrix */}
         <div className="space-y-3 border-t border-white/5 pt-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <label className="text-[10px] font-black uppercase tracking-wider text-gray-canvas/60">Map Specification Parameters & Variants</label>
@@ -317,7 +347,6 @@ const SellerCategory = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <label className="text-[10px] font-black uppercase tracking-wider text-lime-400 block">Configure Color Options Matrix</label>
-                <p className="text-[10px] text-gray-canvas/40 font-medium">Type variant name and hit entry to isolate color tab units.</p>
               </div>
               <div className="flex items-center gap-1.5">
                 <input 
@@ -329,19 +358,43 @@ const SellerCategory = () => {
                 <button type="button" onClick={() => handleAddColorTab(false)} className="p-1.5 bg-lime-accent text-royal-dark hover:opacity-90 rounded-lg text-xs font-bold"><Plus className="w-3.5 h-3.5" /></button>
               </div>
             </div>
-
-            {/* Dynamic tabs render wrap area */}
             <div className="flex flex-wrap gap-1.5 min-h-[36px] items-center">
-              {definedColors.length === 0 ? (
-                <span className="text-[10px] text-gray-canvas/30 italic">No color tabs appended yet.</span>
-              ) : (
-                definedColors.map((color, i) => (
-                  <span key={i} className="flex items-center gap-1.5 bg-royal-dark border border-white/10 text-gray-canvas px-2 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wide">
-                    <span>{color}</span>
-                    <button type="button" onClick={() => handleRemoveColorTab(color, false)} className="text-red-400 hover:text-red-500 font-bold ml-1">×</button>
-                  </span>
-                ))
-              )}
+              {definedColors.length === 0 ? <span className="text-[10px] text-gray-canvas/30 italic">No color tabs appended yet.</span> : definedColors.map((color, i) => (
+                <span key={i} className="flex items-center gap-1.5 bg-royal-dark border border-white/10 text-gray-canvas px-2 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wide">
+                  <span>{color}</span><button type="button" onClick={() => handleRemoveColorTab(color, false)} className="text-red-400 hover:text-red-500 font-bold ml-1">×</button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* INTERACTIVE SIZE NESTED MULTI-TAB INJECTOR */}
+        {selectedSpecs.includes("Size") && (
+          <div className="space-y-3 border-t border-white/5 pt-4 bg-blue-500/5 p-4 rounded-2xl border border-blue-500/10 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-blue-400 block">Configure Size Options Matrix</label>
+                <div className="flex gap-2 mt-1.5">
+                  <button type="button" onClick={() => loadPresetSizes('clothing', false)} className="text-[10px] bg-blue-500/20 text-blue-400 px-2.5 py-1 rounded-lg font-bold border border-blue-500/20 hover:bg-blue-500/30">👕 Clothing Presets</button>
+                  <button type="button" onClick={() => loadPresetSizes('footwear', false)} className="text-[10px] bg-blue-500/20 text-blue-400 px-2.5 py-1 rounded-lg font-bold border border-blue-500/20 hover:bg-blue-500/30">👟 Footwear Presets</button>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <input 
+                  type="text" placeholder="Custom size (e.g., XXXL)" value={sizeInput}
+                  onChange={(e) => setSizeInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSizeTab(false))}
+                  className="bg-royal-dark border border-white/10 rounded-lg px-2.5 py-1 text-[11px] text-gray-canvas focus:outline-none focus:border-blue-400"
+                />
+                <button type="button" onClick={() => handleAddSizeTab(false)} className="p-1.5 bg-blue-500 text-white hover:opacity-90 rounded-lg text-xs font-bold"><Plus className="w-3.5 h-3.5" /></button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 min-h-[36px] items-center mt-2">
+              {definedSizes.length === 0 ? <span className="text-[10px] text-gray-canvas/30 italic">No size tabs appended yet.</span> : definedSizes.map((sz, i) => (
+                <span key={i} className="flex items-center gap-1.5 bg-royal-dark border border-white/10 text-gray-canvas px-2 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wide">
+                  <span>{sz}</span><button type="button" onClick={() => handleRemoveSizeTab(sz, false)} className="text-red-400 hover:text-red-500 font-bold ml-1">×</button>
+                </span>
+              ))}
             </div>
           </div>
         )}
@@ -368,7 +421,6 @@ const SellerCategory = () => {
             {categories.map((cat) => (
               <div key={cat.id} className="bg-royal-main/30 border border-white/5 p-4 rounded-2xl shadow-md transition-all">
                 {editingId === cat.id ? (
-                  /* INLINE EDIT ENGINE DISPLAY LAYER */
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <input 
@@ -407,7 +459,6 @@ const SellerCategory = () => {
                       </div>
                     </div>
 
-                    {/* Dynamic Color Tab Engine inside Inline Edit Block */}
                     {editSpecs.includes("Color") && (
                       <div className="space-y-2 bg-royal-dark/40 border border-lime-accent/20 p-3 rounded-xl">
                         <div className="flex items-center justify-between gap-2">
@@ -425,8 +476,31 @@ const SellerCategory = () => {
                         <div className="flex flex-wrap gap-1">
                           {editDefinedColors.map((color, i) => (
                             <span key={i} className="flex items-center gap-1 bg-royal-dark px-2 py-0.5 border border-white/5 text-[10px] rounded text-gray-canvas uppercase font-medium">
-                              <span>{color}</span>
-                              <button type="button" onClick={() => handleRemoveColorTab(color, true)} className="text-red-400 ml-1">×</button>
+                              <span>{color}</span><button type="button" onClick={() => handleRemoveColorTab(color, true)} className="text-red-400 ml-1">×</button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {editSpecs.includes("Size") && (
+                      <div className="space-y-2 bg-royal-dark/40 border border-blue-500/20 p-3 rounded-xl">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[9px] font-bold text-blue-400 uppercase">Modify Size Tabs</span>
+                          <div className="flex items-center gap-1">
+                            <input 
+                              type="text" placeholder="Add size variant..." value={editSizeInput}
+                              onChange={(e) => setEditSizeInput(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSizeTab(true))}
+                              className="bg-royal-main/40 border border-white/10 rounded px-2 py-0.5 text-[10px] text-gray-canvas focus:outline-none"
+                            />
+                            <button type="button" onClick={() => handleAddSizeTab(true)} className="p-1 bg-blue-500 text-white rounded"><Plus className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {editDefinedSizes.map((sz, i) => (
+                            <span key={i} className="flex items-center gap-1 bg-royal-dark px-2 py-0.5 border border-white/5 text-[10px] rounded text-gray-canvas uppercase font-medium">
+                              <span>{sz}</span><button type="button" onClick={() => handleRemoveSizeTab(sz, true)} className="text-red-400 ml-1">×</button>
                             </span>
                           ))}
                         </div>
@@ -439,7 +513,6 @@ const SellerCategory = () => {
                     </div>
                   </div>
                 ) : (
-                  /* VIEWER CARD MODULE */
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-start gap-3">
                       <img src={cat.image_url || cat.imageUrl} alt={cat.name} className="w-12 h-12 object-cover rounded-xl border border-white/10 bg-royal-dark shrink-0" />
@@ -448,10 +521,10 @@ const SellerCategory = () => {
                         <div className="flex flex-wrap gap-1">
                           {cat.attributes && cat.attributes.length > 0 ? (
                             cat.attributes.map((attr, i) => {
-                              // Render customized color tags differently for clear visual separation
                               const isColorVal = attr.startsWith("Color: ")
+                              const isSizeVal = /^(s|m|l|xl|xxl|xxxl|uk\s?\d+|\d+)$/i.test(attr)
                               return (
-                                <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded border font-mono ${isColorVal ? 'bg-lime-400/10 border-lime-400/30 text-lime-400 font-semibold' : 'bg-white/5 border-white/5 text-gray-canvas/70'}`}>
+                                <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded border font-mono ${isColorVal ? 'bg-lime-400/10 border-lime-400/30 text-lime-400 font-semibold' : isSizeVal ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 font-semibold' : 'bg-white/5 border-white/5 text-gray-canvas/70'}`}>
                                   {attr}
                                 </span>
                               )
