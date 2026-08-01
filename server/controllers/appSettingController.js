@@ -1,11 +1,23 @@
-// controllers/appSettingController.js
 import AppSettingModel from '../models/appSettingModel.js';
 
 export const getSettings = async (req, res) => {
   try {
-    const settings = await AppSettingModel.getSettings();
+    const appType = req.query.appType || 'user';
+    const settings = await AppSettingModel.getSettings(appType);
+    
     if (!settings) {
-      return res.status(404).json({ success: false, message: 'Settings not found' });
+      return res.status(200).json({
+        success: true,
+        data: {
+          appType,
+          androidCurrent: '',
+          androidMinimum: '',
+          iosCurrent: '',
+          iosMinimum: '',
+          releaseNotes: '',
+          forceUpdate: true,
+        }
+      });
     }
     return res.status(200).json({ success: true, data: settings });
   } catch (error) {
