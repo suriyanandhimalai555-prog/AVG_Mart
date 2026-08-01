@@ -3,15 +3,68 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ==========================================
+       PRIMARY SEO META TAGS
+       ========================================== -->
+  <title>AVG Mart</title>
+  <meta name="title" content="AVG Mart | Premium Electronics, Hardware & Accessories" />
+  <meta name="description" content="Shop premium setups, hardware gear, core electronics, and streamlined accessories engineered to run without limits at AVG Mart. Fast shipping and secure payments." />
+  <meta name="keywords" content="electronics, hardware, accessories, t-shirts, shoes, watches, belts, AVG Mart, buy electronics online, premium gear" />
+  <meta name="author" content="AVG Mart" />
+  <meta name="robots" content="index, follow" />
+  <meta name="language" content="English" />
+  <meta name="theme-color" content="#0A224E" /> <!-- Matches your Royal Dark theme on mobile browsers -->
+
+  <!-- Canonical URL (Prevents duplicate content issues) -->
+  <link rel="canonical" href="https://avgmart.com/" />
+
+  <!-- ==========================================
+       OPEN GRAPH / FACEBOOK / WHATSAPP
+       ========================================== -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://avgmart.com/" />
+  <meta property="og:title" content="AVG Mart" />
+  <meta property="og:description" content="Shop premium setups, hardware gear, core electronics, and streamlined accessories engineered to run without limits at AVG Mart." />
+  <meta property="og:image" content="https://avgmart.com/og-image.jpg" /> <!-- Bro, make sure to upload a banner image named og-image.jpg to your public folder -->
+
+  <!-- ==========================================
+       TWITTER CARDS
+       ========================================== -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://avgmart.com/" />
+  <meta property="twitter:title" content="AVG Mart | Premium Electronics, Hardware & Accessories" />
+  <meta property="twitter:description" content="Shop premium setups, hardware gear, core electronics, and streamlined accessories engineered to run without limits at AVG Mart." />
+  <meta property="twitter:image" content="https://avgmart.com/og-image.jpg" />
+
+  <!-- ==========================================
+       SCHEMA.ORG FOR GOOGLE RICH RESULTS
+       ========================================== -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "AVG Mart",
+      "url": "https://avgmart.com/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://avgmart.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  </script>
+
+  <!-- ==========================================
+       EXISTING ASSETS & SCRIPTS
+       ========================================== -->
+  <link rel="icon" type="image/svg+xml" href="./src/assets/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
-    rel="stylesheet">
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AVG Mart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  
+  <!-- Added 'defer' so the checkout script doesn't slow down the initial page load -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
 </head>
 
 <body>
