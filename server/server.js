@@ -62,6 +62,16 @@ app.use('/api/marketer', marketerRoutes);
 app.use('/api/settings', appSettingRoutes);
 app.use('/api/banners', appBannerRoutes)
 
+// Kubernetes Health Check
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "healthy",
+    service: "AVG Mart Backend"
+  });
+});
+
+
 // Health check endpoint
 app.get("/", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server running cleanly." });
