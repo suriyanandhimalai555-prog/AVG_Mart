@@ -43,5 +43,8 @@ jobs:
           context: ./client
           file: ./client/Dockerfile
           push: true
+          build-args: |
+            VITE_APP_BASE_URL=${{ secrets.VITE_APP_BASE_URL }}
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           tags: |
             ghcr.io/suriyanandhimalai555-prog/avgmart-frontend:latest
