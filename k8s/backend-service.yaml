@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"avgmart-backend","namespace":"avgmart"},"spec":{"ports":[{"port":5000,"targetPort":5000}],"selector":{"app":"avgmart-backend"}}}
+  name: avgmart-backend
+  namespace: avgmart
+spec:
+  clusterIP: 10.43.240.134
+  clusterIPs:
+    - 10.43.240.134
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - port: 5000
+      protocol: TCP
+      targetPort: 5000
+  selector:
+    app: avgmart-backend
+  sessionAffinity: None
+  type: ClusterIP

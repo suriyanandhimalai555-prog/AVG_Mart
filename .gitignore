@@ -1,0 +1,4 @@
+k8s/secret.yaml
+server/.env
+client/.env
+k8s/backup/
