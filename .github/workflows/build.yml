@@ -36,6 +36,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/suriyanandhimalai555-prog/avgmart-backend:latest
+            ghcr.io/suriyanandhimalai555-prog/avgmart-backend:${{ github.sha }}
 
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v6
@@ -48,3 +49,4 @@ jobs:
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           tags: |
             ghcr.io/suriyanandhimalai555-prog/avgmart-frontend:latest
+            ghcr.io/suriyanandhimalai555-prog/avgmart-frontend:${{ github.sha }}
