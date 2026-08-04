@@ -1,212 +1,216 @@
-name: Deploy AVG Mart
+name: Deploy AVG Mart Kubernetes
+
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Build and Push Docker Images
+    types:
+      - completed
     branches:
       - main
 
+
 jobs:
+
   deploy:
-    name: Deploy to Contabo VPS
+
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    name: Deploy to Kubernetes
+
     runs-on: ubuntu-latest
 
+
     steps:
+
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Deploy Application
+
+
+      - name: Deploy AVG Mart Kubernetes
+
         uses: appleboy/ssh-action@v1.2.2
+
         with:
+
           host: ${{ secrets.VPS_HOST }}
+
           username: ${{ secrets.VPS_USER }}
+
           key: ${{ secrets.VPS_KEY }}
+
           port: 22
+
           timeout: 60s
+
           command_timeout: 20m
-          debug: true
+
 
           script: |
+
             set -e
 
-            echo "========================================"
-            echo "Connected to Contabo VPS"
-            echo "========================================"
 
-            whoami
-            hostname
-            pwd
+            echo "================================"
+
+            echo "AVG MART KUBERNETES DEPLOYMENT"
+
+            echo "================================"
+
+
 
             cd /root/otp/apps/AVG_Mart
 
-            echo "Fetching latest source..."
+
+
+            echo "Updating source code"
+
+
             git fetch origin
 
-            echo "Resetting repository..."
             git reset --hard origin/main
-            git clean -fd
 
-            echo "Creating frontend .env..."
-            cat > client/.env <<EOF
-            VITE_APP_BASE_URL=${{ secrets.VITE_APP_BASE_URL }}
-            VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-            EOF
 
-            echo "Stopping old containers..."
-            docker compose down --remove-orphans
 
-            echo "Building latest images..."
-            docker compose build --no-cache
+            echo "Starting Kubernetes deployment"
 
-            echo "Starting containers..."
-            docker compose up -d
 
-            echo "Removing unused Docker images..."
-            docker image prune -af
 
-            echo "Container Status"
-            docker compose ps
+            chmod +x scripts/k8s-deploy.sh
 
-            echo "Running Containers"
-            docker ps
 
-            echo "Deployment Completed Successfully"
+
+            ./scripts/k8s-deploy.sh
+
+
+
+            echo "Checking application status"
+
+
+
+            kubectl get pods -n avgmart
+
+
+
+            echo "Checking ingress"
+
+
+
+            kubectl get ingress -n avgmart
+
+
+
+            echo "Deployment completed successfully"
+
+
+
 
       - name: Send Success Email
+
         if: success()
+
         uses: dawidd6/action-send-mail@v3
+
+
         with:
+
           server_address: ${{ secrets.SMTP_SERVER }}
+
           server_port: ${{ secrets.SMTP_PORT }}
+
           secure: true
+
           username: ${{ secrets.SMTP_USERNAME }}
+
           password: ${{ secrets.SMTP_PASSWORD }}
 
-          subject: "✅ AVG Mart Deployment Successful"
 
-          to: |
-            Sanjayvanan03@gmail.com,
-            muthukdm45@gmail.com,
-            deepakavgprimetech@gmail.com,
-            harishbabu17081@gmail.com
+          subject: "✅ AVG Mart Kubernetes Deployment Successful"
 
-          from: Deepak CI/CD <deepakavgprimetech@gmail.com>
-
-          html_body: |
-            <h2>✅ AVG Mart Deployment Successful</h2>
-
-            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
-              <tr>
-                <td><b>Repository</b></td>
-                <td>${{ github.repository }}</td>
-              </tr>
-
-              <tr>
-                <td><b>Branch</b></td>
-                <td>${{ github.ref_name }}</td>
-              </tr>
-
-              <tr>
-                <td><b>Commit ID</b></td>
-                <td>${{ github.sha }}</td>
-              </tr>
-
-              <tr>
-                <td><b>Developer</b></td>
-                <td>${{ github.actor }}</td>
-              </tr>
-
-              <tr>
-                <td><b>Workflow</b></td>
-                <td>${{ github.workflow }}</td>
-              </tr>
-
-              <tr>
-                <td><b>Status</b></td>
-                <td style="color:green;"><b>Deployment Successful ✅</b></td>
-              </tr>
-            </table>
-
-            <br>
-
-            <h3>Deployment Summary</h3>
-
-            <ul>
-              <li>✅ Connected to Contabo VPS</li>
-              <li>✅ Latest source code fetched</li>
-              <li>✅ Repository updated successfully</li>
-              <li>✅ Docker images rebuilt</li>
-              <li>✅ Docker containers restarted</li>
-              <li>✅ Deployment completed successfully</li>
-            </ul>
-
-            <br>
-
-            <b>The latest version of AVG Mart has been deployed successfully to the Contabo VPS.</b>
-
-      - name: Send Failure Email
-        if: failure()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          secure: true
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-
-          subject: "❌ AVG Mart Deployment Failed"
 
           to: |
             Sanjayvanan03@gmail.com,
             muthukdm45@gmail.com,
             deepakavgprimetech@gmail.com
 
+
           from: Deepak CI/CD <deepakavgprimetech@gmail.com>
 
+
           html_body: |
-            <h2>❌ AVG Mart Deployment Failed</h2>
 
-            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
-              <tr>
-                <td><b>Repository</b></td>
-                <td>${{ github.repository }}</td>
-              </tr>
+            <h2>
+            AVG Mart Kubernetes Deployment Successful
+            </h2>
 
-              <tr>
-                <td><b>Branch</b></td>
-                <td>${{ github.ref_name }}</td>
-              </tr>
-
-              <tr>
-                <td><b>Commit ID</b></td>
-                <td>${{ github.sha }}</td>
-              </tr>
-
-              <tr>
-                <td><b>Developer</b></td>
-                <td>${{ github.actor }}</td>
-              </tr>
-
-              <tr>
-                <td><b>Workflow</b></td>
-                <td>${{ github.workflow }}</td>
-              </tr>
-
-              <tr>
-                <td><b>Status</b></td>
-                <td style="color:red;"><b>Deployment Failed ❌</b></td>
-              </tr>
-            </table>
-
-            <br>
-
-            <h3>Failure Summary</h3>
 
             <ul>
-              <li>❌ Failed to deploy the latest version.</li>
-              <li>❌ One or more deployment steps failed.</li>
-              <li>📄 Review the GitHub Actions logs for complete error details.</li>
+
+            <li>✅ Docker images built</li>
+
+            <li>✅ Images pushed to GHCR</li>
+
+            <li>✅ Kubernetes manifests applied</li>
+
+            <li>✅ Rolling update completed</li>
+
+            <li>✅ Health checks passed</li>
+
+            <li>✅ Deployment successful</li>
+
             </ul>
 
-            <br>
 
-            <b>Please check the GitHub Actions logs for the complete error details.</b>
+
+
+      - name: Send Failure Email
+
+        if: failure()
+
+        uses: dawidd6/action-send-mail@v3
+
+
+        with:
+
+          server_address: ${{ secrets.SMTP_SERVER }}
+
+          server_port: ${{ secrets.SMTP_PORT }}
+
+          secure: true
+
+          username: ${{ secrets.SMTP_USERNAME }}
+
+          password: ${{ secrets.SMTP_PASSWORD }}
+
+
+          subject: "❌ AVG Mart Kubernetes Deployment Failed"
+
+
+          to: |
+            Sanjayvanan03@gmail.com,
+            muthukdm45@gmail.com,
+            deepakavgprimetech@gmail.com
+
+
+          from: Deepak CI/CD <deepakavgprimetech@gmail.com>
+
+
+          html_body: |
+
+            <h2>
+            AVG Mart Kubernetes Deployment Failed
+            </h2>
+
+
+            <ul>
+
+            <li>❌ Kubernetes rollout failed</li>
+
+            <li>❌ Automatic rollback executed</li>
+
+            <li>📄 Check GitHub Actions logs</li>
+
+            </ul>

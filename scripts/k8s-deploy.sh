@@ -4,34 +4,60 @@ set -e
 
 NAMESPACE="avgmart"
 
-echo "Deploying AVG_Mart..."
+echo "================================"
+echo "Deploying AVG_Mart Kubernetes"
+echo "================================"
 
-kubectl apply -f ../k8s/namespace.yaml
 
-kubectl apply -f ../k8s/
+rollback()
+{
+    echo "================================"
+    echo "Deployment failed"
+    echo "Starting rollback..."
+    echo "================================"
 
-echo "Waiting for backend rollout..."
+    kubectl rollout undo deployment/avgmart-backend \
+    -n $NAMESPACE || true
 
-if ! kubectl rollout status deployment/avgmart-backend \
+    kubectl rollout undo deployment/avgmart-frontend \
+    -n $NAMESPACE || true
+
+
+    echo "Rollback completed"
+
+    exit 1
+}
+
+
+trap rollback ERR
+
+
+echo "Applying Kubernetes manifests..."
+
+kubectl apply -f k8s/namespace.yaml
+
+kubectl apply -f k8s/
+
+
+echo "Checking backend rollout..."
+
+kubectl rollout status deployment/avgmart-backend \
 -n $NAMESPACE \
 --timeout=120s
-then
-    echo "Backend failed. Rolling back..."
-    kubectl rollout undo deployment/avgmart-backend -n $NAMESPACE
-    exit 1
-fi
 
 
-echo "Waiting for frontend rollout..."
+echo "Checking frontend rollout..."
 
-if ! kubectl rollout status deployment/avgmart-frontend \
+kubectl rollout status deployment/avgmart-frontend \
 -n $NAMESPACE \
 --timeout=120s
-then
-    echo "Frontend failed. Rolling back..."
-    kubectl rollout undo deployment/avgmart-frontend -n $NAMESPACE
-    exit 1
-fi
 
 
+echo "Checking pods..."
+
+kubectl get pods -n $NAMESPACE
+
+
+echo "================================"
 echo "AVG_Mart deployment successful"
+echo "================================"
