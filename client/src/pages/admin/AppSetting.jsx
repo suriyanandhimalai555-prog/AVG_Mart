@@ -186,7 +186,7 @@ const AppSetting = () => {
             {/* iOS Current */}
             <div>
               <label className="block text-[11px] font-bold tracking-wider text-[#a3e635] uppercase mb-2">
-                IOS Current
+                IOS Current 
               </label>
               <input
                 type="text"
