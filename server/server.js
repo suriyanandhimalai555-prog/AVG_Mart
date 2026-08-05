@@ -2,28 +2,49 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
+import client from "prom-client";
 
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import branchAdminRoutes from './routes/branchAdminRoutes.js';
-import stockRoutes from './routes/stockRoutes.js';             
-import requeststockRoutes from './routes/requestStockRoutes.js'; 
+import stockRoutes from './routes/stockRoutes.js';
+import requeststockRoutes from './routes/requestStockRoutes.js';
 import sellerRoutes from './routes/sellerRoutes.js';
 import marketerRoutes from './routes/marketerRoutes.js';
 import appSettingRoutes from './routes/appSettingRoutes.js';
-import appBannerRoutes from './routes/appBannerRoutes.js'
+import appBannerRoutes from './routes/appBannerRoutes.js';
 
 dotenv.config();
 
 const app = express();
+
+client.collectDefaultMetrics();
+
+const httpRequestCounter = new client.Counter({
+  name: "http_requests_total",
+  help: "Total HTTP Requests",
+  labelNames: ["method", "route", "status"]
+});
+
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    httpRequestCounter.inc({
+      method: req.method,
+      route: req.route?.path || req.path,
+      status: res.statusCode
+    });
+  });
+
+  next();
+});
 
 // Security HTTP headers
 app.use(helmet());
 
 // 1. CORS Configuration
 const allowedOrigins = [
-  process.env.FRONTEND_URL, 
+  process.env.FRONTEND_URL,
   'https://avgmart.com',
   'https://www.avgmart.com',
   'http://localhost:5173'
@@ -31,9 +52,9 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow non-browser requests (Postman, curl, mobile apps)
+
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       return callback(null, true);
     } else {
@@ -44,7 +65,6 @@ app.use(cors({
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
 
 // 2. Body Parser Limits
 app.use(express.json({ limit: '10mb' }));
@@ -60,7 +80,7 @@ app.use('/api/stock-requests', requeststockRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/marketer', marketerRoutes);
 app.use('/api/settings', appSettingRoutes);
-app.use('/api/banners', appBannerRoutes)
+app.use('/api/banners', appBannerRoutes);
 
 // Kubernetes Health Check
 app.get("/health", (req, res) => {
@@ -71,17 +91,26 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Prometheus Metrics Endpoint
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", client.register.contentType);
+  res.end(await client.register.metrics());
+});
 
 // Health check endpoint
 app.get("/", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Server running cleanly." });
+  res.status(200).json({
+    status: "ok",
+    message: "Server running cleanly."
+  });
 });
 
-// 4. Global Error Handling Middleware (MUST be at the very bottom)
+// Global Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(`[Error Handler]: ${err.stack || err.message}`);
-  
+
   const statusCode = err.statusCode || 500;
+
   res.status(statusCode).json({
     success: false,
     message: err.message || "Internal Server Error"
@@ -89,6 +118,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`Server executing live on port: ${PORT}`);
 });
