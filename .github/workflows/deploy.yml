@@ -1,6 +1,5 @@
 name: Deploy AVG Mart Kubernetes
 
-
 on:
   workflow_run:
     workflows:
@@ -10,207 +9,169 @@ on:
     branches:
       - main
 
-
 jobs:
-
   deploy:
-
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     name: Deploy to Kubernetes
-
     runs-on: ubuntu-latest
 
-
     steps:
-
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-
-
       - name: Deploy AVG Mart Kubernetes
-
         uses: appleboy/ssh-action@v1.2.2
-
+        env:
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
         with:
-
           host: ${{ secrets.VPS_HOST }}
-
           username: ${{ secrets.VPS_USER }}
-
           key: ${{ secrets.VPS_KEY }}
-
           port: 22
-
           timeout: 60s
-
           command_timeout: 20m
-
+          envs: IMAGE_TAG
 
           script: |
-
             set -e
 
-
-            echo "================================"
-
+            echo "=============================================="
             echo "AVG MART KUBERNETES DEPLOYMENT"
+            echo "=============================================="
 
-            echo "================================"
-
-
+            echo "Deployment Commit:"
+            echo "${IMAGE_TAG}"
 
             cd /root/otp/apps/AVG_Mart
 
-
-
+            echo "=============================================="
             echo "Updating source code"
-
+            echo "=============================================="
 
             git fetch origin
-
             git reset --hard origin/main
 
+            echo "Current Git Commit:"
+            git rev-parse HEAD
 
+            echo "Expected Image Tag:"
+            echo "${IMAGE_TAG}"
 
+            echo "=============================================="
             echo "Starting Kubernetes deployment"
-
-
+            echo "=============================================="
 
             chmod +x scripts/k8s-deploy.sh
 
+            IMAGE_TAG="${IMAGE_TAG}" ./scripts/k8s-deploy.sh
 
-
-            ./scripts/k8s-deploy.sh
-
-
-
+            echo "=============================================="
             echo "Checking application status"
+            echo "=============================================="
 
-
+            kubectl get deployments -n avgmart
 
             kubectl get pods -n avgmart
 
+            echo "=============================================="
+            echo "Checking services"
+            echo "=============================================="
 
+            kubectl get svc -n avgmart
 
+            echo "=============================================="
             echo "Checking ingress"
-
-
+            echo "=============================================="
 
             kubectl get ingress -n avgmart
 
+            echo "=============================================="
+            echo "Checking deployed images"
+            echo "=============================================="
 
+            kubectl get deployment avgmart-backend \
+              -n avgmart \
+              -o jsonpath='{.spec.template.spec.containers[*].image}'
+            echo
 
+            kubectl get deployment avgmart-frontend \
+              -n avgmart \
+              -o jsonpath='{.spec.template.spec.containers[*].image}'
+            echo
+
+            echo "=============================================="
             echo "Deployment completed successfully"
-
-
-
+            echo "=============================================="
 
       - name: Send Success Email
-
         if: success()
-
         uses: dawidd6/action-send-mail@v3
-
-
         with:
-
           server_address: ${{ secrets.SMTP_SERVER }}
-
           server_port: ${{ secrets.SMTP_PORT }}
-
           secure: true
-
           username: ${{ secrets.SMTP_USERNAME }}
-
           password: ${{ secrets.SMTP_PASSWORD }}
-
 
           subject: "✅ AVG Mart Kubernetes Deployment Successful"
 
-
           to: |
             Sanjayvanan03@gmail.com,
             muthukdm45@gmail.com,
             deepakavgprimetech@gmail.com
 
-
           from: Deepak CI/CD <deepakavgprimetech@gmail.com>
 
-
           html_body: |
-
-            <h2>
-            AVG Mart Kubernetes Deployment Successful
-            </h2>
-
+            <h2>AVG Mart Kubernetes Deployment Successful</h2>
 
             <ul>
-
-            <li>✅ Docker images built</li>
-
-            <li>✅ Images pushed to GHCR</li>
-
-            <li>✅ Kubernetes manifests applied</li>
-
-            <li>✅ Rolling update completed</li>
-
-            <li>✅ Health checks passed</li>
-
-            <li>✅ Deployment successful</li>
-
+              <li>✅ Docker images built</li>
+              <li>✅ Images pushed to GHCR</li>
+              <li>✅ Kubernetes manifests applied</li>
+              <li>✅ Kubernetes rolling update completed</li>
+              <li>✅ Backend rollout verified</li>
+              <li>✅ Frontend rollout verified</li>
+              <li>✅ Health checks passed</li>
+              <li>✅ Deployment successful</li>
             </ul>
 
-
-
+            <p>
+              <strong>Image Tag:</strong>
+              ${{ github.event.workflow_run.head_sha }}
+            </p>
 
       - name: Send Failure Email
-
         if: failure()
-
         uses: dawidd6/action-send-mail@v3
-
-
         with:
-
           server_address: ${{ secrets.SMTP_SERVER }}
-
           server_port: ${{ secrets.SMTP_PORT }}
-
           secure: true
-
           username: ${{ secrets.SMTP_USERNAME }}
-
           password: ${{ secrets.SMTP_PASSWORD }}
-
 
           subject: "❌ AVG Mart Kubernetes Deployment Failed"
 
-
           to: |
             Sanjayvanan03@gmail.com,
             muthukdm45@gmail.com,
             deepakavgprimetech@gmail.com
 
-
           from: Deepak CI/CD <deepakavgprimetech@gmail.com>
 
-
           html_body: |
-
-            <h2>
-            AVG Mart Kubernetes Deployment Failed
-            </h2>
-
+            <h2>AVG Mart Kubernetes Deployment Failed</h2>
 
             <ul>
-
-            <li>❌ Kubernetes rollout failed</li>
-
-            <li>❌ Automatic rollback executed</li>
-
-            <li>📄 Check GitHub Actions logs</li>
-
+              <li>❌ Kubernetes deployment failed</li>
+              <li>❌ Rollout verification failed</li>
+              <li>🔄 Automatic rollback was attempted</li>
+              <li>📄 Check GitHub Actions logs</li>
             </ul>
+
+            <p>
+              <strong>Image Tag:</strong>
+              ${{ github.event.workflow_run.head_sha }}
+            </p>
