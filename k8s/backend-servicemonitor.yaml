@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: avgmart-backend
+  namespace: avgmart
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: avgmart-backend
+  namespaceSelector:
+    matchNames:
+      - avgmart
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
