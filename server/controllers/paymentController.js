@@ -337,9 +337,27 @@ export const verifyRazorpayPayment = async (req, res) => {
         };
 
         // Send email asynchronously
-        transporter.sendMail(emailOptions).catch(mailErr => {
-          console.error("Non-blocking order email delivery error:", mailErr);
-        });
+        //transporter.sendMail(emailOptions).catch(mailErr => {
+          //console.error("Non-blocking order email delivery error:", mailErr);
+        //});
+        try {
+  	 console.log("=== ORDER CONFIRMATION EMAIL ===");
+  	 console.log("FROM:", process.env.EMAIL_USER);
+  	 console.log("TO:", userDetails.email);
+  	 console.log("SUBJECT:", emailOptions.subject);
+
+  	 const mailInfo = await transporter.sendMail(emailOptions);
+
+  	 console.log("ORDER CONFIRMATION EMAIL SENT");
+  	 console.log("MESSAGE ID:", mailInfo.messageId);
+  	 console.log("SMTP RESPONSE:", mailInfo.response);
+	 } catch (mailErr) {
+  	 console.error("=== ORDER CONFIRMATION EMAIL FAILED ===");
+  	 console.error("CODE:", mailErr.code);
+  	 console.error("COMMAND:", mailErr.command);
+  	 console.error("RESPONSE:", mailErr.response);
+  	 console.error("MESSAGE:", mailErr.message);
+	 };
 
       } catch (mailPreparationError) {
         console.error("Order confirmation email payload build failure:", mailPreparationError);
