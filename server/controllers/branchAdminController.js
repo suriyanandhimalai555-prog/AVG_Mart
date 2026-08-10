@@ -3,11 +3,14 @@ import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
 import { pool } from '../config/db.js';
 
+// UPDATED: Using Hostinger SMTP configuration instead of Gmail
 const transporter = nodemailer.createTransport({
-  service: 'gmail', 
+  host: 'smtp.hostinger.com',
+  port: 465,
+  secure: true, // SSL required for port 465
   auth: {
-    user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS  
+    user: process.env.EMAIL_USER, // e.g., support@avgmart.com
+    pass: process.env.EMAIL_PASS  // Hostinger App Password generated in hPanel
   }
 });
 

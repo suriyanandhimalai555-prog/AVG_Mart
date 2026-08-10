@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { signup, login, googleAuth } from "../controllers/authController.js";
+import { signup, verifySignupOtp, login, googleAuth, requestForgotPasswordOtp, resetPasswordWithOtp } from "../controllers/authController.js";
 import { verifyToken, isAdmin } from "../middleware/authMiddleware.js";
 
 // profile
@@ -15,8 +15,11 @@ const router = Router();
 
 // Public auth endpoints
 router.post("/signup", signup);
+router.post("/signup/verify-otp", verifySignupOtp);
 router.post("/login", login);
 router.post("/google", googleAuth);
+router.post("/forgot-password/request-otp", requestForgotPasswordOtp);
+router.post("/forgot-password/reset-password", resetPasswordWithOtp);
 
 // Protected Profiles Actions & Controls
 router.get("/profile", verifyToken, getProfile);

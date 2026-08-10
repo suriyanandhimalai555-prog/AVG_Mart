@@ -63,6 +63,7 @@ import NotFound from './pages/NotFound'
 import TermsCondition from './pages/Terms&condition'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import ShippingPolicy from './pages/ShippingPolicy'
+import ForgotPassword from './pages/ForgotPassword'
 
 const App = () => {
   return (
@@ -85,6 +86,7 @@ const App = () => {
         {/* AUTH BLOCKING ENTRY CHANNELS */}
         <Route element={<PublicOnlyRoute />}>
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/seller/login" element={<SellerLogin />} />
           <Route path="/seller/signup" element={<SellerRegister />} />
