@@ -208,7 +208,7 @@ const Login = () => {
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Password</label>
-                <a href="#" className="text-[10px] text-white/30 hover:text-lime-400 font-bold tracking-wider transition-colors">Forgot Key?</a>
+                <a href="/forgot-password" className="text-[10px] text-white/30 hover:text-lime-400 font-bold tracking-wider transition-colors">Forgot Password?</a>
               </div>
               <div className="relative flex items-center">
                 <FaKey className="absolute left-4 text-white/20 text-xs" />
