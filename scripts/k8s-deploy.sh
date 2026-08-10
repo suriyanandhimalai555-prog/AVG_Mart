@@ -44,13 +44,13 @@ kubectl apply -f k8s/
 echo "Updating backend image..."
 
 kubectl set image deployment/avgmart-backend \
-    avgmart-backend="${BACKEND_IMAGE}" \
+    backend="${BACKEND_IMAGE}" \
     -n "${NAMESPACE}"
 
 echo "Updating frontend image..."
 
 kubectl set image deployment/avgmart-frontend \
-    avgmart-frontend="${FRONTEND_IMAGE}" \
+    frontend="${FRONTEND_IMAGE}" \
     -n "${NAMESPACE}"
 
 echo "Checking backend rollout..."
