@@ -374,7 +374,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { 
     Search, ShoppingBag, User, LogOut, ChevronDown, Zap, 
-    Sparkles, Home, Smartphone, Headphones, Shirt, Utensils, Package, MapPin, X, Navigation, Check, AlertCircle, RefreshCw, ChevronsRight
+    Sparkles, Home, Smartphone, Headphones, Shirt, Utensils, Package, MapPin, X, Navigation, Check, AlertCircle, RefreshCw, ChevronRight, LayoutGrid, ArrowRight
 } from 'lucide-react'
 import Logo from "../assets/logo.png"
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
@@ -389,13 +389,13 @@ const POPULAR_CITIES = [
 // Dynamic Lucide Icon Mapper
 const getCategoryIcon = (catName) => {
     const lower = catName.toLowerCase();
-    if (lower.includes('home')) return <Home className="w-4 h-4" />;
-    if (lower.includes('toy') || lower.includes('fresh')) return <Sparkles className="w-4 h-4" />;
-    if (lower.includes('electronic')) return <Headphones className="w-4 h-4" />;
-    if (lower.includes('mobile')) return <Smartphone className="w-4 h-4" />;
-    if (lower.includes('beauty') || lower.includes('apparel') || lower.includes('fashion') || lower.includes('clothing')) return <Shirt className="w-4 h-4" />;
-    if (lower.includes('gear')) return <Utensils className="w-4 h-4" />;
-    return <Package className="w-4 h-4" />;
+    if (lower.includes('home')) return <Home className="w-3.5 h-3.5" />;
+    if (lower.includes('toy') || lower.includes('fresh')) return <Sparkles className="w-3.5 h-3.5" />;
+    if (lower.includes('electronic')) return <Headphones className="w-3.5 h-3.5" />;
+    if (lower.includes('mobile')) return <Smartphone className="w-3.5 h-3.5" />;
+    if (lower.includes('beauty') || lower.includes('apparel') || lower.includes('fashion') || lower.includes('clothing')) return <Shirt className="w-3.5 h-3.5" />;
+    if (lower.includes('gear')) return <Utensils className="w-3.5 h-3.5" />;
+    return <Package className="w-3.5 h-3.5" />;
 };
 
 const Navbar = () => {
@@ -407,6 +407,9 @@ const Navbar = () => {
     const [selectedCategory, setSelectedCategory] = useState(null)
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
 
+    // Mobile Search Overlay Toggle State
+    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
+
     // Location States & Modal Control
     const [userLocationText, setUserLocationText] = useState('Select Location')
     const [isLocationLoading, setIsLocationLoading] = useState(false)
@@ -416,11 +419,20 @@ const Navbar = () => {
 
     // Reference for Horizontal Category Scroll Container
     const scrollContainerRef = useRef(null);
+    const searchInputRef = useRef(null);
 
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
     const isLoggedIn = !!localStorage.getItem("token");
+    const userName = localStorage.getItem("userName") || "User";
+
+    // Auto focus search input when mobile overlay opens
+    useEffect(() => {
+        if (isMobileSearchOpen && searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, [isMobileSearchOpen]);
 
     // Dynamic Route Syncing
     useEffect(() => {
@@ -437,7 +449,7 @@ const Navbar = () => {
             setSelectedCategory(decodeURIComponent(rawCategory));
         } else if (queryParamCategory) {
             setSelectedCategory(queryParamCategory);
-        } else if (path === '/allproducts' || path === '/') {
+        } else if (path === '/allproducts') {
             setSelectedCategory('All');
         } else {
             setSelectedCategory(null);
@@ -468,7 +480,7 @@ const Navbar = () => {
         }
     }, []);
 
-    // Reverse Geocoding with Street Name and Pincode
+    // Reverse Geocoding
     const requestLiveLocation = (silentMode = false) => {
         setIsLocationLoading(true);
         if ("geolocation" in navigator) {
@@ -588,12 +600,11 @@ const Navbar = () => {
     }, [isLoggedIn]);
 
     const handleLogout = () => {
-        const userName = localStorage.getItem("userName") || "User";
         localStorage.removeItem("token");
         localStorage.removeItem("userRole");
         localStorage.removeItem("userName");
         setIsProfileMenuOpen(false);
-        toast.success(`Goodbye, ${userName}. Session ended.`);
+        toast.success(`Goodbye. Session ended.`);
         navigate("/");
     };
 
@@ -606,6 +617,7 @@ const Navbar = () => {
         if (selectedCategory && selectedCategory.toLowerCase() !== 'all') {
             params.set('category', selectedCategory);
         }
+        setIsMobileSearchOpen(false);
         navigate(`/allproducts?${params.toString()}`);
     };
 
@@ -618,173 +630,243 @@ const Navbar = () => {
         }
     };
 
-    // Smooth Scroll Horizontal Category List to the Right
     const handleNextCategoryScroll = () => {
         if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+            scrollContainerRef.current.scrollBy({ left: 240, behavior: 'smooth' });
         }
     };
 
     return (
         <>
-            <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-xs transition-all duration-300 font-sans">
-                {/* TOP BAR */}
-                <div className="max-w-7xl mx-auto px-2.5 sm:px-4 md:px-8 py-2 md:py-3 flex items-center justify-between gap-2 md:gap-8">
+            <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-gray-100/80 shadow-xs transition-all duration-300 font-sans">
+                {/* TOP BRAND & NAVIGATION BAR */}
+                <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 md:gap-8 relative">
                     
-                    {/* BRAND LOGO */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        <div onClick={() => navigate("/")} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none group">
-                            <img src={Logo} alt="Logo" className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform duration-300 group-hover:scale-105" />
-                            <h1 className="text-base sm:text-xl md:text-2xl font-black tracking-tight text-gray-900 block">
-                                AVG <span style={{ color: '#A5CE00' }}>MART</span>
-                            </h1>
+                    {/* LOGO & BRAND IDENTIFIER */}
+                    <div className="flex items-center gap-3 shrink-0">
+                        <div onClick={() => navigate("/")} className="flex items-center gap-2 cursor-pointer select-none group">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gray-50 p-1 border border-gray-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform duration-300">
+                                <img src={Logo} alt="Logo" className="w-full h-full object-contain" />
+                            </div>
+                            <div className="flex flex-col">
+                                <h1 className="text-base sm:text-lg md:text-xl font-black tracking-tight text-gray-900 leading-none">
+                                    AVG <span style={{ color: '#A5CE00' }}>MART</span>
+                                </h1>
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest hidden xs:block">
+                                    Express Store
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* SEARCH BAR */}
+                    {/* DESKTOP SEARCH BAR */}
                     <form 
                         onSubmit={handleSearchSubmit}
-                        className="flex-1 max-w-2xl relative flex items-center group"
+                        className="hidden sm:flex flex-1 max-w-xl relative items-center group"
                     >
-                        <div className="absolute left-3 pointer-events-none text-gray-400 group-focus-within:text-gray-700 transition-colors">
-                            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                        <div className="absolute left-3.5 pointer-events-none text-gray-400 group-focus-within:text-gray-900 transition-colors">
+                            <Search className="w-4 h-4" />
                         </div>
                         <input
                             type="text"
                             value={navSearchQuery}
                             onChange={(e) => setNavSearchQuery(e.target.value)}
-                            placeholder='Search for products, categories or essentials...'
-                            className="w-full bg-gray-50/80 border border-gray-200 hover:border-gray-300 focus:bg-white text-xs md:text-sm text-gray-900 placeholder-gray-400 rounded-xl py-2 sm:py-2.5 pl-8 sm:pl-10 pr-3 outline-none transition-all duration-200 font-medium shadow-xs"
+                            placeholder='Search products, groceries & essentials...'
+                            className="w-full bg-gray-50/90 border border-gray-200/80 hover:border-gray-300 focus:bg-white text-xs sm:text-sm text-gray-900 placeholder-gray-400 rounded-2xl py-2 sm:py-2.5 pl-9 sm:pl-10 pr-8 outline-none transition-all duration-200 font-medium shadow-2xs"
                             onFocus={(e) => e.target.style.borderColor = '#A5CE00'}
                             onBlur={(e) => e.target.style.borderColor = ''}
                         />
+                        {navSearchQuery && (
+                            <button 
+                                type="button" 
+                                onClick={() => setNavSearchQuery('')}
+                                className="absolute right-3 text-gray-400 hover:text-gray-700 p-0.5 rounded-full"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        )}
                     </form>
 
-                    {/* ZEPTO-STYLE DELIVERY & LOCATION BADGE */}
+                    {/* LOCATION PILL SELECTOR (DESKTOP) */}
                     <div 
                         onClick={() => setIsLocationModalOpen(true)}
-                        className="hidden lg:flex flex-col border-r border-gray-200 pr-3 cursor-pointer group select-none"
+                        className="hidden md:flex items-center gap-2 bg-gray-50 hover:bg-gray-100/80 border border-gray-200/70 px-3 py-1.5 rounded-full cursor-pointer transition-all duration-200 group shrink-0"
                     >
-                        <div className="flex items-center gap-1 text-xs font-black text-gray-900">
-                            <Zap className="w-3.5 h-3.5 fill-[#A5CE00] text-[#A5CE00] animate-pulse" />
-                            <span>Deliver to</span>
+                        <div className="relative flex items-center justify-center">
+                            <Zap className="w-3.5 h-3.5 fill-[#A5CE00] text-[#A5CE00]" />
+                            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
                         </div>
-                        <div className="flex items-center gap-1 text-[11px] font-medium text-gray-500 group-hover:text-black transition-colors">
-                            <MapPin className="w-3 h-3 text-gray-400 group-hover:text-[#A5CE00] shrink-0" />
-                            <span className="truncate max-w-[160px] font-bold">
+                        <div className="flex flex-col text-left">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 leading-none">Delivering to</span>
+                            <span className="text-xs font-extrabold text-gray-800 truncate max-w-[120px] lg:max-w-[160px] leading-tight group-hover:text-black">
                                 {isLocationLoading ? "Locating..." : userLocationText}
                             </span>
-                            <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" />
                         </div>
+                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-700 transition-transform group-hover:translate-y-0.5" />
                     </div>
 
-                    {/* ACTIONS: PROFILE & CART */}
-                    <div className="flex items-center gap-1.5 sm:gap-2 md:gap-5 shrink-0">
+                    {/* MOBILE EXPANDABLE SEARCH OVERLAY */}
+                    {isMobileSearchOpen && (
+                        <div className="absolute inset-0 bg-white z-50 px-3 flex items-center gap-2 animate-fadeIn sm:hidden shadow-md">
+                            <form onSubmit={handleSearchSubmit} className="flex-1 relative flex items-center gap-1.5">
+                                <div className="relative flex-1 flex items-center">
+                                    <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
+                                    <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        value={navSearchQuery}
+                                        onChange={(e) => setNavSearchQuery(e.target.value)}
+                                        placeholder='Search items...'
+                                        className="w-full bg-gray-100 border-none text-xs text-gray-900 placeholder-gray-400 rounded-xl py-2 pl-9 pr-8 outline-none font-bold"
+                                    />
+                                    {navSearchQuery && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setNavSearchQuery('')}
+                                            className="absolute right-2.5 text-gray-400"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* ACTION SUBMIT BUTTON FOR MOBILE SEARCH */}
+                                <button
+                                    type="submit"
+                                    disabled={!navSearchQuery.trim()}
+                                    className="px-3 py-2 bg-[#A5CE00] hover:bg-[#8da800] text-gray-900 font-black text-xs rounded-xl flex items-center gap-1 shadow-xs disabled:opacity-40 transition-all shrink-0 cursor-pointer"
+                                >
+                                    <span>Search</span>
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                </button>
+                            </form>
+
+                            <button 
+                                onClick={() => setIsMobileSearchOpen(false)} 
+                                className="p-2 text-gray-500 hover:text-black font-bold text-xs shrink-0 cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    )}
+
+                    {/* USER ACTIONS: SEARCH TRIGGER, PROFILE & CART */}
+                    <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                         
-                        {/* PROFILE DROPDOWN */}
+                        {/* MOBILE SEARCH ICON BUTTON */}
+                        <button
+                            type="button"
+                            onClick={() => setIsMobileSearchOpen(true)}
+                            className="sm:hidden p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                            aria-label="Open Search"
+                        >
+                            <Search className="w-5 h-5" />
+                        </button>
+
+                        {/* PROFILE MENU */}
                         <div className="relative">
                             {isLoggedIn ? (
                                 <button 
                                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                    className="flex flex-col items-center justify-center p-1 sm:p-1.5 md:px-2.5 text-gray-700 hover:text-black transition-colors rounded-lg hover:bg-gray-50 cursor-pointer"
+                                    className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-gray-700 hover:bg-gray-100/70 border border-transparent hover:border-gray-200 transition-all cursor-pointer"
                                 >
-                                    <User className="w-5 h-5 md:w-6 md:h-6" />
-                                    <span className="text-[10px] font-bold mt-0.5 hidden md:block">Profile</span>
+                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-900 text-white font-black text-xs flex items-center justify-center uppercase shadow-2xs">
+                                        {userName.charAt(0)}
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-800 hidden md:block max-w-[90px] truncate">{userName}</span>
+                                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 hidden md:block" />
                                 </button>
                             ) : (
                                 <button 
                                     onClick={() => navigate("/login")}
-                                    className="flex flex-col items-center justify-center p-1 sm:p-1.5 md:px-2.5 text-gray-700 hover:text-black transition-colors rounded-lg hover:bg-gray-50 cursor-pointer"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-900 text-white hover:bg-black text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
                                 >
-                                    <User className="w-5 h-5 md:w-6 md:h-6" />
-                                    <span className="text-[10px] font-bold mt-0.5 hidden md:block">Login</span>
+                                    <User className="w-3.5 h-3.5" />
+                                    <span className="hidden xs:inline">Login</span>
                                 </button>
                             )}
 
+                            {/* ELEGANT PROFILE DROPDOWN */}
                             {isLoggedIn && isProfileMenuOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl py-2 z-50 transition-all duration-200">
+                                <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-fadeIn">
+                                    <div className="px-4 py-2 border-b border-gray-100">
+                                        <p className="text-[10px] font-black uppercase text-gray-400">Signed in as</p>
+                                        <p className="text-xs font-extrabold text-gray-900 truncate">{userName}</p>
+                                    </div>
+
                                     <button 
                                         onClick={() => { setIsProfileMenuOpen(false); navigate("/profile"); }}
-                                        className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                        className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                     >
-                                        <User className="w-4 h-4 text-gray-500" /> Profile Dashboard
+                                        <User className="w-4 h-4 text-gray-400" /> Profile Dashboard
                                     </button>
+
                                     <button 
                                         onClick={() => { setIsProfileMenuOpen(false); navigate("/orders"); }}
-                                        className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                        className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                     >
-                                        <Package className="w-4 h-4 text-gray-500" /> My Orders
+                                        <Package className="w-4 h-4 text-gray-400" /> My Orders
                                     </button>
-                                    <hr className="my-1 border-gray-100" />
+
+                                    <div className="my-1 border-t border-gray-100" />
+
                                     <button 
                                         onClick={handleLogout}
-                                        className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                        className="w-full text-left px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                     >
-                                        <LogOut className="w-4 h-4" /> Logout
+                                        <LogOut className="w-4 h-4" /> Logout Session
                                     </button>
                                 </div>
                             )}
                         </div>
 
-                        {/* CART BUTTON WITH BADGE */}
+                        {/* SHOPPING CART BUTTON WITH HIGHLIGHT BADGE */}
                         <button 
                             onClick={() => navigate("/cart")} 
-                            className="flex flex-col items-center justify-center p-1 sm:p-1.5 md:px-2.5 text-gray-700 hover:text-black transition-colors rounded-lg hover:bg-gray-50 relative cursor-pointer"
+                            className="flex items-center gap-2 bg-gray-900 hover:bg-black text-white px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95 relative"
                         >
-                            <div className="relative">
-                                <ShoppingBag className="w-5 h-5 md:w-6 md:h-6" />
-                                {isCartLoading ? (
-                                    <span className="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-gray-200 animate-pulse border-2 border-white" />
-                                ) : cartCount > 0 ? (
-                                    <span 
-                                        className="absolute -top-1.5 -right-2 text-black text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-xs"
-                                        style={{ backgroundColor: '#A5CE00' }}
-                                    >
-                                        {cartCount}
-                                    </span>
-                                ) : null}
-                            </div>
-                            <span className="text-[10px] font-bold mt-0.5 hidden md:block">Cart</span>
+                            <ShoppingBag className="w-4 h-4 text-[#A5CE00]" />
+                            <span className="hidden sm:inline">Cart</span>
+                            {isCartLoading ? (
+                                <span className="w-4 h-4 rounded-full bg-gray-700 animate-pulse" />
+                            ) : cartCount > 0 ? (
+                                <span 
+                                    className="bg-[#A5CE00] text-black text-[10px] font-black px-1.5 py-0.5 rounded-md min-w-[18px] text-center"
+                                >
+                                    {cartCount}
+                                </span>
+                            ) : null}
                         </button>
 
                     </div>
                 </div>
 
-                {/* HORIZONTAL CATEGORY SCROLLER WITH FIXED CHEVRON RIGHT BUTTON */}
-                <div className="border-t border-gray-100 bg-white">
-                    <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center relative">
+                {/* HORIZONTAL CATEGORY NAVIGATION BAR WITH FADE MASKS */}
+                <div className="border-t border-gray-100/80 bg-white/50 backdrop-blur-md">
+                    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center relative">
                         
-                        {/* SCROLLABLE CATEGORIES LIST */}
+                        {/* CATEGORY SCROLLER */}
                         <div 
                             ref={scrollContainerRef}
-                            className="flex items-center gap-5 md:gap-8 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-2.5 text-xs md:text-sm font-semibold text-gray-600 whitespace-nowrap flex-1 scroll-smooth pr-10"
+                            className="flex items-center gap-2 sm:gap-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-2 text-xs font-bold text-gray-600 whitespace-nowrap flex-1 scroll-smooth pr-10"
                         >
-                            {/* ALL TAB */}
+                            {/* ALL CATEGORIES BUTTON - ALWAYS VISIBLE */}
                             <button
                                 onClick={() => handleCategorySelect('All')}
-                                className={`flex items-center gap-1.5 py-1 px-1 transition-all duration-200 relative cursor-pointer ${
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                                     selectedCategory && selectedCategory.toLowerCase() === 'all' 
-                                        ? 'text-gray-900 font-bold' 
-                                        : 'hover:text-gray-900'
+                                        ? 'bg-gray-900 text-white font-black shadow-2xs' 
+                                        : 'hover:bg-gray-100 text-gray-700'
                                 }`}
                             >
-                                <ShoppingBag className="w-4 h-4" style={{ color: selectedCategory && selectedCategory.toLowerCase() === 'all' ? '#A5CE00' : 'currentColor' }} />
-                                <span>All</span>
-                                {selectedCategory && selectedCategory.toLowerCase() === 'all' && (
-                                    <span 
-                                        className="absolute bottom-0 left-0 w-full h-[2.5px] rounded-full transition-all duration-300" 
-                                        style={{ backgroundColor: '#A5CE00' }}
-                                    />
-                                )}
+                                <LayoutGrid className="w-3.5 h-3.5" style={{ color: selectedCategory && selectedCategory.toLowerCase() === 'all' ? '#A5CE00' : 'currentColor' }} />
+                                <span>All Categories</span>
                             </button>
 
-                            {/* CATEGORIES LIST */}
+                            {/* DYNAMIC CATEGORY PILLS */}
                             {isCategoriesLoading ? (
-                                Array.from({ length: 7 }).map((_, index) => (
-                                    <div key={index} className="flex items-center gap-2 py-1 px-2 animate-pulse">
-                                        <div className="w-4 h-4 bg-gray-200 rounded-full" />
-                                        <div className="w-16 md:w-20 h-3.5 bg-gray-200 rounded-md" />
-                                    </div>
+                                Array.from({ length: 6 }).map((_, index) => (
+                                    <div key={index} className="h-7 w-20 bg-gray-100 rounded-xl animate-pulse" />
                                 ))
                             ) : (
                                 categories.map((cat) => {
@@ -793,36 +875,30 @@ const Navbar = () => {
                                         <button
                                             key={cat.id || cat.name}
                                             onClick={() => handleCategorySelect(cat.name)}
-                                            className={`flex items-center gap-2 py-1 px-1 capitalize transition-all duration-200 relative cursor-pointer ${
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl capitalize transition-all cursor-pointer ${
                                                 isSelected 
-                                                    ? 'text-gray-900 font-bold' 
-                                                    : 'hover:text-gray-900'
+                                                    ? 'bg-gray-900 text-white font-black shadow-2xs' 
+                                                    : 'hover:bg-gray-100 text-gray-700'
                                             }`}
                                         >
                                             <span style={{ color: isSelected ? '#A5CE00' : 'inherit' }}>
                                                 {getCategoryIcon(cat.name)}
                                             </span>
                                             <span>{cat.name}</span>
-                                            {isSelected && (
-                                                <span 
-                                                    className="absolute bottom-0 left-0 w-full h-[2.5px] rounded-full transition-all duration-300" 
-                                                    style={{ backgroundColor: '#A5CE00' }}
-                                                />
-                                            )}
                                         </button>
                                     );
                                 })
                             )}
                         </div>
 
-                        {/* FIXED SCROLL RIGHT BUTTON ON THE RIGHT EDGE */}
-                        <div className="absolute right-2 top-0 bottom-0 flex items-center bg-gradient-to-l from-white via-white/90 to-transparent pl-4">
+                        {/* RIGHT CHEVRON NAVIGATION ACTION */}
+                        <div className="absolute right-2 top-0 bottom-0 flex items-center bg-gradient-to-l from-white via-white/80 to-transparent pl-6 pointer-events-none">
                             <button
                                 onClick={handleNextCategoryScroll}
-                                className="p-1.5 rounded-full bg-[#A5CE00] hover:bg-[#8DAF00] transition-all cursor-pointer shadow-xs active:scale-90"
-                                title="Scroll Next Categories"
+                                className="pointer-events-auto p-1.5 rounded-xl bg-gray-900 hover:bg-black text-white transition-all cursor-pointer shadow-xs active:scale-90"
+                                title="Next Categories"
                             >
-                                <ChevronsRight className="w-4 h-4" />
+                                <ChevronRight className="w-3.5 h-3.5 text-[#A5CE00]" />
                             </button>
                         </div>
 
@@ -833,18 +909,20 @@ const Navbar = () => {
             {/* LOCATION SELECTOR POPUP MODAL */}
             {isLocationModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
-                    <div className="bg-white border border-gray-100 w-full max-w-md rounded-2xl p-6 relative space-y-5 shadow-2xl text-left animate-fadeIn">
+                    <div className="bg-white border border-gray-100 w-full max-w-md rounded-3xl p-6 relative space-y-5 shadow-2xl text-left animate-fadeIn">
                         
                         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                             <div className="flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-emerald-600" />
+                                <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+                                    <MapPin className="w-4 h-4 text-emerald-600" />
+                                </div>
                                 <h3 className="text-sm font-black uppercase text-gray-900 tracking-wide">
-                                    Change Delivery Location
+                                    Select Delivery Location
                                 </h3>
                             </div>
                             <button 
                                 onClick={() => setIsLocationModalOpen(false)}
-                                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-black cursor-pointer"
+                                className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-black cursor-pointer"
                             >
                                 <X className="w-4 h-4" />
                             </button>
@@ -852,22 +930,22 @@ const Navbar = () => {
 
                         {/* PERMISSION BLOCKED INSTRUCTIONAL BOX */}
                         {isPermissionBlocked ? (
-                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-left">
+                            <div className="p-4 bg-amber-50 border border-amber-200/80 rounded-2xl space-y-2 text-left">
                                 <div className="flex items-center gap-2 text-amber-800 font-extrabold text-xs">
                                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                                    <span>Location Permission is Blocked</span>
+                                    <span>Location Permission Blocked</span>
                                 </div>
                                 <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
                                     Your browser has blocked location access for this site. To unblock:
                                 </p>
                                 <ol className="text-[11px] text-amber-900 space-y-1 pl-4 list-decimal font-medium">
-                                    <li>Click the <strong>Tune / Settings icon</strong> next to the URL address bar above.</li>
-                                    <li>Set <strong>Location</strong> permission to <strong>Allow</strong> or <strong>Reset</strong>.</li>
-                                    <li>Click below to try again.</li>
+                                    <li>Click the <strong>Settings icon</strong> next to the URL address bar.</li>
+                                    <li>Set <strong>Location</strong> permission to <strong>Allow</strong>.</li>
+                                    <li>Click below to refresh.</li>
                                 </ol>
                                 <button
                                     onClick={() => requestLiveLocation(false)}
-                                    className="mt-2 w-full flex items-center justify-center gap-2 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                                    className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
                                 >
                                     <RefreshCw className={`w-3.5 h-3.5 ${isLocationLoading ? 'animate-spin' : ''}`} />
                                     <span>Re-check Permission</span>
@@ -878,18 +956,18 @@ const Navbar = () => {
                             <button
                                 onClick={() => requestLiveLocation(false)}
                                 disabled={isLocationLoading}
-                                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-white font-extrabold text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer active:scale-98 disabled:opacity-50"
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl text-gray-900 font-black text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer active:scale-98 disabled:opacity-50"
                                 style={{ backgroundColor: '#A5CE00' }}
                             >
                                 <Navigation className={`w-4 h-4 ${isLocationLoading ? 'animate-spin' : ''}`} />
-                                <span>{isLocationLoading ? 'Detecting Street & Pincode...' : 'Use Current GPS Location'}</span>
+                                <span>{isLocationLoading ? 'Detecting Location...' : 'Use Current GPS Location'}</span>
                             </button>
                         )}
 
                         <div className="flex items-center gap-2">
-                            <div className="flex-1 h-[1px] bg-gray-200" />
-                            <span className="text-[10px] font-bold text-gray-400 uppercase">OR SELECT CITY</span>
-                            <div className="flex-1 h-[1px] bg-gray-200" />
+                            <div className="flex-1 h-[1px] bg-gray-100" />
+                            <span className="text-[10px] font-black text-gray-400 uppercase">OR SEARCH CITY</span>
+                            <div className="flex-1 h-[1px] bg-gray-100" />
                         </div>
 
                         {/* MANUAL INPUT */}
@@ -898,13 +976,13 @@ const Navbar = () => {
                                 type="text"
                                 value={manualCityInput}
                                 onChange={(e) => setManualCityInput(e.target.value)}
-                                placeholder="Enter Area, City or Pincode..."
-                                className="flex-1 bg-gray-50 border border-gray-200 focus:bg-white focus:border-gray-400 rounded-xl px-3.5 py-2.5 text-xs font-medium text-gray-900 outline-none"
+                                placeholder="Enter City or Pincode..."
+                                className="flex-1 bg-gray-50 border border-gray-200 focus:bg-white focus:border-gray-400 rounded-2xl px-4 py-2.5 text-xs font-bold text-gray-900 outline-none"
                             />
                             <button
                                 onClick={() => handleSelectManualLocation(manualCityInput)}
                                 disabled={!manualCityInput.trim()}
-                                className="px-4 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold uppercase rounded-xl disabled:opacity-50 cursor-pointer"
+                                className="px-4 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-extrabold uppercase rounded-2xl disabled:opacity-50 cursor-pointer"
                             >
                                 Apply
                             </button>
@@ -912,8 +990,8 @@ const Navbar = () => {
 
                         {/* POPULAR CITIES */}
                         <div className="space-y-2 pt-1">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Popular Delivery Hubs</span>
-                            <div className="flex flex-wrap gap-2">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Popular Hubs</span>
+                            <div className="flex flex-wrap gap-1.5">
                                 {POPULAR_CITIES.map((city) => {
                                     const isCurrent = userLocationText.toLowerCase().includes(city.toLowerCase());
                                     return (
@@ -922,8 +1000,8 @@ const Navbar = () => {
                                             onClick={() => handleSelectManualLocation(city)}
                                             className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
                                                 isCurrent 
-                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                                                    : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-extrabold'
+                                                    : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200/80'
                                             }`}
                                         >
                                             {isCurrent && <Check className="w-3 h-3 text-emerald-600" />}
@@ -940,5 +1018,4 @@ const Navbar = () => {
         </>
     )
 }
-
 export default Navbar;
