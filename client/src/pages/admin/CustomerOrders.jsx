@@ -22,7 +22,7 @@ const CustomerOrders = () => {
       })
       if (response.ok) {
         const data = await response.json()
-        setOrders(data)
+        setOrders(Array.isArray(data) ? data : [])
       } else {
         toast.error("Failed to synchronize customer orders ledger.")
       }
@@ -56,7 +56,7 @@ const CustomerOrders = () => {
 
   const handleOpenTrackingPanel = (order) => {
     setSelectedOrder(order)
-    setChosenStatus(order.status)
+    setChosenStatus(order.status || 'Preparing for Dispatch')
     setInputDate('')
   }
 
@@ -121,6 +121,7 @@ const CustomerOrders = () => {
   }
 
   const getNormalizedItems = (itemsData) => {
+    if (!itemsData) return []
     if (Array.isArray(itemsData)) return itemsData
     if (typeof itemsData === 'string') {
       try {
@@ -141,18 +142,18 @@ const CustomerOrders = () => {
     )
   }
 
-  // Common Tailwind custom scrollbar design utility class string
   const customScrollbarClasses = "scrollbar-none [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 space-y-8 bg-royal-dark min-h-screen text-white relative rounded-2xl">
       <div className="relative z-10 text-left border-b border-white/5 pb-6">
-        <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white"><span className='text-lime-400'>Customer</span> Orders</h2>
+        <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white">
+          <span className='text-lime-400'>Customer</span> Orders ({orders.length})
+        </h2>
         <p className="text-xs text-gray-400 mt-1">Modify logistics tracking pipelines and manage global shipping logs maps.</p>
       </div>
 
       <div className="bg-royal-main/20 border border-white/5 rounded-2xl p-4 sm:p-6 shadow-2xl relative z-10 backdrop-blur-md text-left">
-        {/* Horizontal table element styling with sleek WebKit override configurations */}
         <div className={`overflow-x-auto rounded-xl border border-white/5 bg-royal-dark/40 pb-2 ${customScrollbarClasses}`}>
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
@@ -167,68 +168,88 @@ const CustomerOrders = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-xs text-gray-200">
-              {orders.map((order) => {
-                const normalizedItems = getNormalizedItems(order.items);
-                return (
-                  <tr key={order.id} className="hover:bg-royal-main/30 transition-colors">
-                    <td className="p-4 font-mono text-lime-accent font-bold whitespace-nowrap text-left">{order.id}</td>
-                    <td className="p-4 space-y-1 text-left">
-                      <div className="font-bold text-white flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-gray-400" /> {order.customer}</div>
-                      <div className="text-[11px] text-gray-400 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-500" /> {order.email}</div>
-                      <div className="text-[11px] text-gray-400 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-500" /> {order.phone}</div>
-                    </td>
-                    <td className="p-4">
-                      <button 
-                        onClick={() => setViewingAddressOrder(order)}
-                        className="inline-flex items-center gap-2 text-left group bg-white/5 border border-white/5 hover:border-white/10 px-3 py-2 rounded-xl transition-all cursor-pointer w-full max-w-[220px]"
-                      >
-                        <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span className="text-[11px] leading-relaxed text-gray-300 truncate flex-1 group-hover:text-white">
-                          {order.address || 'No Address Mapped'}
-                        </span>
-                        <Eye className="w-3.5 h-3.5 text-white/20 group-hover:text-emerald-400 flex-shrink-0 transition-colors" />
-                      </button>
-                    </td>
-                    <td className="p-4">
-                      {normalizedItems.length > 0 ? (
+              {orders.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center text-gray-400 font-mono text-xs">
+                    No orders registered in system.
+                  </td>
+                </tr>
+              ) : (
+                orders.map((order) => {
+                  const normalizedItems = getNormalizedItems(order.items);
+                  const customerName = order.customer || order.user_name || order.userName || 'Customer';
+                  const customerEmail = order.email || order.user_email || 'No email';
+                  const customerPhone = order.phone || order.user_phone || 'No phone';
+
+                  return (
+                    <tr key={order.id} className="hover:bg-royal-main/30 transition-colors">
+                      <td className="p-4 font-mono text-lime-accent font-bold whitespace-nowrap text-left">{order.id}</td>
+                      <td className="p-4 space-y-1 text-left">
+                        <div className="font-bold text-white flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-gray-400" /> {customerName}
+                        </div>
+                        <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-gray-500" /> {customerEmail}
+                        </div>
+                        <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-gray-500" /> {customerPhone}
+                        </div>
+                      </td>
+                      <td className="p-4">
                         <button 
-                          onClick={() => setViewingItemsOrder(order)}
-                          className="inline-flex items-center gap-2 text-left group bg-white/5 border border-white/5 hover:border-white/10 px-3 py-2 rounded-xl transition-all cursor-pointer max-w-[200px]"
+                          onClick={() => setViewingAddressOrder(order)}
+                          className="inline-flex items-center gap-2 text-left group bg-white/5 border border-white/5 hover:border-white/10 px-3 py-2 rounded-xl transition-all cursor-pointer w-full max-w-[220px]"
                         >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-white group-hover:text-emerald-400 font-bold text-[11px] truncate uppercase tracking-wide">
-                              {normalizedItems[0]?.name || "View Items"}
-                            </p>
-                            <p className="text-[10px] text-gray-400 font-mono mt-0.5">
-                              {normalizedItems.length > 1 ? `+ ${normalizedItems.length - 1} more items` : '1 Item listed'}
-                            </p>
-                          </div>
-                          <Eye className="w-3.5 h-3.5 text-white/40 group-hover:text-emerald-400 flex-shrink-0 transition-colors" />
+                          <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                          <span className="text-[11px] leading-relaxed text-gray-300 truncate flex-1 group-hover:text-white">
+                            {order.address || 'No Address Mapped'}
+                          </span>
+                          <Eye className="w-3.5 h-3.5 text-white/20 group-hover:text-emerald-400 flex-shrink-0 transition-colors" />
                         </button>
-                      ) : (
-                        <span className="text-gray-500 font-mono text-[11px]">No items listed</span>
-                      )}
-                    </td>
-                    <td className="p-4 font-bold text-white whitespace-nowrap text-left">{order.total || `₹${order.totalPrice}`}</td>
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <span className={`inline-block text-[10px] font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${getStatusBadgeStyle(order.status)}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <button onClick={() => handleOpenTrackingPanel(order)} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 hover:bg-emerald-500 hover:text-white transition-all cursor-pointer">
-                        <span>Change Status</span><ArrowRight className="w-3 h-3" />
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
+                      </td>
+                      <td className="p-4">
+                        {normalizedItems.length > 0 ? (
+                          <button 
+                            onClick={() => setViewingItemsOrder(order)}
+                            className="inline-flex items-center gap-2 text-left group bg-white/5 border border-white/5 hover:border-white/10 px-3 py-2 rounded-xl transition-all cursor-pointer max-w-[200px]"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white group-hover:text-emerald-400 font-bold text-[11px] truncate uppercase tracking-wide">
+                                {normalizedItems[0]?.name || normalizedItems[0]?.product_name || "View Items"}
+                              </p>
+                              <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                                {normalizedItems.length > 1 ? `+ ${normalizedItems.length - 1} more items` : '1 Item listed'}
+                              </p>
+                            </div>
+                            <Eye className="w-3.5 h-3.5 text-white/40 group-hover:text-emerald-400 flex-shrink-0 transition-colors" />
+                          </button>
+                        ) : (
+                          <span className="text-gray-500 font-mono text-[11px]">No items listed</span>
+                        )}
+                      </td>
+                      <td className="p-4 font-bold text-white whitespace-nowrap text-left">
+                        {order.total || `₹${order.totalPrice || order.total_price || 0}`}
+                      </td>
+                      <td className="p-4 text-center whitespace-nowrap">
+                        <span className={`inline-block text-[10px] font-bold uppercase tracking-wider border px-3 py-1 rounded-full ${getStatusBadgeStyle(order.status)}`}>
+                          {order.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center whitespace-nowrap">
+                        <button onClick={() => handleOpenTrackingPanel(order)} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 hover:bg-emerald-500 hover:text-white transition-all cursor-pointer">
+                          <span>Change Status</span><ArrowRight className="w-3 h-3" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* PORTAL POPUP 1: CLEAN VIEW PRODUCTS MANIFEST BREAKDOWN */}
+      {/* PORTAL POPUP 1: VIEW PRODUCTS */}
       {viewingItemsOrder && createPortal(
         <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
           <div className="bg-royal-dark border border-white/10 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative space-y-6 text-white">
@@ -281,14 +302,14 @@ const CustomerOrders = () => {
 
             <div className="bg-white/[0.02] border border-white/5 p-4 rounded-xl flex items-center justify-between font-mono text-xs">
               <span className="text-gray-400 uppercase font-bold">Total Order Cost:</span>
-              <span className="text-base text-white font-black">{viewingItemsOrder.total || `₹${viewingItemsOrder.totalPrice || 0}`}</span>
+              <span className="text-base text-white font-black">{viewingItemsOrder.total || `₹${viewingItemsOrder.totalPrice || viewingItemsOrder.total_price || 0}`}</span>
             </div>
           </div>
         </div>,
         document.body
       )}
 
-      {/* PORTAL POPUP 2: BIG CLEAR SHIPPING ADDRESS POPUP */}
+      {/* PORTAL POPUP 2: SHIPPING ADDRESS */}
       {viewingAddressOrder && createPortal(
         <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
           <div className="bg-royal-dark border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative space-y-5 text-white">
@@ -341,7 +362,7 @@ const CustomerOrders = () => {
         document.body
       )}
 
-      {/* PORTAL POPUP 3: LOGISTICS CONFIGURATION MATRIX STATUS UPDATER */}
+      {/* PORTAL POPUP 3: LOGISTICS STATUS UPDATER */}
       {selectedOrder && createPortal(
         <div className="fixed inset-0 z-[99999] overflow-y-auto flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
           <div className="bg-royal-dark border border-white/10 w-full max-w-xl rounded-3xl p-6 shadow-2xl relative space-y-6 text-white">

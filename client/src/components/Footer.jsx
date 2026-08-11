@@ -159,11 +159,12 @@ import {
   FaTwitter,
   FaInstagram,
   FaLinkedin,
-  FaPaperPlane,
   FaLock,
   FaRedo,
   FaTruck,
   FaArrowUp,
+  FaGooglePlay,
+  FaApple,
 } from "react-icons/fa";
 
 import Logo from "../assets/logo.png";
@@ -173,13 +174,12 @@ const Footer = () => {
 
   const footerLinks = [
     {
-      title: "Products",
+      title: "Company",
       items: [
+        { name: "About Us", path: "/about" },
         { name: "All Products", path: "/allproducts" },
-        { name: "T-Shirts", path: "/products/t-shirts" },
-        { name: "Shoes", path: "/products/shoes" },
-        { name: "Watches", path: "/products/watches" },
-        { name: "Belts", path: "/products/belts" },
+        { name: "Terms & Conditions", path: "/terms-and-conditions" },
+        { name: "Privacy Policy", path: "/privacy-policy" },
       ],
     },
     {
@@ -246,7 +246,7 @@ const Footer = () => {
             />
             <div>
               <h4 className="font-extrabold text-xs uppercase tracking-wider text-gray-900">Hassle-Free Returns</h4>
-              <p className="text-gray-500 text-xs mt-1 font-medium">Easy 14-day replacement & return guarantee.</p>
+              <p className="text-gray-500 text-xs mt-1 font-medium">Easy replacement & return guarantee.</p>
             </div>
           </div>
         </div>
@@ -309,28 +309,39 @@ const Footer = () => {
             ))}
           </div>
 
-          {/* NEWSLETTER COLUMN */}
+          {/* DOWNLOAD OUR APP COLUMN */}
           <div className="lg:col-span-3 space-y-4">
-            <h3 className="font-black text-xs uppercase tracking-widest text-gray-900">Newsletter Transmissions</h3>
+            <h3 className="font-black text-xs uppercase tracking-widest text-gray-900">Download Our App</h3>
             <p className="text-gray-500 text-xs font-medium leading-relaxed">
-              Subscribe to unlock early alerts on upcoming discount drops and inventory offers.
+              Get the fastest grocery & essentials delivery experience on your mobile phone.
             </p>
-            <div className="relative flex items-center group mt-2">
-              <input 
-                type="email" 
-                placeholder="Enter your email address..." 
-                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs outline-none font-medium text-gray-900 placeholder-gray-400 focus:border-gray-400 transition-all pr-12 shadow-sm" 
-              />
-              <button 
-                onClick={(e) => e.preventDefault()} 
-                aria-label="Submit transmission" 
-                className="absolute right-1.5 p-2 rounded-lg text-black active:scale-95 shadow-sm transition-all duration-300 cursor-pointer"
-                style={{ backgroundColor: '#A5CE00' }}
+            <div className="space-y-3 pt-1">
+              <a 
+                href="#" 
+                onClick={(e) => e.preventDefault()}
+                className="flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-4 py-2.5 rounded-xl border border-gray-800 transition-all duration-300 shadow-sm active:scale-95 w-full"
               >
-                <FaPaperPlane className="text-xs" />
-              </button>
+                <FaGooglePlay className="text-xl text-[#A5CE00] shrink-0" />
+                <div className="text-left">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider leading-none">Get it on</p>
+                  <p className="text-xs font-black tracking-tight leading-tight mt-0.5">Google Play</p>
+                </div>
+              </a>
+
+              <a 
+                href="#" 
+                onClick={(e) => e.preventDefault()}
+                className="flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-4 py-2.5 rounded-xl border border-gray-800 transition-all duration-300 shadow-sm active:scale-95 w-full"
+              >
+                <FaApple className="text-2xl text-white shrink-0" />
+                <div className="text-left">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider leading-none">Download on the</p>
+                  <p className="text-xs font-black tracking-tight leading-tight mt-0.5">App Store</p>
+                </div>
+              </a>
             </div>
           </div>
+
         </div>
 
         {/* BOTTOM COPYRIGHT & LEGAL BAR */}
