@@ -81,6 +81,11 @@ const App = () => {
         <Route path="/product/:id" element={<ProductDetailView />} />
         <Route path="/about" element={<About />} />
 
+        <Route path="/temp-navigation" element={<TempNavigation />} />
+        <Route path="terms-and-conditions" element={<TermsCondition />} />
+        <Route path="privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="shipping-policy" element={<ShippingPolicy />} />
+
         <Route path="loader" element={<EcommerceLoader />} />
 
         {/* AUTH BLOCKING ENTRY CHANNELS */}
@@ -92,12 +97,6 @@ const App = () => {
           <Route path="/seller/signup" element={<SellerRegister />} />
           <Route path="/marketing/login" element={<MarketLogin />} />
           <Route path="/marketing/signup" element={<MarketSignup />} />
-
-          <Route path="/temp-navigation" element={<TempNavigation />} />
-
-          <Route path="terms-and-conditions" element={<TermsCondition />} />
-          <Route path="privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="shipping-policy" element={<ShippingPolicy />} />
         </Route>
 
         {/* SECURED SELLER */}

@@ -17,7 +17,7 @@ const TempNavigation = () => {
   const portalSections = [
     {
       title: "Customer Portal",
-      icon: <FaUser className="text-lime-400" />,
+      icon: <FaUser className="text-emerald-600" />,
       description: "Standard buyer authentication channels",
       routes: [
         { label: "Login", path: "/login", icon: <FaSignInAlt />, primary: true },
@@ -26,7 +26,7 @@ const TempNavigation = () => {
     },
     {
       title: "Seller Portal",
-      icon: <FaStore className="text-lime-400" />,
+      icon: <FaStore className="text-emerald-600" />,
       description: "Merchant onboarding and management access",
       routes: [
         { label: "Seller Login", path: "/seller/login", icon: <FaSignInAlt />, primary: true },
@@ -35,7 +35,7 @@ const TempNavigation = () => {
     },
     {
       title: "Marketing Partner Portal",
-      icon: <FaBullhorn className="text-lime-400" />,
+      icon: <FaBullhorn className="text-emerald-600" />,
       description: "Affiliate and marketing agent access",
       routes: [
         { label: "Marketer Login", path: "/marketing/login", icon: <FaSignInAlt />, primary: true },
@@ -44,34 +44,37 @@ const TempNavigation = () => {
     },
     {
       title: "Admin & Branch Portals",
-      icon: <FaUserShield className="text-lime-400" />,
+      icon: <FaUserShield className="text-emerald-600" />,
       description: "Administrative & branch operations control",
       routes: [
-        { label: "Super Admin Dashboard", path: "/admin/dashboard", icon: <FaArrowRight />, primary: true },
-        { label: "Branch Admin Dashboard", path: "/branch-admin/dashboard", icon: <FaArrowRight /> },
+        { label: "Super Admin", path: "/admin/dashboard", icon: <FaArrowRight />, primary: true },
+        { label: "Branch Admin", path: "/branch-admin/dashboard", icon: <FaArrowRight /> },
       ],
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[#071640] text-white p-4 md:p-10 flex flex-col justify-between selection:bg-lime-400 selection:text-[#071640]">
+    <div className="min-h-screen bg-gray-50 text-gray-900 p-4 md:p-8 flex flex-col justify-between font-sans">
       {/* HEADER SECTION */}
       <div className="max-w-6xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-8 mb-8 border-b border-white/10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-gray-200">
           <div>
-            <span className="text-[10px] font-black tracking-widest text-lime-400 uppercase bg-lime-400/10 border border-lime-400/20 px-3 py-1 rounded-full">
-              Developer & Navigation Switcher
+            <span 
+              className="text-[10px] font-black tracking-wider uppercase px-3 py-1 rounded-md text-white inline-block mb-1"
+              style={{ backgroundColor: '#A5CE00' }}
+            >
+              Developer Switcher
             </span>
-            <h1 className="text-2xl md:text-4xl font-black uppercase tracking-wider mt-2">
-              Portal <span className="text-lime-400 font-light">Navigation Matrix</span>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">
+              Portal <span style={{ color: '#A5CE00' }}>Navigation Matrix</span>
             </h1>
           </div>
 
           <Link
             to="/"
-            className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold transition-all text-white/80 hover:text-white"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold transition-all text-gray-700 shadow-xs"
           >
-            <FaHome className="text-lime-400" />
+            <FaHome className="text-emerald-600" />
             <span>Back to Storefront</span>
           </Link>
         </div>
@@ -81,18 +84,18 @@ const TempNavigation = () => {
           {portalSections.map((section, idx) => (
             <div
               key={idx}
-              className="bg-white/[0.02] border border-white/10 hover:border-lime-400/30 rounded-2xl p-6 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between group"
+              className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group"
             >
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-xl bg-lime-400/10 border border-lime-400/20 flex items-center justify-center text-lg">
+                <div className="flex items-center gap-3.5 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-lg shrink-0">
                     {section.icon}
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-white tracking-wide">
+                    <h2 className="text-sm font-extrabold text-gray-900 tracking-tight">
                       {section.title}
                     </h2>
-                    <p className="text-xs text-white/40">{section.description}</p>
+                    <p className="text-xs text-gray-400 font-medium">{section.description}</p>
                   </div>
                 </div>
               </div>
@@ -103,14 +106,14 @@ const TempNavigation = () => {
                   <button
                     key={rIdx}
                     onClick={() => navigate(route.path)}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-95 ${
+                    className={`flex items-center justify-center gap-2 px-3.5 py-3 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-98 ${
                       route.primary
-                        ? "bg-lime-400 hover:bg-lime-300 text-[#071640] shadow-[0_0_15px_rgba(165,206,0,0.2)]"
-                        : "bg-white/5 hover:bg-white/10 border border-white/10 text-white"
+                        ? "bg-[#A5CE00] hover:bg-[#8DA800] text-white shadow-sm"
+                        : "bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700"
                     }`}
                   >
                     <span>{route.icon}</span>
-                    <span>{route.label}</span>
+                    <span className="truncate">{route.label}</span>
                   </button>
                 ))}
               </div>
@@ -120,8 +123,8 @@ const TempNavigation = () => {
       </div>
 
       {/* FOOTER */}
-      <div className="max-w-6xl mx-auto w-full pt-10 text-center border-t border-white/5 mt-10">
-        <p className="text-xs text-white/30 font-mono">
+      <div className="max-w-6xl mx-auto w-full pt-8 text-center border-t border-gray-200 mt-10">
+        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
           AVG Mart Onboarding & Auth Switcher • Dev Utility
         </p>
       </div>
