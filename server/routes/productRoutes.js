@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { createProduct, getAllProducts, getProductById, updateProduct, deleteProduct } from '../controllers/productController.js';
+import { createProduct, getAllProducts, getProductById, getFilteredProducts, updateProduct, deleteProduct } from '../controllers/productController.js';
 import { addProductReview, getProductReviews } from "../controllers/reviewController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import { uploadFiles } from '../middleware/upload.js'; 
 
 const router = Router();
 
+router.get('/filter', getFilteredProducts);
 // Standard Product Catalogs
 router.get('/', getAllProducts);
 router.get('/:id', getProductById);
