@@ -150,7 +150,6 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// Dedicated API for mobile app pagination and filtering with built-in fallback
 export const getFilteredProducts = async (req, res) => {
   try {
     let { 
@@ -172,35 +171,19 @@ export const getFilteredProducts = async (req, res) => {
 
     let rawProducts = [];
 
-    // Check if ProductModel has a native findAndFilter method, otherwise fallback gracefully
-    if (typeof ProductModel.findAndFilter === 'function') {
-      const result = await ProductModel.findAndFilter({
-        sellerId,
-        category: category && category !== 'All' ? category : null,
-        search,
-        maxPrice: maxPrice ? Number(maxPrice) : null,
-        sortBy,
-        limit,
-        offset: (page - 1) * limit
-      });
-      return res.status(200).json({
-        success: true,
-        totalProducts: result.totalCount,
-        totalPages: Math.ceil(result.totalCount / limit),
-        currentPage: page,
-        pageSize: limit,
-        products: result.products.map(item => formatProduct(item))
-      });
-    }
-
-    // FALLBACK: If findAndFilter doesn't exist on ProductModel, fetch all and filter in memory
+    // Always use standard findAll to fetch dataset reliably, preventing database crash errors
     if (sellerId) {
       rawProducts = await ProductModel.findAll(sellerId);
     } else {
       rawProducts = await ProductModel.findAll();
     }
 
-    // Apply Filters in memory
+    // Safety check if rawProducts is undefined or not an array
+    if (!Array.isArray(rawProducts)) {
+      rawProducts = [];
+    }
+
+    // Apply Filters safely in memory
     let filtered = rawProducts.filter(item => {
       const targetPrice = Number(item.offer_price || item.offerPrice || item.original_price || item.originalPrice || 0);
       const itemCategory = item.category || '';
@@ -220,14 +203,14 @@ export const getFilteredProducts = async (req, res) => {
       return matchesSearch && matchesCategory && matchesPrice;
     });
 
-    // Apply Sorting
+    // Apply Sorting safely
     filtered.sort((a, b) => {
       const priceA = Number(a.offer_price || a.offerPrice || a.original_price || a.originalPrice || 0);
-      const priceB = Number(b.offer_price || b.offerPrice || b.original_price || b.originalPrice || 0);
+      const priceB = Number(b.offer_price || b.offerPrice || a.original_price || b.originalPrice || 0);
 
       if (sortBy === 'low-to-high') return priceA - priceB;
       if (sortBy === 'high-to-low') return priceB - priceA;
-      return (b.id || 0) - (a.id || 0); // Default 'featured' / latest
+      return (b.id || 0) - (a.id || 0);
     });
 
     const totalCount = filtered.length;
@@ -235,7 +218,20 @@ export const getFilteredProducts = async (req, res) => {
     const startIndex = (page - 1) * limit;
     const paginatedItems = filtered.slice(startIndex, startIndex + limit);
 
-    const data = paginatedItems.map(item => formatProduct(item));
+    const data = paginatedItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      sizes: item.sizes,
+      description: item.description,
+      originalPrice: item.original_price ?? item.originalPrice,
+      offerPrice: item.offer_price ?? item.offerPrice,
+      branchAdminPrice: item.branch_admin_price ?? item.branchAdminPrice,
+      count: item.count,
+      images: item.images,
+      isFeatured: item.is_featured ?? item.isFeatured,
+      sellerId: item.seller_id ?? item.sellerId
+    }));
 
     return res.status(200).json({
       success: true,
@@ -248,25 +244,9 @@ export const getFilteredProducts = async (req, res) => {
 
   } catch (error) {
     console.error('Error in getFilteredProducts Controller:', error);
-    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    return res.status(500).json({ success: false, message: 'Internal Server Error', error: error.message });
   }
 };
-
-// Helper mapper function to keep code clean
-const formatProduct = (item) => ({
-  id: item.id,
-  name: item.name,
-  category: item.category,
-  sizes: item.sizes,
-  description: item.description,
-  originalPrice: item.original_price ?? item.originalPrice,
-  offerPrice: item.offer_price ?? item.offerPrice,
-  branchAdminPrice: item.branch_admin_price ?? item.branchAdminPrice,
-  count: item.count,
-  images: item.images,
-  isFeatured: item.is_featured ?? item.isFeatured,
-  sellerId: item.seller_id ?? item.sellerId
-});
 
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
