@@ -6,7 +6,9 @@ import { uploadFiles } from '../middleware/upload.js';
 
 const router = Router();
 
+// CRITICAL FIX: Place /filter BEFORE /:id so Express doesn't treat 'filter' as a product ID
 router.get('/filter', getFilteredProducts);
+
 // Standard Product Catalogs
 router.get('/', getAllProducts);
 router.get('/:id', getProductById);
