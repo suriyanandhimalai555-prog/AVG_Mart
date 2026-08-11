@@ -371,10 +371,10 @@
 // export default Navbar
 
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
     Search, ShoppingBag, User, LogOut, ChevronDown, Zap, 
-    Sparkles, Home, Smartphone, Headphones, Shirt, Utensils, Package, MapPin, X, Navigation, Check, AlertCircle, RefreshCw
+    Sparkles, Home, Smartphone, Headphones, Shirt, Utensils, Package, MapPin, X, Navigation, Check, AlertCircle, RefreshCw, ChevronsRight
 } from 'lucide-react'
 import Logo from "../assets/logo.png"
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
@@ -413,6 +413,9 @@ const Navbar = () => {
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
     const [manualCityInput, setManualCityInput] = useState('')
     const [isPermissionBlocked, setIsPermissionBlocked] = useState(false)
+
+    // Reference for Horizontal Category Scroll Container
+    const scrollContainerRef = useRef(null);
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -615,17 +618,24 @@ const Navbar = () => {
         }
     };
 
+    // Smooth Scroll Horizontal Category List to the Right
+    const handleNextCategoryScroll = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+        }
+    };
+
     return (
         <>
             <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-xs transition-all duration-300 font-sans">
                 {/* TOP BAR */}
-                <div className="max-w-7xl mx-auto px-4 md:px-8 py-2.5 md:py-3 flex items-center justify-between gap-3 md:gap-8">
+                <div className="max-w-7xl mx-auto px-2.5 sm:px-4 md:px-8 py-2 md:py-3 flex items-center justify-between gap-2 md:gap-8">
                     
                     {/* BRAND LOGO */}
-                    <div className="flex items-center gap-3 shrink-0">
-                        <div onClick={() => navigate("/")} className="flex items-center gap-2 cursor-pointer select-none group">
-                            <img src={Logo} alt="Logo" className="w-8 h-8 object-contain transition-transform duration-300 group-hover:scale-105" />
-                            <h1 className="text-xl md:text-2xl font-black tracking-tight text-gray-900 hidden sm:block">
+                    <div className="flex items-center gap-2 shrink-0">
+                        <div onClick={() => navigate("/")} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none group">
+                            <img src={Logo} alt="Logo" className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform duration-300 group-hover:scale-105" />
+                            <h1 className="text-base sm:text-xl md:text-2xl font-black tracking-tight text-gray-900 block">
                                 AVG <span style={{ color: '#A5CE00' }}>MART</span>
                             </h1>
                         </div>
@@ -636,15 +646,15 @@ const Navbar = () => {
                         onSubmit={handleSearchSubmit}
                         className="flex-1 max-w-2xl relative flex items-center group"
                     >
-                        <div className="absolute left-3.5 pointer-events-none text-gray-400 group-focus-within:text-gray-700 transition-colors">
-                            <Search className="w-4 h-4 md:w-5 md:h-5" />
+                        <div className="absolute left-3 pointer-events-none text-gray-400 group-focus-within:text-gray-700 transition-colors">
+                            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                         </div>
                         <input
                             type="text"
                             value={navSearchQuery}
                             onChange={(e) => setNavSearchQuery(e.target.value)}
                             placeholder='Search for products, categories or essentials...'
-                            className="w-full bg-gray-50/80 border border-gray-200 hover:border-gray-300 focus:bg-white text-xs md:text-sm text-gray-900 placeholder-gray-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all duration-200 font-medium shadow-xs"
+                            className="w-full bg-gray-50/80 border border-gray-200 hover:border-gray-300 focus:bg-white text-xs md:text-sm text-gray-900 placeholder-gray-400 rounded-xl py-2 sm:py-2.5 pl-8 sm:pl-10 pr-3 outline-none transition-all duration-200 font-medium shadow-xs"
                             onFocus={(e) => e.target.style.borderColor = '#A5CE00'}
                             onBlur={(e) => e.target.style.borderColor = ''}
                         />
@@ -669,14 +679,14 @@ const Navbar = () => {
                     </div>
 
                     {/* ACTIONS: PROFILE & CART */}
-                    <div className="flex items-center gap-2 md:gap-5 shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 md:gap-5 shrink-0">
                         
                         {/* PROFILE DROPDOWN */}
                         <div className="relative">
                             {isLoggedIn ? (
                                 <button 
                                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                    className="flex flex-col items-center justify-center p-1.5 md:px-2.5 text-gray-700 hover:text-black transition-colors rounded-lg hover:bg-gray-50 cursor-pointer"
+                                    className="flex flex-col items-center justify-center p-1 sm:p-1.5 md:px-2.5 text-gray-700 hover:text-black transition-colors rounded-lg hover:bg-gray-50 cursor-pointer"
                                 >
                                     <User className="w-5 h-5 md:w-6 md:h-6" />
                                     <span className="text-[10px] font-bold mt-0.5 hidden md:block">Profile</span>
@@ -684,7 +694,7 @@ const Navbar = () => {
                             ) : (
                                 <button 
                                     onClick={() => navigate("/login")}
-                                    className="flex flex-col items-center justify-center p-1.5 md:px-2.5 text-gray-700 hover:text-black transition-colors rounded-lg hover:bg-gray-50 cursor-pointer"
+                                    className="flex flex-col items-center justify-center p-1 sm:p-1.5 md:px-2.5 text-gray-700 hover:text-black transition-colors rounded-lg hover:bg-gray-50 cursor-pointer"
                                 >
                                     <User className="w-5 h-5 md:w-6 md:h-6" />
                                     <span className="text-[10px] font-bold mt-0.5 hidden md:block">Login</span>
@@ -719,7 +729,7 @@ const Navbar = () => {
                         {/* CART BUTTON WITH BADGE */}
                         <button 
                             onClick={() => navigate("/cart")} 
-                            className="flex flex-col items-center justify-center p-1.5 md:px-2.5 text-gray-700 hover:text-black transition-colors rounded-lg hover:bg-gray-50 relative cursor-pointer"
+                            className="flex flex-col items-center justify-center p-1 sm:p-1.5 md:px-2.5 text-gray-700 hover:text-black transition-colors rounded-lg hover:bg-gray-50 relative cursor-pointer"
                         >
                             <div className="relative">
                                 <ShoppingBag className="w-5 h-5 md:w-6 md:h-6" />
@@ -740,11 +750,15 @@ const Navbar = () => {
                     </div>
                 </div>
 
-                {/* HORIZONTAL CATEGORY SCROLLER */}
+                {/* HORIZONTAL CATEGORY SCROLLER WITH FIXED CHEVRON RIGHT BUTTON */}
                 <div className="border-t border-gray-100 bg-white">
-                    <div className="max-w-7xl mx-auto px-4 md:px-8">
-                        <div className="flex items-center gap-6 md:gap-8 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-2.5 text-xs md:text-sm font-semibold text-gray-600 whitespace-nowrap">
-                            
+                    <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center relative">
+                        
+                        {/* SCROLLABLE CATEGORIES LIST */}
+                        <div 
+                            ref={scrollContainerRef}
+                            className="flex items-center gap-5 md:gap-8 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-2.5 text-xs md:text-sm font-semibold text-gray-600 whitespace-nowrap flex-1 scroll-smooth pr-10"
+                        >
                             {/* ALL TAB */}
                             <button
                                 onClick={() => handleCategorySelect('All')}
@@ -800,6 +814,18 @@ const Navbar = () => {
                                 })
                             )}
                         </div>
+
+                        {/* FIXED SCROLL RIGHT BUTTON ON THE RIGHT EDGE */}
+                        <div className="absolute right-2 top-0 bottom-0 flex items-center bg-gradient-to-l from-white via-white/90 to-transparent pl-4">
+                            <button
+                                onClick={handleNextCategoryScroll}
+                                className="p-1.5 rounded-full bg-[#A5CE00] hover:bg-[#8DAF00] transition-all cursor-pointer shadow-xs active:scale-90"
+                                title="Scroll Next Categories"
+                            >
+                                <ChevronsRight className="w-4 h-4" />
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             </header>

@@ -404,42 +404,24 @@ export const getUserOrders = async (req, res) => {
 
 export const getAllCustomerOrders = async (req, res) => {
   try {
-
     if (!req.user) {
-      return res.status(401).json({
-        message: "Unauthorized"
-      });
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    let isAdmin = false;
     let isBranchAdmin = false;
     let branchNodeId = null;
     let branchPincodes = null;
 
-    if (req.user.role === "admin") {
-      isAdmin = true;
-    }
-
     if (req.user.role === "branch_admin") {
-
       isBranchAdmin = true;
 
       const { rows } = await pool.query(
-        `
-        SELECT
-        node_id,
-        pincodes
-        FROM branch_admins
-        WHERE id=$1
-        LIMIT 1
-        `,
+        `SELECT node_id, pincodes FROM branch_admins WHERE id = $1 LIMIT 1;`,
         [req.user.id]
       );
 
       if (rows.length === 0) {
-        return res.status(404).json({
-          message: "Branch admin not found."
-        });
+        return res.status(404).json({ message: "Branch admin not found." });
       }
 
       branchNodeId = rows[0].node_id;
@@ -454,98 +436,83 @@ export const getAllCustomerOrders = async (req, res) => {
         o.created_at,
         o.branch_node_id,
 
-        u.name AS customer,
-        u.email,
+        COALESCE(u.name, 'Customer') AS customer,
+        COALESCE(u.email, 'N/A') AS email,
+        COALESCE(a.phone, 'N/A') AS phone,
 
-        a.phone,
-
-        CONCAT(
-          a.street_name, ', ',
-          a.landmark, ', ',
-          a.city, ', ',
-          a.district, ', ',
-          a.state, ' - ',
-          a.pincode
+        CONCAT_WS(', ',
+          NULLIF(a.street_name, ''),
+          NULLIF(a.landmark, ''),
+          NULLIF(a.city, ''),
+          NULLIF(a.district, ''),
+          NULLIF(a.state, ''),
+          NULLIF(a.pincode, '')
         ) AS address,
 
-        json_agg(
-          json_build_object(
-            'name',oi.name,
-            'qty',oi.quantity,
-            'image',oi.image,
-            'size', oi.selected_size
-          )
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'name', oi.name,
+              'qty', oi.quantity,
+              'image', oi.image,
+              'size', oi.selected_size
+            )
+          ) FILTER (WHERE oi.id IS NOT NULL), '[]'
         ) AS items
 
       FROM orders o
-
-      JOIN users u
-      ON u.id=o.user_id
-
-      JOIN addresses a
-      ON a.id=o.address_id
-
-      JOIN order_items oi
-      ON oi.order_id=o.id
+      LEFT JOIN users u ON u.id = o.user_id
+      LEFT JOIN addresses a ON a.id = o.address_id
+      LEFT JOIN order_items oi ON oi.order_id = o.id
     `;
 
     const params = [];
 
     if (isBranchAdmin) {
-
       query += `
-      WHERE
-      o.branch_node_id=$1
-      OR
-      $2 LIKE '%'||a.pincode||'%'
+        WHERE o.branch_node_id = $1
+        OR $2 LIKE '%' || a.pincode || '%'
       `;
-
-      params.push(branchNodeId);
-      params.push(branchPincodes);
+      params.push(branchNodeId, branchPincodes);
     }
 
     query += `
       GROUP BY
-      o.id,
-      u.name,
-      u.email,
-      a.phone,
-      a.street_name,
-      a.landmark,
-      a.city,
-      a.district,
-      a.state,
-      a.pincode
+        o.id,
+        u.name,
+        u.email,
+        a.phone,
+        a.street_name,
+        a.landmark,
+        a.city,
+        a.district,
+        a.state,
+        a.pincode
 
-      ORDER BY o.created_at DESC
+      ORDER BY o.created_at DESC;
     `;
 
     const { rows } = await pool.query(query, params);
 
     const formatted = rows.map(order => ({
       id: order.id,
-      customer: order.customer,
-      email: order.email,
-      phone: order.phone,
-      address: order.address,
-      status: order.status,
-      total: `₹${Number(order.total_price).toFixed(2)}`,
-      items: order.items,
+      customer: order.customer || 'Customer',
+      email: order.email || 'N/A',
+      phone: order.phone || 'N/A',
+      address: order.address || 'No Address Mapped',
+      status: order.status || 'Preparing for Dispatch',
+      total: `₹${Number(order.total_price || 0).toFixed(2)}`,
+      items: order.items || [],
       timeline: {
-        preparingDate: order.created_at
+        preparingDate: order.created_at ? new Date(order.created_at).toLocaleString('en-GB') : 'Not Tracked'
       }
     }));
 
     return res.json(formatted);
 
   } catch (err) {
-
-    console.error(err);
-
-    return res.status(500).json({
-      message: err.message
-    });
-
+    console.error("getAllCustomerOrders error:", err);
+    return res.status(500).json({ message: err.message });
   }
 };
 
