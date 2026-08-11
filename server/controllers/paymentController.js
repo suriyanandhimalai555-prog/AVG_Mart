@@ -14,8 +14,8 @@ const razorpayInstance = new Razorpay({
 // Configure Nodemailer for Hostinger SMTP
 const transporter = nodemailer.createTransport({
   host: 'smtp.hostinger.com',
-  port: 465,
-  secure: true, // SSL required for 465
+  port: 587,
+  secure: false, // SSL required for 465
   auth: {
     user: process.env.EMAIL_USER, // e.g., support@avgmart.com
     pass: process.env.EMAIL_PASS  // Hostinger Email / App Password
