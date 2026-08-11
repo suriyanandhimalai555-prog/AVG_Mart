@@ -162,8 +162,8 @@ export const getFilteredProducts = async (req, res) => {
       sellerId 
     } = req.query;
 
-    page = parseInt(page, 10);
-    limit = parseInt(limit, 10);
+    page = parseInt(page, 10) || 1;
+    limit = parseInt(limit, 10) || 25;
     const validLimits = [25, 50, 75, 100];
     if (!validLimits.includes(limit)) {
       limit = 25;
@@ -171,14 +171,17 @@ export const getFilteredProducts = async (req, res) => {
 
     let rawProducts = [];
 
-    // Always use standard findAll to fetch dataset reliably, preventing database crash errors
-    if (sellerId) {
-      rawProducts = await ProductModel.findAll(sellerId);
-    } else {
-      rawProducts = await ProductModel.findAll();
+    try {
+      if (sellerId) {
+        rawProducts = await ProductModel.findAll(sellerId);
+      } else {
+        rawProducts = await ProductModel.findAll();
+      }
+    } catch (dbErr) {
+      console.error("Database fetch error in getFilteredProducts:", dbErr);
+      rawProducts = [];
     }
 
-    // Safety check if rawProducts is undefined or not an array
     if (!Array.isArray(rawProducts)) {
       rawProducts = [];
     }
@@ -190,8 +193,10 @@ export const getFilteredProducts = async (req, res) => {
       const itemName = item.name || '';
       const itemDesc = item.description || '';
 
-      const matchesSearch = search 
-        ? (itemName.toLowerCase().includes(search.toLowerCase()) || itemDesc.toLowerCase().includes(search.toLowerCase()) || itemCategory.toLowerCase().includes(search.toLowerCase()))
+      const matchesSearch = search && search.trim() !== ''
+        ? (itemName.toLowerCase().includes(search.toLowerCase().trim()) || 
+           itemDesc.toLowerCase().includes(search.toLowerCase().trim()) || 
+           itemCategory.toLowerCase().includes(search.toLowerCase().trim()))
         : true;
 
       const matchesCategory = (!category || category === 'All') 
@@ -206,7 +211,7 @@ export const getFilteredProducts = async (req, res) => {
     // Apply Sorting safely
     filtered.sort((a, b) => {
       const priceA = Number(a.offer_price || a.offerPrice || a.original_price || a.originalPrice || 0);
-      const priceB = Number(b.offer_price || b.offerPrice || a.original_price || b.originalPrice || 0);
+      const priceB = Number(b.offer_price || b.offerPrice || b.original_price || b.originalPrice || 0);
 
       if (sortBy === 'low-to-high') return priceA - priceB;
       if (sortBy === 'high-to-low') return priceB - priceA;
@@ -243,7 +248,7 @@ export const getFilteredProducts = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in getFilteredProducts Controller:', error);
+    console.error('Fatal Error in getFilteredProducts Controller:', error);
     return res.status(500).json({ success: false, message: 'Internal Server Error', error: error.message });
   }
 };
