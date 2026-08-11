@@ -538,7 +538,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, ShoppingBag, Star, MessageSquare, Calendar, User, Plus, Minus, Share2, ChevronRight, Zap } from 'lucide-react'
+import { ArrowLeft, ShoppingBag, Star, MessageSquare, Calendar, User, Plus, Minus, Share2, ChevronRight } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast'
@@ -549,7 +549,6 @@ const ProductDetailView = () => {
     const { id } = useParams()
     const navigate = useNavigate()
     const location = useLocation()
-    const imageContainerRef = useRef(null)
 
     const fromCartItemId = location.state?.fromCartItemId || null
     const existingSize = location.state?.existingSize || ''
@@ -730,7 +729,7 @@ const ProductDetailView = () => {
 
     if (!product) {
         return (
-            <div className="bg-gray-50 text-gray-900 min-h-screen flex flex-col items-center justify-center space-y-4">
+            <div className="bg-gray-50 text-gray-900 min-h-screen flex flex-col items-center justify-center space-y-4 p-4 text-center">
                 <h2 className="text-xl font-bold uppercase tracking-wider text-red-500">Product Not Found</h2>
                 <button onClick={() => navigate('/')} className="bg-gray-900 text-white px-5 py-2.5 rounded-xl text-xs uppercase font-bold tracking-wider hover:bg-black transition-colors">
                     Return to Home
@@ -855,37 +854,39 @@ const ProductDetailView = () => {
     return (
         <>
             <Navbar />
-            <div className="bg-gray-50 text-gray-900 min-h-screen py-8 px-4 md:px-8">
-                <div className="max-w-6xl mx-auto space-y-8">
+            <div className="bg-gray-50 text-gray-900 min-h-screen py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
+                <div className="max-w-6xl mx-auto space-y-4 sm:space-y-8">
                     
-                    {/* BREADCRUMB & TOP CONTROLS */}
-                    <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
-                            <span onClick={() => navigate('/')} className="hover:text-black cursor-pointer">Home</span>
-                            <ChevronRight className="w-3 h-3" />
-                            <span onClick={() => navigate(`/products/${product.category?.toLowerCase()}`)} className="hover:text-black cursor-pointer capitalize">
+                    {/* RESPONSIVE BREADCRUMB & TOP CONTROLS */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-3 sm:pb-4">
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">
+                            <span onClick={() => navigate('/')} className="hover:text-black cursor-pointer shrink-0">Home</span>
+                            <ChevronRight className="w-3 h-3 shrink-0" />
+                            <span onClick={() => navigate(`/products/${product.category?.toLowerCase()}`)} className="hover:text-black cursor-pointer capitalize shrink-0 max-w-[100px] sm:max-w-none truncate">
                                 {product.category}
                             </span>
-                            <ChevronRight className="w-3 h-3" />
-                            <span className="text-gray-800 truncate max-w-[200px]">{product.name}</span>
+                            <ChevronRight className="w-3 h-3 shrink-0" />
+                            <span className="text-gray-800 truncate max-w-[120px] sm:max-w-[200px]">{product.name}</span>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3.5 py-2 rounded-xl hover:bg-gray-100 transition-colors shadow-sm cursor-pointer">
-                                <ArrowLeft className="w-4 h-4" /> Back
+                        <div className="flex items-center justify-end gap-2 self-end sm:self-auto shrink-0">
+                            <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl hover:bg-gray-100 transition-colors shadow-sm cursor-pointer">
+                                <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> 
+                                <span className="hidden xs:inline">Back</span>
                             </button>
-                            <button onClick={handleShare} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3.5 py-2 rounded-xl hover:bg-gray-100 transition-colors shadow-sm cursor-pointer">
-                                <Share2 className="w-4 h-4" /> Share
+                            <button onClick={handleShare} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl hover:bg-gray-100 transition-colors shadow-sm cursor-pointer">
+                                <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> 
+                                <span className="hidden xs:inline">Share</span>
                             </button>
                         </div>
                     </div>
 
                     {/* MAIN PRODUCT DETAIL GRID */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                         
                         {/* LEFT COLUMN: IMAGES */}
-                        <div className="lg:col-span-6 space-y-4">
-                            <div className="w-full aspect-square rounded-2xl border border-gray-100 bg-white p-4 relative overflow-hidden shadow-sm flex items-center justify-center">
+                        <div className="lg:col-span-6 space-y-3 sm:space-y-4">
+                            <div className="w-full aspect-square max-h-[380px] sm:max-h-none rounded-2xl border border-gray-100 bg-white p-3 sm:p-4 relative overflow-hidden shadow-sm flex items-center justify-center">
                                 <img src={activeImg} alt={product.name} className="w-full h-full object-contain" />
                                 
                                 {product.isFeatured && (
@@ -896,9 +897,9 @@ const ProductDetailView = () => {
                             </div>
 
                             {alternativeAngles.length > 1 && (
-                                <div className="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar">
+                                <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 no-scrollbar">
                                     {alternativeAngles.map((imgUrl, idx) => (
-                                        <button key={idx} onClick={() => setActiveImg(imgUrl)} className={`w-20 h-20 shrink-0 rounded-xl border bg-white p-1 transition-all cursor-pointer ${activeImg === imgUrl ? 'border-gray-900 ring-2 ring-gray-900/10' : 'border-gray-200 hover:border-gray-300'}`}>
+                                        <button key={idx} onClick={() => setActiveImg(imgUrl)} className={`w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl border bg-white p-1 transition-all cursor-pointer ${activeImg === imgUrl ? 'border-gray-900 ring-2 ring-gray-900/10' : 'border-gray-200 hover:border-gray-300'}`}>
                                             <img src={imgUrl} alt="Product angle" className="w-full h-full object-contain" />
                                         </button>
                                     ))}
@@ -907,10 +908,10 @@ const ProductDetailView = () => {
                         </div>
 
                         {/* RIGHT COLUMN: PRODUCT INFO & PURCHASE CARD */}
-                        <div className="lg:col-span-6 space-y-6 bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                            <div className="space-y-2 border-b border-gray-100 pb-4">
-                                <span className="inline-block text-[11px] font-extrabold uppercase text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md">{product.category}</span>
-                                <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">{product.name}</h1>
+                        <div className="lg:col-span-6 space-y-5 sm:space-y-6 bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm">
+                            <div className="space-y-1.5 sm:space-y-2 border-b border-gray-100 pb-3 sm:pb-4">
+                                <span className="inline-block text-[10px] sm:text-[11px] font-extrabold uppercase text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md">{product.category}</span>
+                                <h1 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 tracking-tight leading-snug">{product.name}</h1>
                                 
                                 <div className="flex items-center gap-3 pt-1">
                                     <div className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold text-gray-700">
@@ -924,24 +925,24 @@ const ProductDetailView = () => {
                             </div>
 
                             {/* PRICE & SAVINGS */}
-                            <div className="flex items-baseline gap-3">
-                                <span className="text-2xl font-black text-white px-2 py-0.5 rounded" style={{ backgroundColor: '#A5CE00' }}>
+                            <div className="flex items-baseline flex-wrap gap-2 sm:gap-3">
+                                <span className="text-xl sm:text-2xl font-black text-white px-2.5 py-0.5 rounded" style={{ backgroundColor: '#A5CE00' }}>
                                     ₹{offer * quantity}
                                 </span>
                                 {priceDifference > 0 && (
-                                    <span className="text-sm line-through text-gray-400 font-bold">
+                                    <span className="text-xs sm:text-sm line-through text-gray-400 font-bold">
                                         ₹{original * quantity}
                                     </span>
                                 )}
                                 {percentSaved > 0 && (
-                                    <span className="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                                    <span className="text-[11px] sm:text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
                                         {percentSaved}% OFF
                                     </span>
                                 )}
                             </div>
 
                             {/* DESCRIPTION */}
-                            <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                            <p className="text-xs sm:text-xs text-gray-600 leading-relaxed font-medium">
                                 {product.description || "High quality item delivered right to your location."}
                             </p>
 
@@ -1015,26 +1016,26 @@ const ProductDetailView = () => {
                     </div>
 
                     {/* REVIEWS SECTION */}
-                    <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-6">
+                    <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
                         <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
                             <MessageSquare className="w-4 h-4" style={{ color: '#A5CE00' }} />
-                            <h3 className="text-base font-black uppercase tracking-tight text-gray-900">Customer Reviews ({reviews.length})</h3>
+                            <h3 className="text-sm sm:text-base font-black uppercase tracking-tight text-gray-900">Customer Reviews ({reviews.length})</h3>
                         </div>
 
                         {reviews.length === 0 ? (
-                            <div className="p-8 border border-dashed border-gray-200 bg-gray-50 rounded-xl text-center">
+                            <div className="p-6 sm:p-8 border border-dashed border-gray-200 bg-gray-50 rounded-xl text-center">
                                 <p className="text-xs font-semibold text-gray-400">No customer reviews yet. Be the first to leave a review!</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 {reviews.map((rev) => (
-                                    <div key={rev.id} className="bg-gray-50 border border-gray-200/80 rounded-xl p-4 space-y-2.5">
+                                    <div key={rev.id} className="bg-gray-50 border border-gray-200/80 rounded-xl p-3.5 sm:p-4 space-y-2.5">
                                         <div className="flex items-center justify-between text-xs">
                                             <div className="flex items-center gap-2 text-gray-800 font-bold">
                                                 <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center"><User className="w-3 h-3 text-gray-600" /></div>
-                                                <span>{rev.user_name}</span>
+                                                <span className="truncate max-w-[120px] sm:max-w-none">{rev.user_name}</span>
                                             </div>
-                                            <span className="text-[10px] text-gray-400 flex items-center gap-1 font-medium">
+                                            <span className="text-[10px] text-gray-400 flex items-center gap-1 font-medium shrink-0">
                                                 <Calendar className="w-3 h-3" /> {new Date(rev.created_at).toLocaleDateString('en-IN')}
                                             </span>
                                         </div>
