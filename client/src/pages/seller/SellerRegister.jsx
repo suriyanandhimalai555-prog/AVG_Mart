@@ -23,10 +23,10 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
 const STEPS = [
-  { id: 1, label: "Seller account creation" },
+  { id: 1, label: "Account creation" },
   { id: 2, label: "Verify tax details" },
   { id: 3, label: "Store name" },
-  { id: 4, label: "Shipping preferences & Pickup address" },
+  { id: 4, label: "Pickup address" },
   { id: 5, label: "Bank details" },
 ];
 
@@ -47,7 +47,7 @@ const SellerRegister = () => {
     email: "",
     password: "",
     phone: "",
-    referral_code: "", // Added referral code
+    referral_code: "",
 
     // Step 2: Tax Details
     gst_number: "",
@@ -83,7 +83,7 @@ const SellerRegister = () => {
         referral_code: refCodeFromUrl.toUpperCase(),
       }));
     }
-  }, []); // Run strictly once on mount so typing isn't blocked
+  }, [searchParams]);
 
   // 3D Tilt State
   const [rotateX, setRotateX] = useState(0);
@@ -193,19 +193,22 @@ const SellerRegister = () => {
   const progressPercentage = ((currentStep - 1) / (STEPS.length - 1)) * 100;
 
   return (
-    <div className="min-h-screen bg-[#071640] text-white flex items-center justify-center p-4 md:p-8 relative overflow-hidden select-none perspective-1000">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center p-4 md:p-8 relative overflow-hidden select-none perspective-1000">
       
-      <style dangerouslySetInnerHTML={{__html: `
+      {/* <style dangerouslySetInnerHTML={{__html: `
         .perspective-1000 { perspective: 1200px; }
         .preserve-3d { transform-style: preserve-3d; transition: transform 0.15s ease-out, box-shadow 0.3s ease; }
         .translate-z-3d { transform: translateZ(25px); }
-      `}} />
+      `}} /> */}
 
       {/* BACKGROUND AMBIENT GLOW */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-lime-400/10 rounded-full blur-[140px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-white/5 rounded-full blur-[140px]" />
-      </div>
+      {/* <div className="absolute inset-0 pointer-events-none z-0">
+        <div 
+          className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[140px] opacity-20"
+          style={{ backgroundColor: '#A5CE00' }}
+        />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#0A224E]/5 rounded-full blur-[140px]" />
+      </div> */}
 
       {/* 3D GLASS CONTAINER */}
       <div
@@ -214,32 +217,35 @@ const SellerRegister = () => {
         onMouseLeave={handleMouseLeave}
         style={{
           transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
-          boxShadow: `${-rotateY * 2}px ${rotateX * 2}px 35px rgba(0, 0, 0, 0.5), 0 0 40px rgba(165, 206, 0, 0.05)`
+          boxShadow: `${-rotateY * 2}px ${rotateX * 2}px 30px rgba(10, 34, 78, 0.08), 0 10px 40px rgba(0, 0, 0, 0.04)`
         }}
-        className="w-full max-w-4xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-10 preserve-3d relative z-10 group hover:border-lime-400/30 transition-colors duration-300"
+        className="w-full max-w-4xl bg-white border border-gray-200/80 rounded-3xl p-6 md:p-10 preserve-3d relative z-10 group transition-colors duration-300"
       >
         <div 
-          style={{ background: `radial-gradient(circle 400px at ${glowX}% ${glowY}%, rgba(165, 206, 0, 0.1), transparent)` }}
+          style={{ background: `radial-gradient(circle 400px at ${glowX}% ${glowY}%, rgba(165, 206, 0, 0.12), transparent)` }}
           className="absolute inset-0 pointer-events-none rounded-3xl transition-opacity duration-300 opacity-0 group-hover:opacity-100"
         />
 
         {/* HEADER */}
         <div className="flex flex-col items-center text-center space-y-2 mb-8 translate-z-3d">
-          <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center p-2 shadow-inner">
+          <div className="w-12 h-12 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center p-2 shadow-xs group-hover:border-[#A5CE00] transition-all duration-300">
             <img src={Logo} alt="AVG MART" className="w-full h-full object-contain" />
           </div>
-          <h2 className="text-xl font-black uppercase tracking-widest text-white">
-            SELLER <span className="text-lime-400 font-light">ONBOARDING</span>
+          <h2 className="text-xl font-black uppercase tracking-tight text-gray-900">
+              AVG <span style={{ color: '#A5CE00' }}>MART</span>
+            </h2>
+          <h2 className="text-xl font-black uppercase tracking-wider text-[#0A224E]">
+            SELLER <span style={{ color: '#A5CE00' }}>ONBOARDING</span>
           </h2>
         </div>
 
         {/* STEPPER TRACKER */}
         <div className="mb-10 translate-z-3d">
           <div className="relative w-full mb-6 px-2">
-            <div className="absolute top-3 left-0 right-0 h-[2px] bg-white/10 z-0" />
+            <div className="absolute top-3 left-0 right-0 h-[2px] bg-gray-200 z-0" />
             <div 
-              className="absolute top-3 left-0 h-[2px] bg-lime-400 transition-all duration-500 ease-out z-0"
-              style={{ width: `${progressPercentage}%` }}
+              className="absolute top-3 left-0 h-[2px] transition-all duration-500 ease-out z-0"
+              style={{ width: `${progressPercentage}%`, backgroundColor: '#A5CE00' }}
             />
 
             <div className="relative z-10 flex justify-between items-start">
@@ -250,24 +256,25 @@ const SellerRegister = () => {
                 return (
                   <div key={step.id} className="flex flex-col items-center w-28 text-center group cursor-default">
                     <div
+                      style={isCompleted ? { backgroundColor: '#A5CE00', borderColor: '#A5CE00' } : {}}
                       className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 border ${
                         isCompleted
-                          ? "bg-lime-400 text-[#071640] border-lime-400"
+                          ? "text-[#0A224E]"
                           : isActive
-                          ? "bg-[#071640] text-lime-400 border-lime-400 ring-4 ring-lime-400/20"
-                          : "bg-[#071640] text-white/40 border-white/20"
+                          ? "bg-white text-[#0A224E] border-[#0A224E] ring-4 ring-emerald-500/10 font-black"
+                          : "bg-gray-100 text-gray-400 border-gray-300"
                       }`}
                     >
-                      {isCompleted ? <FaCheck className="text-[10px]" /> : isActive ? <div className="w-2 h-2 bg-lime-400 rounded-full animate-ping" /> : null}
+                      {isCompleted ? <FaCheck className="text-[10px]" /> : isActive ? <div className="w-2 h-2 rounded-full animate-ping" style={{ backgroundColor: '#A5CE00' }} /> : null}
                     </div>
 
                     <span
                       className={`text-[10px] leading-tight font-semibold mt-2.5 transition-colors duration-300 ${
                         isActive
-                          ? "text-lime-400 font-bold"
+                          ? "text-[#0A224E] font-black"
                           : isCompleted
-                          ? "text-white/80"
-                          : "text-white/30"
+                          ? "text-gray-700 font-bold"
+                          : "text-gray-400"
                       }`}
                     >
                       {step.label}
@@ -280,7 +287,7 @@ const SellerRegister = () => {
         </div>
 
         {errorMessage && (
-          <div className="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center translate-z-3d">
+          <div className="mb-6 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold text-center translate-z-3d">
             {errorMessage}
           </div>
         )}
@@ -290,25 +297,25 @@ const SellerRegister = () => {
           {currentStep === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Full Name / Owner Name</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Full Name / Owner Name</label>
                 <div className="relative flex items-center">
-                  <FaUser className="absolute left-4 text-white/20 text-xs" />
+                  <FaUser className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="text"
                     name="owner_name"
                     required
                     value={formData.owner_name}
                     onChange={handleChange}
-                    placeholder="Suriya Anand"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                    placeholder="Muthu"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Email Address</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Email Address</label>
                 <div className="relative flex items-center">
-                  <FaEnvelope className="absolute left-4 text-white/20 text-xs" />
+                  <FaEnvelope className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="email"
                     name="email"
@@ -316,15 +323,15 @@ const SellerRegister = () => {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="seller@domain.com"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Phone Number</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Phone Number</label>
                 <div className="relative flex items-center">
-                  <FaPhone className="absolute left-4 text-white/20 text-xs" />
+                  <FaPhone className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="text"
                     name="phone"
@@ -332,15 +339,15 @@ const SellerRegister = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="+91 98765 43210"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Password</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Password</label>
                 <div className="relative flex items-center">
-                  <FaKey className="absolute left-4 text-white/20 text-xs" />
+                  <FaKey className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type={showPassword ? "text" : "password"}
                     name="password"
@@ -348,12 +355,12 @@ const SellerRegister = () => {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••••••"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-12 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-12 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 text-white/30 hover:text-white"
+                    className="absolute right-4 text-gray-400 hover:text-gray-700"
                   >
                     {showPassword ? <FaEyeSlash className="text-xs" /> : <FaEye className="text-xs" />}
                   </button>
@@ -362,21 +369,21 @@ const SellerRegister = () => {
 
               {/* Editable Referral Code Field */}
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">
-                  Referral Code <span className="text-white/40 font-normal lowercase">(optional)</span>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Referral Code <span className="text-gray-400 font-normal lowercase">(optional)</span>
                 </label>
                 <div className="relative flex items-center">
-                  <FaTag className="absolute left-4 text-white/20 text-xs" />
+                  <FaTag className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="text"
                     name="referral_code"
                     value={formData.referral_code}
                     onChange={handleChange}
                     placeholder="Enter marketer referral code (e.g. MKT-8832)"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-32 py-3 text-xs outline-none text-white uppercase focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-32 py-3 text-xs outline-none font-bold text-gray-900 uppercase focus:border-[#0A224E] focus:bg-white"
                   />
                   {initialUrlRefCode && formData.referral_code === initialUrlRefCode && (
-                    <span className="absolute right-3 text-[10px] bg-lime-400/20 text-lime-400 border border-lime-400/30 px-2.5 py-1 rounded font-bold">
+                    <span className="absolute right-3 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-md font-bold">
                       Applied via Link
                     </span>
                   )}
@@ -388,9 +395,9 @@ const SellerRegister = () => {
           {currentStep === 2 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">GSTIN Number</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">GSTIN Number</label>
                 <div className="relative flex items-center">
-                  <FaBuilding className="absolute left-4 text-white/20 text-xs" />
+                  <FaBuilding className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="text"
                     name="gst_number"
@@ -398,22 +405,22 @@ const SellerRegister = () => {
                     value={formData.gst_number}
                     onChange={handleChange}
                     placeholder="22AAAAA0000A1Z5"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white uppercase focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 uppercase focus:border-[#0A224E] focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">PAN Number</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">PAN Number</label>
                 <div className="relative flex items-center">
-                  <FaCreditCard className="absolute left-4 text-white/20 text-xs" />
+                  <FaCreditCard className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="text"
                     name="pan_number"
                     value={formData.pan_number}
                     onChange={handleChange}
                     placeholder="ABCDE1234F"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white uppercase focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 uppercase focus:border-[#0A224E] focus:bg-white"
                   />
                 </div>
               </div>
@@ -423,9 +430,9 @@ const SellerRegister = () => {
           {currentStep === 3 && (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Display Store Name</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Display Store Name</label>
                 <div className="relative flex items-center">
-                  <FaStore className="absolute left-4 text-white/20 text-xs" />
+                  <FaStore className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="text"
                     name="store_name"
@@ -433,20 +440,20 @@ const SellerRegister = () => {
                     value={formData.store_name}
                     onChange={handleChange}
                     placeholder="Apex Digital Store"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Store Description</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Store Description</label>
                 <textarea
                   name="store_description"
                   rows="3"
                   value={formData.store_description}
                   onChange={handleChange}
                   placeholder="Tell buyers what products your store specializes in..."
-                  className="w-full bg-white/[0.01] border border-white/10 rounded-xl p-3 text-xs outline-none text-white focus:border-lime-400/40 resize-none"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white resize-none"
                 />
               </div>
             </div>
@@ -455,9 +462,9 @@ const SellerRegister = () => {
           {currentStep === 4 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Pickup Address / Hub Location</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Pickup Address / Hub Location</label>
                 <div className="relative flex items-center">
-                  <FaMapMarkerAlt className="absolute left-4 text-white/20 text-xs" />
+                  <FaMapMarkerAlt className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="text"
                     name="pickup_address"
@@ -465,13 +472,13 @@ const SellerRegister = () => {
                     value={formData.pickup_address}
                     onChange={handleChange}
                     placeholder="Building No, Street Name, Industrial Area"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">City</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">City</label>
                 <input
                   type="text"
                   name="city"
@@ -479,12 +486,12 @@ const SellerRegister = () => {
                   value={formData.city}
                   onChange={handleChange}
                   placeholder="Bengaluru"
-                  className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">State</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">State</label>
                 <input
                   type="text"
                   name="state"
@@ -492,12 +499,12 @@ const SellerRegister = () => {
                   value={formData.state}
                   onChange={handleChange}
                   placeholder="Karnataka"
-                  className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Pincode</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Pincode</label>
                 <input
                   type="text"
                   name="pincode"
@@ -505,19 +512,19 @@ const SellerRegister = () => {
                   value={formData.pincode}
                   onChange={handleChange}
                   placeholder="560001"
-                  className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Shipping Mode</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Shipping Mode</label>
                 <div className="relative flex items-center">
-                  <FaTruck className="absolute left-4 text-white/20 text-xs" />
+                  <FaTruck className="absolute left-4 text-gray-400 text-xs" />
                   <select
                     name="shipping_type"
                     value={formData.shipping_type}
                     onChange={handleChange}
-                    className="w-full bg-[#071640] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E]"
                   >
                     <option value="standard">AVG Logistics Fulfilled</option>
                     <option value="self">Self Ship / Local Express</option>
@@ -530,9 +537,9 @@ const SellerRegister = () => {
           {currentStep === 5 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Account Holder Name</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Account Holder Name</label>
                 <div className="relative flex items-center">
-                  <FaUser className="absolute left-4 text-white/20 text-xs" />
+                  <FaUser className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="text"
                     name="account_holder"
@@ -540,13 +547,13 @@ const SellerRegister = () => {
                     value={formData.account_holder}
                     onChange={handleChange}
                     placeholder="Suriya Anand / Apex Digital"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Bank Name</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Bank Name</label>
                 <input
                   type="text"
                   name="bank_name"
@@ -554,12 +561,12 @@ const SellerRegister = () => {
                   value={formData.bank_name}
                   onChange={handleChange}
                   placeholder="State Bank of India"
-                  className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">IFSC Code</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">IFSC Code</label>
                 <input
                   type="text"
                   name="ifsc_code"
@@ -567,14 +574,14 @@ const SellerRegister = () => {
                   value={formData.ifsc_code}
                   onChange={handleChange}
                   placeholder="SBIN0001234"
-                  className="w-full bg-white/[0.01] border border-white/10 rounded-xl px-4 py-3 text-xs outline-none text-white uppercase focus:border-lime-400/40"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs outline-none font-bold text-gray-900 uppercase focus:border-[#0A224E] focus:bg-white"
                 />
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-lime-400">Bank Account Number</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Bank Account Number</label>
                 <div className="relative flex items-center">
-                  <FaUniversity className="absolute left-4 text-white/20 text-xs" />
+                  <FaUniversity className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="password"
                     name="account_number"
@@ -582,7 +589,7 @@ const SellerRegister = () => {
                     value={formData.account_number}
                     onChange={handleChange}
                     placeholder="918237192837"
-                    className="w-full bg-white/[0.01] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-xs outline-none text-white focus:border-lime-400/40"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 focus:border-[#0A224E] focus:bg-white"
                   />
                 </div>
               </div>
@@ -590,12 +597,12 @@ const SellerRegister = () => {
           )}
 
           {/* CONTROL BUTTONS */}
-          <div className="flex items-center justify-between gap-4 mt-8 pt-4 border-t border-white/10">
+          <div className="flex items-center justify-between gap-4 mt-8 pt-4 border-t border-gray-100">
             {currentStep > 1 ? (
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-6 py-3.5 bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all"
+                className="px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all cursor-pointer"
               >
                 <FaChevronLeft className="text-[10px]" />
                 <span>Back</span>
@@ -606,7 +613,8 @@ const SellerRegister = () => {
               <button
                 type="button"
                 onClick={handleNext}
-                className="px-8 py-3.5 bg-lime-400 hover:bg-lime-300 text-[#071640] font-black text-xs uppercase tracking-widest rounded-xl flex items-center gap-2 shadow-[0_0_20px_rgba(165,206,0,0.2)] transition-all"
+                style={{ backgroundColor: '#A5CE00' }}
+                className="px-8 py-3.5 text-[#0A224E] font-black text-xs uppercase tracking-wider rounded-xl flex items-center gap-2 shadow-md hover:brightness-95 transition-all cursor-pointer active:scale-98"
               >
                 <span>Continue</span>
                 <FaChevronRight className="text-[10px]" />
@@ -615,13 +623,14 @@ const SellerRegister = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-8 py-3.5 bg-lime-400 disabled:bg-lime-400/50 text-[#071640] font-black text-xs uppercase tracking-widest rounded-xl flex items-center gap-2 shadow-[0_0_25px_rgba(165,206,0,0.35)] transition-all"
+                style={{ backgroundColor: '#A5CE00' }}
+                className="px-8 py-3.5 disabled:opacity-50 text-[#0A224E] font-black text-xs uppercase tracking-wider rounded-xl flex items-center gap-2 shadow-md hover:brightness-95 transition-all cursor-pointer active:scale-98"
               >
                 {isSubmitting ? (
                   <FaCircleNotch className="animate-spin text-sm" />
                 ) : (
                   <>
-                    <span>Submit & Save to DB</span>
+                    <span>Submit & Onboard</span>
                     <FaCheck className="text-xs" />
                   </>
                 )}
@@ -630,10 +639,10 @@ const SellerRegister = () => {
           </div>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-xs text-white/30 font-medium">
+        <div className="mt-6 text-center border-t border-gray-100 pt-4">
+          <p className="text-xs text-gray-500 font-medium">
             Already registered?{" "}
-            <Link to="/seller/login" className="text-lime-400 font-bold hover:underline">
+            <Link to="/seller/login" className="text-[#0A224E] font-black hover:underline">
               Seller Login
             </Link>
           </p>
