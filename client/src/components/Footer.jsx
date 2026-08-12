@@ -206,20 +206,20 @@ const Footer = () => {
 
   return (
     <footer className="bg-gray-50 text-gray-800 pt-16 pb-8 px-6 md:px-12 border-t border-gray-200 relative overflow-hidden select-none">
-      
+
       {/* BACKGROUND ACCENT GLOWS */}
-      <div 
+      <div
         className="absolute -bottom-10 -right-10 w-[350px] h-[350px] rounded-full blur-[120px] pointer-events-none opacity-20"
         style={{ backgroundColor: '#A5CE00' }}
       />
 
       <div className="max-w-7xl mx-auto relative z-10">
-        
+
         {/* TOP VALUE PROPOSITION BANNER */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-12 border-b border-gray-200">
           <div className="flex gap-4 p-5 bg-white border border-gray-200/80 rounded-2xl shadow-sm hover:border-gray-300 transition-all duration-300 group">
-            <FaTruck 
-              className="text-2xl group-hover:scale-110 transition-transform duration-300" 
+            <FaTruck
+              className="text-2xl group-hover:scale-110 transition-transform duration-300"
               style={{ color: '#A5CE00' }}
             />
             <div>
@@ -229,8 +229,8 @@ const Footer = () => {
           </div>
 
           <div className="flex gap-4 p-5 bg-white border border-gray-200/80 rounded-2xl shadow-sm hover:border-gray-300 transition-all duration-300 group">
-            <FaLock 
-              className="text-2xl group-hover:scale-110 transition-transform duration-300" 
+            <FaLock
+              className="text-2xl group-hover:scale-110 transition-transform duration-300"
               style={{ color: '#A5CE00' }}
             />
             <div>
@@ -240,8 +240,8 @@ const Footer = () => {
           </div>
 
           <div className="flex gap-4 p-5 bg-white border border-gray-200/80 rounded-2xl shadow-sm hover:border-gray-300 transition-all duration-300 group">
-            <FaRedo 
-              className="text-2xl group-hover:scale-110 transition-transform duration-300" 
+            <FaRedo
+              className="text-2xl group-hover:scale-110 transition-transform duration-300"
               style={{ color: '#A5CE00' }}
             />
             <div>
@@ -253,7 +253,7 @@ const Footer = () => {
 
         {/* MAIN NAVIGATION CONTENT */}
         <div className="grid lg:grid-cols-12 gap-10 py-12 text-left">
-          
+
           {/* BRAND COLUMN */}
           <div className="lg:col-span-5 space-y-5">
             <div className="flex items-center gap-2.5">
@@ -267,10 +267,10 @@ const Footer = () => {
             </p>
             <div className="flex gap-2.5 pt-1">
               {socialLinks.map((item, index) => (
-                <a 
-                  key={index} 
-                  href={item.href} 
-                  aria-label={item.label} 
+                <a
+                  key={index}
+                  href={item.href}
+                  aria-label={item.label}
                   className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:text-black hover:border-black hover:scale-105 shadow-sm transition-all duration-300"
                 >
                   {item.icon}
@@ -283,7 +283,7 @@ const Footer = () => {
           <div className="lg:col-span-4 grid grid-cols-2 gap-8">
             {footerLinks.map((group, index) => (
               <div key={index} className="space-y-4">
-                <h3 
+                <h3
                   className="text-xs font-black uppercase tracking-widest"
                   style={{ color: '#82a300' }}
                 >
@@ -292,12 +292,12 @@ const Footer = () => {
                 <ul className="space-y-2.5">
                   {group.items.map((item, idx) => (
                     <li key={idx}>
-                      <Link 
-                        to={item.path} 
+                      <Link
+                        to={item.path}
                         className="text-gray-600 hover:text-black text-xs font-semibold transition-colors duration-200 flex items-center gap-1.5 group/link"
                       >
-                        <span 
-                          className="w-1.5 h-1.5 rounded-full opacity-0 transition-all duration-200 group-hover/link:opacity-100" 
+                        <span
+                          className="w-1.5 h-1.5 rounded-full opacity-0 transition-all duration-200 group-hover/link:opacity-100"
                           style={{ backgroundColor: '#A5CE00' }}
                         />
                         {item.name}
@@ -316,10 +316,11 @@ const Footer = () => {
               Get the fastest grocery & essentials delivery experience on your mobile phone.
             </p>
             <div className="space-y-3 pt-1">
-              <a 
-                href="#" 
-                onClick={(e) => e.preventDefault()}
-                className="flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-4 py-2.5 rounded-xl border border-gray-800 transition-all duration-300 shadow-sm active:scale-95 w-full"
+              <a
+                href="https://play.google.com/store/apps/details?id=com.avg.avgmart&pcampaignid=web_share"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-4 py-2.5 rounded-xl border border-gray-800 transition-all duration-300 shadow-sm active:scale-95 w-full cursor-pointer"
               >
                 <FaGooglePlay className="text-xl text-[#A5CE00] shrink-0" />
                 <div className="text-left">
@@ -328,8 +329,8 @@ const Footer = () => {
                 </div>
               </a>
 
-              <a 
-                href="#" 
+              <a
+                href="#"
                 onClick={(e) => e.preventDefault()}
                 className="flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-4 py-2.5 rounded-xl border border-gray-800 transition-all duration-300 shadow-sm active:scale-95 w-full"
               >
@@ -346,11 +347,11 @@ const Footer = () => {
 
         {/* BOTTOM COPYRIGHT & LEGAL BAR */}
         <div className="border-t border-gray-200 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 relative">
-          
+
           {/* BACK TO TOP BUTTON */}
           <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-            <button 
-              onClick={scrollToTop} 
+            <button
+              onClick={scrollToTop}
               className="group flex items-center gap-1.5 bg-white border border-gray-200 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase text-gray-600 hover:text-black hover:border-gray-300 transition-all duration-300 shadow-md cursor-pointer"
             >
               Back to Top <FaArrowUp className="text-[9px] transform group-hover:-translate-y-0.5 transition-transform" />
