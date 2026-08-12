@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Search, SlidersHorizontal, Star, Check, Sliders, ChevronRight, X, RotateCcw, ChevronLeft } from 'lucide-react'
 import Navbar from '../components/Navbar'
@@ -19,8 +19,6 @@ const CategoryViewPage = () => {
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalProducts, setTotalProducts] = useState(0)
 
   // Mobile Filter Drawer Toggle State
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
@@ -31,16 +29,19 @@ const CategoryViewPage = () => {
   const [maxAvailablePrice, setMaxAvailablePrice] = useState(15000)
   const [sortBy, setSortBy] = useState('featured')
 
-  // Fetch max available price bounds for this category on mount
+  // Fetch all products on mount and filter by category locally
   useEffect(() => {
-    const fetchCategoryBounds = async () => {
+    const fetchCategoryInventory = async () => {
+      setIsLoading(true)
       try {
         const response = await fetch(API_BASE_URL)
         if (response.ok) {
           const data = await response.json()
+
           const categoryFiltered = data.filter(
             (product) => product.category && product.category.toLowerCase() === categoryName?.toLowerCase()
           )
+          setProducts(categoryFiltered)
 
           if (categoryFiltered.length > 0) {
             const peakPrice = Math.max(...categoryFiltered.map(p => Number(p.offerPrice || p.offer_price || p.originalPrice || p.original_price || 0)))
@@ -48,42 +49,6 @@ const CategoryViewPage = () => {
             setMaxAvailablePrice(topBoundary)
             setMaxPrice(topBoundary)
           }
-        }
-      } catch (err) {
-        console.error("Failed synchronization bounds:", err)
-      }
-    }
-
-    if (categoryName) {
-      fetchCategoryBounds()
-    }
-  }, [categoryName])
-
-  // Fetch paginated & filtered inventory for this specific category from API
-  useEffect(() => {
-    const fetchCategoryInventory = async () => {
-      setIsLoading(true)
-      try {
-        const queryParams = new URLSearchParams({
-          page: currentPage,
-          limit: pageSize,
-          sortBy: sortBy,
-          category: categoryName
-        })
-
-        if (searchQuery.trim() !== '') {
-          queryParams.append('search', searchQuery.trim())
-        }
-        if (maxPrice > 0) {
-          queryParams.append('maxPrice', maxPrice)
-        }
-
-        const response = await fetch(`${API_BASE_URL}/filter?${queryParams.toString()}`)
-        if (response.ok) {
-          const result = await response.json()
-          setProducts(result.products || [])
-          setTotalPages(result.totalPages || 1)
-          setTotalProducts(result.totalProducts || 0)
         } else {
           toast.error("Failed to load category inventory.")
         }
@@ -98,7 +63,7 @@ const CategoryViewPage = () => {
     if (categoryName) {
       fetchCategoryInventory()
     }
-  }, [categoryName, currentPage, pageSize, maxPrice, sortBy, searchQuery])
+  }, [categoryName])
 
   const handleResetFilters = () => {
     setSearchQuery('')
@@ -108,6 +73,36 @@ const CategoryViewPage = () => {
     setPageSize(25)
     setIsMobileFilterOpen(false)
   }
+
+  // Filter and Sort Products Locally
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const activePrice = Number(product.offerPrice || product.offer_price || product.originalPrice || product.original_price || 0)
+
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
+
+      const matchesPrice = activePrice <= maxPrice
+
+      return matchesSearch && matchesPrice
+    }).sort((a, b) => {
+      const priceA = Number(a.offerPrice || a.offer_price || a.originalPrice || a.original_price || 0)
+      const priceB = Number(b.offerPrice || b.offer_price || b.originalPrice || b.original_price || 0)
+
+      if (sortBy === 'low-to-high') return priceA - priceB
+      if (sortBy === 'high-to-low') return priceB - priceA
+      return (b.id || 0) - (a.id || 0)
+    })
+  }, [products, searchQuery, maxPrice, sortBy])
+
+  // Paginated slice
+  const totalProducts = filteredProducts.length
+  const totalPages = Math.ceil(totalProducts / pageSize) || 1
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize
+    return filteredProducts.slice(startIndex, startIndex + pageSize)
+  }, [filteredProducts, currentPage, pageSize])
 
   const handleAddToCart = async (e, product) => {
     e.stopPropagation()
@@ -399,7 +394,7 @@ const CategoryViewPage = () => {
                     </div>
                   ))}
                 </div>
-              ) : products.length === 0 ? (
+              ) : paginatedProducts.length === 0 ? (
                 <div className="bg-white border border-gray-100 rounded-2xl p-10 sm:p-16 text-center space-y-3 shadow-xs">
                   <Sliders className="w-8 h-8 text-gray-300 mx-auto" />
                   <h3 className="text-sm font-black uppercase tracking-wider text-gray-800">No items found</h3>
@@ -416,7 +411,7 @@ const CategoryViewPage = () => {
               ) : (
                 <>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                    {products.map((product) => {
+                    {paginatedProducts.map((product) => {
                       const rawOriginal = product.originalPrice ?? product.original_price
                       const rawOffer = product.offerPrice ?? product.offer_price
 

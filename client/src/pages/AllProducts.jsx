@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, SlidersHorizontal, Star, Check, Sliders, ChevronRight, X, RotateCcw, ChevronLeft } from 'lucide-react'
 import Navbar from '../components/Navbar'
@@ -20,8 +20,6 @@ const AllProducts = () => {
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalProducts, setTotalProducts] = useState(0)
 
   // Mobile Filter Drawer Toggle State
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
@@ -52,13 +50,16 @@ const AllProducts = () => {
     }
   }, [searchParams])
 
-  // Fetch categories list & max price on mount
+  // Fetch products inventory from standard endpoint
   useEffect(() => {
-    const fetchMeta = async () => {
+    const fetchAllInventoryProducts = async () => {
+      setIsLoading(true)
       try {
         const response = await fetch(API_BASE_URL)
         if (response.ok) {
           const data = await response.json()
+          setProducts(data)
+
           const distinctCategories = ['All', ...new Set(data.map(p => p.category).filter(Boolean))]
           setCategoriesList(distinctCategories)
 
@@ -69,41 +70,6 @@ const AllProducts = () => {
             setSliderMaxPrice(topBoundary)
             setAppliedMaxPrice(topBoundary)
           }
-        }
-      } catch (err) {
-        console.error("Failed fetching meta:", err)
-      }
-    }
-    fetchMeta()
-  }, [])
-
-  // Fetch paginated & filtered inventory from the new backend filter API
-  useEffect(() => {
-    const fetchFilteredInventory = async () => {
-      setIsLoading(true)
-      try {
-        const queryParams = new URLSearchParams({
-          page: currentPage,
-          limit: pageSize,
-          sortBy: sortBy
-        })
-
-        if (selectedCategory && selectedCategory !== 'All') {
-          queryParams.append('category', selectedCategory)
-        }
-        if (searchQuery.trim() !== '') {
-          queryParams.append('search', searchQuery.trim())
-        }
-        if (appliedMaxPrice > 0) {
-          queryParams.append('maxPrice', appliedMaxPrice)
-        }
-
-        const response = await fetch(`${API_BASE_URL}/filter?${queryParams.toString()}`)
-        if (response.ok) {
-          const result = await response.json()
-          setProducts(result.products || [])
-          setTotalPages(result.totalPages || 1)
-          setTotalProducts(result.totalProducts || 0)
         } else {
           toast.error("Failed to load inventory.")
         }
@@ -115,8 +81,8 @@ const AllProducts = () => {
       }
     }
 
-    fetchFilteredInventory()
-  }, [currentPage, pageSize, selectedCategory, appliedMaxPrice, sortBy, searchQuery])
+    fetchAllInventoryProducts()
+  }, [])
 
   const handleApplyPriceFilter = () => {
     setAppliedMaxPrice(sliderMaxPrice)
@@ -136,6 +102,40 @@ const AllProducts = () => {
     setIsMobileFilterOpen(false)
     navigate('/allproducts')
   }
+
+  // Filter and Sort Products Locally
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const targetPrice = Number(product.offerPrice || product.offer_price || product.originalPrice || product.original_price || 0)
+
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (product.category && product.category.toLowerCase().includes(searchQuery.toLowerCase()))
+
+      const matchesCategory = selectedCategory === 'All' || 
+        (product.category && product.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase())
+      
+      const matchesPrice = targetPrice <= appliedMaxPrice
+
+      return matchesSearch && matchesCategory && matchesPrice
+    }).sort((a, b) => {
+      const priceA = Number(a.offerPrice || a.offer_price || a.originalPrice || a.original_price || 0)
+      const priceB = Number(b.offerPrice || b.offer_price || b.originalPrice || b.original_price || 0)
+
+      if (sortBy === 'low-to-high') return priceA - priceB
+      if (sortBy === 'high-to-low') return priceB - priceA
+      return (b.id || 0) - (a.id || 0)
+    })
+  }, [products, searchQuery, selectedCategory, appliedMaxPrice, sortBy])
+
+  // Paginated slice
+  const totalProducts = filteredProducts.length
+  const totalPages = Math.ceil(totalProducts / pageSize) || 1
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize
+    return filteredProducts.slice(startIndex, startIndex + pageSize)
+  }, [filteredProducts, currentPage, pageSize])
 
   const handleAddToCart = async (e, product) => {
     e.stopPropagation()
@@ -297,10 +297,11 @@ const AllProducts = () => {
                         setSelectedCategory(cat)
                         setCurrentPage(1)
                       }}
-                      className={`w-full text-left text-xs font-bold py-2 px-3 rounded-lg transition-all flex items-center justify-between cursor-pointer ${selectedCategory.toLowerCase() === cat.toLowerCase()
+                      className={`w-full text-left text-xs font-bold py-2 px-3 rounded-lg transition-all flex items-center justify-between cursor-pointer ${
+                        selectedCategory.toLowerCase() === cat.toLowerCase()
                           ? 'bg-gray-100 text-black font-extrabold'
                           : 'text-gray-500 hover:bg-gray-50 hover:text-black'
-                        }`}
+                      }`}
                     >
                       <span className="capitalize truncate">{cat}</span>
                     </button>
@@ -314,7 +315,7 @@ const AllProducts = () => {
                   <span>Max Price</span>
                   <span className="text-gray-900 font-mono text-xs font-bold">₹{sliderMaxPrice}</span>
                 </div>
-
+                
                 <input
                   type="range"
                   min="0"
@@ -361,7 +362,7 @@ const AllProducts = () => {
                     <SlidersHorizontal className="w-4 h-4 text-[#A5CE00]" />
                     <span>Filter Products</span>
                   </div>
-                  <button
+                  <button 
                     onClick={() => setIsMobileFilterOpen(false)}
                     className="p-1.5 bg-gray-100 rounded-lg text-gray-500 hover:text-black cursor-pointer"
                   >
@@ -398,10 +399,11 @@ const AllProducts = () => {
                           setSelectedCategory(cat)
                           setCurrentPage(1)
                         }}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${selectedCategory.toLowerCase() === cat.toLowerCase()
+                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                          selectedCategory.toLowerCase() === cat.toLowerCase()
                             ? 'bg-gray-900 text-white border-gray-900'
                             : 'bg-gray-50 text-gray-700 border-gray-200'
-                          }`}
+                        }`}
                       >
                         {cat}
                       </button>
@@ -475,15 +477,15 @@ const AllProducts = () => {
                     </div>
                   ))}
                 </div>
-              ) : products.length === 0 ? (
+              ) : paginatedProducts.length === 0 ? (
                 <div className="bg-white border border-gray-100 rounded-2xl p-10 sm:p-16 text-center space-y-3 shadow-xs">
                   <Sliders className="w-8 h-8 text-gray-300 mx-auto" />
                   <h3 className="text-sm font-black uppercase tracking-wider text-gray-800">No products match</h3>
                   <p className="text-xs text-gray-400 max-w-xs mx-auto font-medium">
                     Try clearing search parameters or adjusting filter criteria.
                   </p>
-                  <button
-                    onClick={handleResetFilters}
+                  <button 
+                    onClick={handleResetFilters} 
                     className="text-xs text-white bg-gray-900 px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider hover:bg-black transition-all cursor-pointer"
                   >
                     Reset Filters
@@ -492,7 +494,7 @@ const AllProducts = () => {
               ) : (
                 <>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                    {products.map((product) => {
+                    {paginatedProducts.map((product) => {
                       const rawOriginal = product.originalPrice ?? product.original_price
                       const rawOffer = product.offerPrice ?? product.offer_price
 
@@ -510,7 +512,7 @@ const AllProducts = () => {
                         >
                           {/* PRODUCT IMAGE CONTAINER */}
                           <div className="relative w-full aspect-square rounded-xl bg-gray-50 overflow-hidden flex items-center justify-center p-2">
-
+                            
                             {/* BESTSELLER TAG */}
                             {product.isFeatured && (
                               <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md shadow-xs z-10">
@@ -521,18 +523,20 @@ const AllProducts = () => {
                             <img
                               src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"}
                               alt={product.name}
-                              className={`w-full h-full object-contain group-hover/card:scale-105 transition-transform duration-300 ${isOutOfStock ? 'opacity-40 grayscale' : ''
-                                }`}
+                              className={`w-full h-full object-contain group-hover/card:scale-105 transition-transform duration-300 ${
+                                isOutOfStock ? 'opacity-40 grayscale' : ''
+                              }`}
                             />
 
                             {/* ADD BUTTON */}
                             <button
                               disabled={isOutOfStock || isAdding}
                               onClick={(e) => handleAddToCart(e, product)}
-                              className={`absolute bottom-2 right-2 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border shadow-sm flex items-center gap-1 transition-all duration-200 cursor-pointer ${isOutOfStock
+                              className={`absolute bottom-2 right-2 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border shadow-sm flex items-center gap-1 transition-all duration-200 cursor-pointer ${
+                                isOutOfStock
                                   ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                                   : 'bg-white text-rose-600 border-rose-500 hover:bg-rose-500 hover:text-white active:scale-95'
-                                }`}
+                              }`}
                             >
                               {isAdding ? (
                                 <Check className="w-3 h-3 text-emerald-600" />
@@ -544,11 +548,11 @@ const AllProducts = () => {
 
                           {/* CONTENT BLOCK */}
                           <div className="pt-2.5 flex-1 flex flex-col justify-between space-y-1.5">
-
+                            
                             {/* PRICE & SAVINGS ROW */}
                             <div>
                               <div className="flex items-baseline gap-1.5 flex-wrap">
-                                <span
+                                <span 
                                   className="text-xs font-black text-white px-1.5 py-0.5 rounded"
                                   style={{ backgroundColor: '#A5CE00' }}
                                 >
@@ -599,10 +603,11 @@ const AllProducts = () => {
                       <button
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${currentPage === 1
-                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                        className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          currentPage === 1 
+                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed' 
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
+                        }`}
                       >
                         <ChevronLeft className="w-4 h-4" /> Previous
                       </button>
@@ -614,10 +619,11 @@ const AllProducts = () => {
                       <button
                         disabled={currentPage === totalPages}
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${currentPage === totalPages
-                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                        className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          currentPage === totalPages 
+                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed' 
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
+                        }`}
                       >
                         Next <ChevronRight className="w-4 h-4" />
                       </button>
