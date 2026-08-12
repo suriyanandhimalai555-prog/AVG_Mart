@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, ShoppingBag, Star, MessageSquare, Calendar, User, Plus, Minus, Share2, ChevronRight, Sparkles, Check, RefreshCw } from 'lucide-react'
+import { 
+    ArrowLeft, ShoppingBag, Star, MessageSquare, Calendar, User, Plus, 
+    Minus, Share2, ChevronRight, Sparkles, Check, RefreshCw, X, ChevronLeft 
+} from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { toast } from 'react-hot-toast'
@@ -31,6 +34,29 @@ const ProductDetailView = () => {
     const [selectedSize, setSelectedSize] = useState('')
     const [selectedColor, setSelectedColor] = useState('')
     const [quantity, setQuantity] = useState(1)
+
+    // Image Modal Lightbox States for Reviews
+    const [modalImages, setModalImages] = useState([])
+    const [currentModalIdx, setCurrentModalIdx] = useState(0)
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+
+    // Opens Review Image Modal at specific index
+    const handleOpenImageModal = (images, index) => {
+        setModalImages(images)
+        setCurrentModalIdx(index)
+        setIsImageModalOpen(true)
+    }
+
+    // Modal Image Controls
+    const handleNextModalImage = (e) => {
+        e.stopPropagation()
+        setCurrentModalIdx((prev) => (prev + 1) % modalImages.length)
+    }
+
+    const handlePrevModalImage = (e) => {
+        e.stopPropagation()
+        setCurrentModalIdx((prev) => (prev - 1 + modalImages.length) % modalImages.length)
+    }
 
     // Share functionality
     const handleShare = async () => {
@@ -164,7 +190,7 @@ const ProductDetailView = () => {
                         const otherProducts = data.filter(p => String(p.id) !== String(id))
                         const shuffled = [...otherProducts].sort(() => 0.5 - Math.random())
                         setAllAvailableProducts(shuffled)
-                        setVisibleCount(4) // Reset visible count to initial 4
+                        setVisibleCount(4)
                     }
                 }
 
@@ -575,12 +601,18 @@ const ProductDetailView = () => {
 
                                         <p className="text-xs text-gray-600 font-medium leading-relaxed">{rev.comment}</p>
 
+                                        {/* REVIEW IMAGES GRID WITH MODAL POPUP TRIGGER */}
                                         {rev.images && rev.images.length > 0 && (
                                             <div className="flex flex-wrap gap-2 pt-1">
                                                 {rev.images.map((imgUrl, i) => (
-                                                    <a key={i} href={imgUrl} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 bg-white">
-                                                        <img src={imgUrl} alt="Feedback attachment" className="w-full h-full object-cover" />
-                                                    </a>
+                                                    <button
+                                                        key={i}
+                                                        type="button"
+                                                        onClick={() => handleOpenImageModal(rev.images, i)}
+                                                        className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 bg-white hover:opacity-80 transition-opacity cursor-pointer focus:outline-none"
+                                                    >
+                                                        <img src={imgUrl} alt={`Feedback attachment ${i + 1}`} className="w-full h-full object-cover" />
+                                                    </button>
                                                 ))}
                                             </div>
                                         )}
@@ -598,9 +630,6 @@ const ProductDetailView = () => {
                                     <Sparkles className="w-4 h-4" style={{ color: '#A5CE00' }} />
                                     <h3 className="text-sm sm:text-base font-black uppercase tracking-tight text-gray-900">You Might Also Like</h3>
                                 </div>
-                                {/* <span className="text-[11px] font-bold text-gray-400">
-                                    Showing {visibleSuggestedProducts.length} of {allAvailableProducts.length}
-                                </span> */}
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
@@ -724,6 +753,62 @@ const ProductDetailView = () => {
 
                 </div>
             </div>
+
+            {/* REVIEW IMAGE POPUP MODAL LIGHTBOX */}
+            {isImageModalOpen && modalImages.length > 0 && (
+                <div 
+                    className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+                    onClick={() => setIsImageModalOpen(false)}
+                >
+                    {/* CLOSE BUTTON */}
+                    <button
+                        onClick={() => setIsImageModalOpen(false)}
+                        className="absolute top-4 right-4 text-white/80 hover:text-white bg-black/50 p-2 rounded-full cursor-pointer transition-all z-10"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+
+                    {/* MAIN IMAGE CONTAINER */}
+                    <div 
+                        className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <img 
+                            src={modalImages[currentModalIdx]} 
+                            alt={`Review Attachment ${currentModalIdx + 1}`} 
+                            className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl select-none"
+                        />
+
+                        {/* PREVIOUS BUTTON */}
+                        {modalImages.length > 1 && (
+                            <button
+                                onClick={handlePrevModalImage}
+                                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-3 rounded-full cursor-pointer transition-all shadow-lg"
+                            >
+                                <ChevronLeft className="w-6 h-6" />
+                            </button>
+                        )}
+
+                        {/* NEXT BUTTON */}
+                        {modalImages.length > 1 && (
+                            <button
+                                onClick={handleNextModalImage}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-3 rounded-full cursor-pointer transition-all shadow-lg"
+                            >
+                                <ChevronRight className="w-6 h-6" />
+                            </button>
+                        )}
+
+                        {/* INDEX INDICATOR COUNTER */}
+                        {modalImages.length > 1 && (
+                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/70 text-white text-xs font-bold px-3 py-1 rounded-full border border-white/10">
+                                {currentModalIdx + 1} / {modalImages.length}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <Footer />
         </>
     )
