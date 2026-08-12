@@ -42,10 +42,13 @@ const AddProducts = () => {
   const footwearSizesList = ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 
   const normalizedCat = category.toLowerCase().trim()
-  const isClothingCategory = ['t-shirt', 'tshirts', 'tshirt', 'shirt', 'clothing', 'clothes'].includes(normalizedCat)
-  const isFootwearCategory = ['shoe', 'shoes', 'footwear', 'footwears'].includes(normalizedCat)
 
-  const activeCategoryObject = availableCategories.find(cat => cat.name.toLowerCase() === normalizedCat)
+  // Broader keyword check to support "MEN'S CLOTHING", "WOMEN'S CLOTHING", etc.
+  const isClothingCategory = ['t-shirt', 'tshirts', 'tshirt', 'shirt', 'clothing', 'clothes', 'dress', 'wear', 'apparel'].some(keyword => normalizedCat.includes(keyword))
+  const isFootwearCategory = ['shoe', 'shoes', 'footwear', 'footwears', 'sandal', 'sneaker', 'boot'].some(keyword => normalizedCat.includes(keyword))
+
+  // Trim category comparison to handle extra spaces
+  const activeCategoryObject = availableCategories.find(cat => cat.name.toLowerCase().trim() === normalizedCat)
 
   useEffect(() => {
     fetchProducts()
