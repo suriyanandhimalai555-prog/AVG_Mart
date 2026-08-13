@@ -59,7 +59,7 @@ jobs:
           provenance: false
           sbom: false
           build-args: |
-            VITE_APP_BASE_URL=${{ secrets.VITE_APP_BASE_URL }}
+            VITE_APP_BASE_URL=https://avgmart.com
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           tags: |
             ghcr.io/${{ env.OWNER }}/avgmart-frontend:latest
