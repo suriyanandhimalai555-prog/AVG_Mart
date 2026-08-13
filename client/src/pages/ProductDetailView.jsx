@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { 
     ArrowLeft, ShoppingBag, Star, MessageSquare, Calendar, User, Plus, 
-    Minus, Share2, ChevronRight, Sparkles, Check, RefreshCw, X, ChevronLeft 
+    Minus, Share2, ChevronRight, Sparkles, Check, RefreshCw, X, ChevronLeft, PackageX, Search 
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -229,12 +229,47 @@ const ProductDetailView = () => {
 
     if (!product) {
         return (
-            <div className="bg-gray-50 text-gray-900 min-h-screen flex flex-col items-center justify-center space-y-4 p-4 text-center">
-                <h2 className="text-xl font-bold uppercase tracking-wider text-red-500">Product Not Found</h2>
-                <button onClick={() => navigate('/')} className="bg-gray-900 text-white px-5 py-2.5 rounded-xl text-xs uppercase font-bold tracking-wider hover:bg-black transition-colors">
-                    Return to Home
-                </button>
-            </div>
+            <>
+                <Navbar />
+                <div className="bg-gray-50 min-h-[75vh] flex flex-col items-center justify-center p-4 sm:p-6">
+                    <div className="bg-white border border-gray-100 rounded-3xl p-10 sm:p-14 text-center max-w-lg w-full shadow-xs space-y-6">
+                        
+                        {/* Icon Container */}
+                        <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-2 border border-gray-100">
+                            <PackageX className="w-12 h-12 text-gray-300" />
+                        </div>
+                        
+                        {/* Text Content */}
+                        <div className="space-y-2.5">
+                            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                                Product Not Found
+                            </h2>
+                            <p className="text-xs sm:text-sm text-gray-500 font-medium max-w-sm mx-auto leading-relaxed">
+                                The item you're looking for might have been removed, is temporarily out of stock, or the link is incorrect.
+                            </p>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                            <button 
+                                onClick={() => navigate(-1)} 
+                                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors w-full sm:w-auto cursor-pointer"
+                            >
+                                <ArrowLeft className="w-4 h-4" /> Go Back
+                            </button>
+                            <button 
+                                onClick={() => navigate('/')} 
+                                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-xs font-bold text-white shadow-md transition-colors w-full sm:w-auto cursor-pointer"
+                                style={{ backgroundColor: '#A5CE00' }}
+                            >
+                                <Search className="w-4 h-4" /> Browse Store
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+                <Footer />
+            </>
         )
     }
 
