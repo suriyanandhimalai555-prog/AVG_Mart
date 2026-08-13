@@ -29,6 +29,17 @@ const CategoryViewPage = () => {
   const [maxAvailablePrice, setMaxAvailablePrice] = useState(15000)
   const [sortBy, setSortBy] = useState('featured')
 
+  // Helper function to normalize category strings safely
+  const normalizeCategoryString = (str) => {
+    if (!str) return ''
+    return decodeURIComponent(str)
+      .toLowerCase()
+      .replace(/['’]/g, '') // Remove both straight and curved apostrophes
+      .replace(/[-_]/g, ' ') // Replace hyphens/underscores with spaces
+      .replace(/\s+/g, ' ')  // Collapse multiple spaces
+      .trim()
+  }
+
   // Fetch all products on mount and filter by category locally
   useEffect(() => {
     const fetchCategoryInventory = async () => {
@@ -38,16 +49,24 @@ const CategoryViewPage = () => {
         if (response.ok) {
           const data = await response.json()
 
-          const categoryFiltered = data.filter(
-            (product) => product.category && product.category.toLowerCase() === categoryName?.toLowerCase()
-          )
+          const targetCategoryClean = normalizeCategoryString(categoryName)
+
+          // Filter by normalized category string comparison
+          const categoryFiltered = data.filter((product) => {
+            if (!product.category) return false
+            const productCatClean = normalizeCategoryString(product.category)
+            return productCatClean === targetCategoryClean
+          })
+
           setProducts(categoryFiltered)
 
           if (categoryFiltered.length > 0) {
-            const peakPrice = Math.max(...categoryFiltered.map(p => Number(p.offerPrice || p.offer_price || p.originalPrice || p.original_price || 0)))
+            const peakPrice = Math.max(
+              ...categoryFiltered.map(p => Number(p.offerPrice || p.offer_price || p.originalPrice || p.original_price || 0))
+            )
             const topBoundary = peakPrice > 0 ? peakPrice : 15000
             setMaxAvailablePrice(topBoundary)
-            setMaxPrice(topBoundary)
+            setMaxPrice(topBoundary) // Sets max price correctly to cover the highest priced item
           }
         } else {
           toast.error("Failed to load category inventory.")
@@ -158,6 +177,8 @@ const CategoryViewPage = () => {
 
   const activeFiltersCount = (maxPrice < maxAvailablePrice ? 1 : 0) + (searchQuery.trim() !== '' ? 1 : 0)
 
+  const formattedCategoryTitle = categoryName ? decodeURIComponent(categoryName).replace(/[-_]/g, ' ') : 'Category'
+
   return (
     <>
       <Navbar />
@@ -170,10 +191,10 @@ const CategoryViewPage = () => {
               <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400 mb-1">
                 <span onClick={() => navigate('/')} className="hover:text-black cursor-pointer">Home</span>
                 <ChevronRight className="w-3 h-3" />
-                <span className="text-gray-800 capitalize">{categoryName ? categoryName.replace('-', ' ') : 'Category'}</span>
+                <span className="text-gray-800 capitalize">{formattedCategoryTitle}</span>
               </div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 capitalize tracking-tight">
-                {categoryName ? categoryName.replace('-', ' ') : 'Category'}
+                {formattedCategoryTitle}
               </h1>
             </div>
 
@@ -468,20 +489,23 @@ const CategoryViewPage = () => {
                             <div>
                               <div className="flex items-baseline gap-1.5 flex-wrap">
                                 <span
-                                  className="text-xs font-black text-white px-1.5 py-0.5 rounded"
-                                  style={{ backgroundColor: '#A5CE00' }}
+                                  className="inline-flex items-center justify-center text-white font-black px-1.5 py-0.5 text-md tracking-tight rounded-xl border-2 border-[#123815]"
+                                  style={{
+                                    backgroundColor: '#A5CE00',
+                                    boxShadow: '3px 3px 0px 0px #123815',
+                                  }}
                                 >
                                   ₹{offer}
                                 </span>
                                 {original > offer && (
-                                  <span className="text-[11px] line-through text-gray-400 font-semibold">
+                                  <span className="text-[12px] line-through text-gray-400 font-semibold">
                                     ₹{original}
                                   </span>
                                 )}
                               </div>
 
                               {savings > 0 && (
-                                <span className="text-[10px] font-bold text-emerald-600 block mt-0.5">
+                                <span className="text-[10px] font-bold text-emerald-600 block mt-2">
                                   ₹{savings} OFF
                                 </span>
                               )}
