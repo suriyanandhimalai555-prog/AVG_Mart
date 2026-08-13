@@ -1,12 +1,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
-
 metadata:
   name: avgmart-ingress
   namespace: avgmart
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 
 spec:
   ingressClassName: nginx
@@ -15,12 +13,21 @@ spec:
     - hosts:
         - avgmart.com
         - www.avgmart.com
+        - api.avgmart.com
       secretName: avgmart-tls
 
   rules:
     - host: avgmart.com
       http:
         paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: avgmart-backend
+                port:
+                  number: 5000
+
           - path: /
             pathType: Prefix
             backend:
@@ -32,6 +39,14 @@ spec:
     - host: www.avgmart.com
       http:
         paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: avgmart-backend
+                port:
+                  number: 5000
+
           - path: /
             pathType: Prefix
             backend:
@@ -39,3 +54,14 @@ spec:
                 name: avgmart-frontend
                 port:
                   number: 80
+
+    - host: api.avgmart.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: avgmart-backend
+                port:
+                  number: 5000

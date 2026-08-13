@@ -43,7 +43,7 @@ jobs:
             echo "Deployment Commit:"
             echo "${IMAGE_TAG}"
 
-            cd /root/otp/apps/AVG_Mart
+            cd /home/ubuntu/Applications/AVG_Mart
 
             echo "=============================================="
             echo "Updating source code"
