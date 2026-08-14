@@ -516,8 +516,14 @@ const ProductDetailView = () => {
 
                             {/* PRICE */}
                             <div className="flex items-baseline flex-wrap gap-2 sm:gap-3">
-                                <span className="text-xl sm:text-2xl font-black text-white px-2.5 py-0.5 rounded" style={{ backgroundColor: '#A5CE00' }}>
-                                    ₹{offer * quantity}
+                                <span
+                                  className="inline-flex items-center justify-center text-white font-black px-1.5 py-0.5 text-[22px] tracking-tight rounded-xl border-2 border-[#123815]"
+                                  style={{
+                                    backgroundColor: '#A5CE00',
+                                    boxShadow: '3px 3px 0px 0px #123815',
+                                  }}
+                                >
+                                  ₹{offer * quantity}
                                 </span>
                                 {priceDifference > 0 && (
                                     <span className="text-xs sm:text-sm line-through text-gray-400 font-bold">₹{original * quantity}</span>
