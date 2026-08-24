@@ -373,7 +373,11 @@ export const getUserOrders = async (req, res) => {
         o.id, 
         o.total_price AS "totalPrice", 
         o.status, 
+        o.created_at AS "date",
         o.created_at,
+        o.expected_delivery,
+        o.dispatched_at,
+        o.delivered_at,
         COALESCE(
           json_agg(
             json_build_object(
