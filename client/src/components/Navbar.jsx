@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { 
-    Search, ShoppingBag, User, LogOut, ChevronDown, Zap, 
-    Sparkles, Home, Smartphone, Headphones, Shirt, Utensils, Package, MapPin, X, Navigation, Check, AlertCircle, RefreshCw, ChevronRight, ChevronLeft, LayoutGrid, ArrowRight
+import {
+    Search, ShoppingBag, User, LogOut, ChevronDown, Zap,
+    Sparkles, Home, Smartphone, Headphones, Shirt, Utensils, Package, MapPin, X, Navigation, Check, AlertCircle, RefreshCw, ChevronRight, ChevronLeft, LayoutGrid, ArrowRight, Grid, Menu
 } from 'lucide-react'
 import Logo from "../assets/logo.png"
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
@@ -33,7 +33,7 @@ const Navbar = () => {
     const [selectedCategory, setSelectedCategory] = useState(null)
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
 
-    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
+    const [isMobileMenuSheetOpen, setIsMobileMenuSheetOpen] = useState(false)
 
     const [userLocationText, setUserLocationText] = useState('Select Location')
     const [isLocationLoading, setIsLocationLoading] = useState(false)
@@ -41,12 +41,10 @@ const Navbar = () => {
     const [manualCityInput, setManualCityInput] = useState('')
     const [isPermissionBlocked, setIsPermissionBlocked] = useState(false)
 
-    // Dynamic Scroll Visibility States
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
 
     const scrollContainerRef = useRef(null);
-    const searchInputRef = useRef(null);
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -54,11 +52,9 @@ const Navbar = () => {
     const isLoggedIn = !!localStorage.getItem("token");
     const userName = localStorage.getItem("userName") || "User";
 
-    // Function to calculate if scrolling left or right is possible
     const checkScrollPosition = () => {
         if (scrollContainerRef.current) {
             const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-            // Buffer of 2px for browser subpixel rounding discrepancies
             setCanScrollLeft(scrollLeft > 2);
             setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 2);
         }
@@ -69,12 +65,6 @@ const Navbar = () => {
         window.addEventListener('resize', checkScrollPosition);
         return () => window.removeEventListener('resize', checkScrollPosition);
     }, [categories, isCategoriesLoading]);
-
-    useEffect(() => {
-        if (isMobileSearchOpen && searchInputRef.current) {
-            searchInputRef.current.focus();
-        }
-    }, [isMobileSearchOpen]);
 
     useEffect(() => {
         const path = location.pathname;
@@ -116,7 +106,7 @@ const Navbar = () => {
                         setIsPermissionBlocked(true);
                     }
                 };
-            }).catch(() => {});
+            }).catch(() => { });
         }
     }, []);
 
@@ -134,7 +124,7 @@ const Navbar = () => {
                         if (res.ok) {
                             const data = await res.json();
                             const addr = data.address || {};
-                            
+
                             const street = addr.road || addr.pedestrian || addr.street || addr.suburb || addr.neighbourhood || addr.residential || '';
                             const city = addr.city || addr.town || addr.village || addr.county || addr.state_district || '';
                             const pincode = addr.postcode || '';
@@ -241,6 +231,7 @@ const Navbar = () => {
         localStorage.removeItem("userRole");
         localStorage.removeItem("userName");
         setIsProfileMenuOpen(false);
+        setIsMobileMenuSheetOpen(false);
         toast.success(`Goodbye. Session ended.`);
         navigate("/");
     };
@@ -254,7 +245,6 @@ const Navbar = () => {
         if (selectedCategory && selectedCategory.toLowerCase() !== 'all') {
             params.set('category', selectedCategory);
         }
-        setIsMobileSearchOpen(false);
         navigate(`/allproducts?${params.toString()}`);
     };
 
@@ -281,32 +271,145 @@ const Navbar = () => {
 
     return (
         <>
-            <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-gray-100/80 shadow-xs transition-all duration-300 font-sans">
-                {/* TOP BRAND & NAVIGATION BAR */}
-                <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 md:gap-8 relative">
-                    
-                    {/* LOGO & BRAND IDENTIFIER */}
+            <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-100/80 shadow-xs font-sans">
+                {/* MOBILE TOP LAYOUT (2 ROWS) */}
+                <div className="block md:hidden max-w-7xl mx-auto px-3 pt-2.5 pb-2 space-y-2">
+                    {/* ROW 1: LOCATION (LEFT) & PROFILE (RIGHT) */}
+                    <div className="flex items-center justify-between gap-2">
+                        <div
+                            onClick={() => setIsLocationModalOpen(true)}
+                            className="flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200/80 px-3 py-1.5 rounded-full cursor-pointer max-w-[200px] sm:max-w-[240px] shrink-0"
+                        >
+                            <Zap className="w-3.5 h-3.5 fill-[#A5CE00] text-[#A5CE00] shrink-0" />
+                            <div className="flex flex-col text-left overflow-hidden">
+                                <span className="text-[8px] font-black uppercase text-gray-400 leading-none">Delivering to</span>
+                                <span className="text-xs font-extrabold text-gray-800 truncate leading-tight">
+                                    {isLocationLoading ? "Locating..." : userLocationText}
+                                </span>
+                            </div>
+                            <ChevronDown className="w-3 h-3 text-gray-400 shrink-0 ml-auto" />
+                        </div>
+
+                        {/* PROFILE ICON / LOGIN */}
+                        <div className="relative">
+                            {isLoggedIn ? (
+                                <button
+                                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                                    className="p-1 rounded-full text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-gray-900 text-white font-black text-xs flex items-center justify-center uppercase shadow-2xs">
+                                        {userName.charAt(0)}
+                                    </div>
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => navigate("/login")}
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-900 text-white hover:bg-black text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                                >
+                                    <User className="w-3.5 h-3.5" />
+                                    <span>Login</span>
+                                </button>
+                            )}
+
+                            {isLoggedIn && isProfileMenuOpen && (
+                                <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50">
+                                    <div className="px-4 py-2 border-b border-gray-100">
+                                        <p className="text-[10px] font-black uppercase text-gray-400">Signed in as</p>
+                                        <p className="text-xs font-extrabold text-gray-900 truncate">{userName}</p>
+                                    </div>
+
+                                    <button
+                                        onClick={() => { setIsProfileMenuOpen(false); navigate("/profile"); }}
+                                        className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                    >
+                                        <User className="w-4 h-4 text-gray-400" /> Profile Dashboard
+                                    </button>
+
+                                    <button
+                                        onClick={() => { setIsProfileMenuOpen(false); navigate("/orders"); }}
+                                        className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                    >
+                                        <Package className="w-4 h-4 text-gray-400" /> My Orders
+                                    </button>
+
+                                    <div className="my-1 border-t border-gray-100" />
+
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full text-left px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                    >
+                                        <LogOut className="w-4 h-4" /> Logout Session
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ROW 2: LOGO (LEFT) & SEARCH INPUT (RIGHT WITH SUBMIT BUTTON) */}
+                    <div className="flex items-center gap-2.5">
+                        <div onClick={() => navigate("/")} className="flex items-center gap-1.5 cursor-pointer select-none shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-gray-50 p-1 border border-gray-100 flex items-center justify-center shadow-2xs">
+                                <img src={Logo} alt="Logo" className="w-full h-full object-contain" />
+                            </div>
+                            <h1 className="text-sm font-black tracking-tight text-gray-900 leading-none">
+                                AVG <span style={{ color: '#A5CE00' }}>MART</span>
+                            </h1>
+                        </div>
+
+                        <form onSubmit={handleSearchSubmit} className="flex-1 relative flex items-center">
+                            <input
+                                type="text"
+                                value={navSearchQuery}
+                                onChange={(e) => setNavSearchQuery(e.target.value)}
+                                placeholder='Search products & groceries...'
+                                className="w-full bg-gray-50 border border-gray-200/80 focus:bg-white text-xs text-gray-900 placeholder-gray-400 rounded-xl py-2 pl-3 pr-14 outline-none font-medium shadow-2xs"
+                                onFocus={(e) => e.target.style.borderColor = '#A5CE00'}
+                                onBlur={(e) => e.target.style.borderColor = ''}
+                            />
+
+                            <div className="absolute right-1 flex items-center gap-1">
+                                {navSearchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setNavSearchQuery('')}
+                                        className="text-gray-400 p-1"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+
+                                {/* TAPPABLE MOBILE SEARCH BUTTON */}
+                                <button
+                                    type="submit"
+                                    className="p-1.5 bg-gray-900 hover:bg-black text-[#A5CE00] rounded-lg transition-colors cursor-pointer"
+                                    title="Search"
+                                >
+                                    <Search className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {/* DESKTOP HEADER (MD & ABOVE) */}
+                <div className="hidden md:flex max-w-7xl mx-auto px-6 lg:px-8 py-3 items-center justify-between gap-8 relative">
                     <div className="flex items-center gap-3 shrink-0">
                         <div onClick={() => navigate("/")} className="flex items-center gap-2 cursor-pointer select-none group">
-                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gray-50 p-1 border border-gray-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform duration-300">
+                            <div className="w-9 h-9 rounded-xl bg-gray-50 p-1 border border-gray-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform duration-300">
                                 <img src={Logo} alt="Logo" className="w-full h-full object-contain" />
                             </div>
                             <div className="flex flex-col">
-                                <h1 className="text-base sm:text-lg md:text-xl font-black tracking-tight text-gray-900 leading-none">
+                                <h1 className="text-xl font-black tracking-tight text-gray-900 leading-none">
                                     AVG <span style={{ color: '#A5CE00' }}>MART</span>
                                 </h1>
-                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest hidden xs:block">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
                                     Express Store
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    {/* DESKTOP SEARCH BAR */}
-                    <form 
-                        onSubmit={handleSearchSubmit}
-                        className="hidden sm:flex flex-1 max-w-xl relative items-center group"
-                    >
+                    <form onSubmit={handleSearchSubmit} className="flex-1 max-w-xl relative flex items-center group">
                         <div className="absolute left-3.5 pointer-events-none text-gray-400 group-focus-within:text-gray-900 transition-colors">
                             <Search className="w-4 h-4" />
                         </div>
@@ -315,13 +418,13 @@ const Navbar = () => {
                             value={navSearchQuery}
                             onChange={(e) => setNavSearchQuery(e.target.value)}
                             placeholder='Search products, groceries & essentials...'
-                            className="w-full bg-gray-50/90 border border-gray-200/80 hover:border-gray-300 focus:bg-white text-xs sm:text-sm text-gray-900 placeholder-gray-400 rounded-2xl py-2 sm:py-2.5 pl-9 sm:pl-10 pr-8 outline-none transition-all duration-200 font-medium shadow-2xs"
+                            className="w-full bg-gray-50/90 border border-gray-200/80 hover:border-gray-300 focus:bg-white text-sm text-gray-900 placeholder-gray-400 rounded-2xl py-2.5 pl-10 pr-8 outline-none transition-all duration-200 font-medium shadow-2xs"
                             onFocus={(e) => e.target.style.borderColor = '#A5CE00'}
                             onBlur={(e) => e.target.style.borderColor = ''}
                         />
                         {navSearchQuery && (
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={() => setNavSearchQuery('')}
                                 className="absolute right-3 text-gray-400 hover:text-gray-700 p-0.5 rounded-full"
                             >
@@ -330,10 +433,9 @@ const Navbar = () => {
                         )}
                     </form>
 
-                    {/* LOCATION PILL SELECTOR */}
-                    <div 
+                    <div
                         onClick={() => setIsLocationModalOpen(true)}
-                        className="hidden md:flex items-center gap-2 bg-gray-50 hover:bg-gray-100/80 border border-gray-200/70 px-3 py-1.5 rounded-full cursor-pointer transition-all duration-200 group shrink-0"
+                        className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100/80 border border-gray-200/70 px-3 py-1.5 rounded-full cursor-pointer transition-all duration-200 group shrink-0"
                     >
                         <div className="relative flex items-center justify-center">
                             <Zap className="w-3.5 h-3.5 fill-[#A5CE00] text-[#A5CE00]" />
@@ -348,80 +450,26 @@ const Navbar = () => {
                         <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-700 transition-transform group-hover:translate-y-0.5" />
                     </div>
 
-                    {/* MOBILE EXPANDABLE SEARCH OVERLAY */}
-                    {isMobileSearchOpen && (
-                        <div className="absolute inset-0 bg-white z-50 px-3 flex items-center gap-2 animate-fadeIn sm:hidden shadow-md">
-                            <form onSubmit={handleSearchSubmit} className="flex-1 relative flex items-center gap-1.5">
-                                <div className="relative flex-1 flex items-center">
-                                    <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
-                                    <input
-                                        ref={searchInputRef}
-                                        type="text"
-                                        value={navSearchQuery}
-                                        onChange={(e) => setNavSearchQuery(e.target.value)}
-                                        placeholder='Search items...'
-                                        className="w-full bg-gray-100 border-none text-xs text-gray-900 placeholder-gray-400 rounded-xl py-2 pl-9 pr-8 outline-none font-bold"
-                                    />
-                                    {navSearchQuery && (
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setNavSearchQuery('')}
-                                            className="absolute right-2.5 text-gray-400"
-                                        >
-                                            <X className="w-3.5 h-3.5" />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={!navSearchQuery.trim()}
-                                    className="px-3 py-2 bg-[#A5CE00] hover:bg-[#8da800] text-gray-900 font-black text-xs rounded-xl flex items-center gap-1 shadow-xs disabled:opacity-40 transition-all shrink-0 cursor-pointer"
-                                >
-                                    <span>Search</span>
-                                    <ArrowRight className="w-3.5 h-3.5" />
-                                </button>
-                            </form>
-
-                            <button 
-                                onClick={() => setIsMobileSearchOpen(false)} 
-                                className="p-2 text-gray-500 hover:text-black font-bold text-xs shrink-0 cursor-pointer"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    )}
-
-                    {/* USER ACTIONS: SEARCH, PROFILE & CART */}
-                    <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                        <button
-                            type="button"
-                            onClick={() => setIsMobileSearchOpen(true)}
-                            className="sm:hidden p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-                            aria-label="Open Search"
-                        >
-                            <Search className="w-5 h-5" />
-                        </button>
-
+                    <div className="flex items-center gap-3 shrink-0">
                         <div className="relative">
                             {isLoggedIn ? (
-                                <button 
+                                <button
                                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                    className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-gray-700 hover:bg-gray-100/70 border border-transparent hover:border-gray-200 transition-all cursor-pointer"
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-gray-700 hover:bg-gray-100/70 border border-transparent hover:border-gray-200 transition-all cursor-pointer"
                                 >
-                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-900 text-white font-black text-xs flex items-center justify-center uppercase shadow-2xs">
+                                    <div className="w-8 h-8 rounded-full bg-gray-900 text-white font-black text-xs flex items-center justify-center uppercase shadow-2xs">
                                         {userName.charAt(0)}
                                     </div>
-                                    <span className="text-xs font-bold text-gray-800 hidden md:block max-w-[90px] truncate">{userName}</span>
-                                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 hidden md:block" />
+                                    <span className="text-xs font-bold text-gray-800 max-w-[90px] truncate">{userName}</span>
+                                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
                                 </button>
                             ) : (
-                                <button 
+                                <button
                                     onClick={() => navigate("/login")}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-900 text-white hover:bg-black text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gray-900 text-white hover:bg-black text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
                                 >
                                     <User className="w-3.5 h-3.5" />
-                                    <span className="hidden xs:inline">Login</span>
+                                    <span>Login</span>
                                 </button>
                             )}
 
@@ -432,14 +480,14 @@ const Navbar = () => {
                                         <p className="text-xs font-extrabold text-gray-900 truncate">{userName}</p>
                                     </div>
 
-                                    <button 
+                                    <button
                                         onClick={() => { setIsProfileMenuOpen(false); navigate("/profile"); }}
                                         className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                     >
                                         <User className="w-4 h-4 text-gray-400" /> Profile Dashboard
                                     </button>
 
-                                    <button 
+                                    <button
                                         onClick={() => { setIsProfileMenuOpen(false); navigate("/orders"); }}
                                         className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                     >
@@ -448,7 +496,7 @@ const Navbar = () => {
 
                                     <div className="my-1 border-t border-gray-100" />
 
-                                    <button 
+                                    <button
                                         onClick={handleLogout}
                                         className="w-full text-left px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                     >
@@ -458,12 +506,12 @@ const Navbar = () => {
                             )}
                         </div>
 
-                        <button 
-                            onClick={() => navigate("/cart")} 
-                            className="flex items-center gap-2 bg-gray-900 hover:bg-black text-white px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95 relative"
+                        <button
+                            onClick={() => navigate("/cart")}
+                            className="flex items-center gap-2 bg-gray-900 hover:bg-black text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95 relative"
                         >
                             <ShoppingBag className="w-4 h-4 text-[#A5CE00]" />
-                            <span className="hidden sm:inline">Cart</span>
+                            <span>Cart</span>
                             {isCartLoading ? (
                                 <span className="w-4 h-4 rounded-full bg-gray-700 animate-pulse" />
                             ) : cartCount > 0 ? (
@@ -475,11 +523,9 @@ const Navbar = () => {
                     </div>
                 </div>
 
-                {/* HORIZONTAL CATEGORY NAVIGATION BAR */}
-                <div className="border-t border-gray-100/80 bg-white/50 backdrop-blur-md">
-                    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center relative group">
-                        
-                        {/* LEFT CHEVRON BUTTON (VISIBLE ONLY IF CAN SCROLL LEFT) */}
+                {/* HORIZONTAL CATEGORY NAVIGATION BAR (DESKTOP ONLY) */}
+                <div className="hidden md:block border-t border-gray-100/80 bg-white/50 backdrop-blur-md">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8 flex items-center relative group">
                         {canScrollLeft && (
                             <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center bg-gradient-to-r from-white via-white/80 to-transparent pr-6">
                                 <button
@@ -492,19 +538,17 @@ const Navbar = () => {
                             </div>
                         )}
 
-                        {/* CATEGORY SCROLLER CONTAINER */}
-                        <div 
+                        <div
                             ref={scrollContainerRef}
                             onScroll={checkScrollPosition}
-                            className="flex items-center gap-2 sm:gap-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-2 text-xs font-bold text-gray-600 whitespace-nowrap flex-1 scroll-smooth"
+                            className="flex items-center gap-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-2 text-xs font-bold text-gray-600 whitespace-nowrap flex-1 scroll-smooth"
                         >
                             <button
                                 onClick={() => handleCategorySelect('All')}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                                    selectedCategory && selectedCategory.toLowerCase() === 'all' 
-                                        ? 'bg-gray-900 text-white font-black shadow-2xs' 
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${selectedCategory && selectedCategory.toLowerCase() === 'all'
+                                        ? 'bg-gray-900 text-white font-black shadow-2xs'
                                         : 'hover:bg-gray-100 text-gray-700'
-                                }`}
+                                    }`}
                             >
                                 <LayoutGrid className="w-3.5 h-3.5" style={{ color: selectedCategory && selectedCategory.toLowerCase() === 'all' ? '#A5CE00' : 'currentColor' }} />
                                 <span>All Categories</span>
@@ -521,11 +565,10 @@ const Navbar = () => {
                                         <button
                                             key={cat.id || cat.name}
                                             onClick={() => handleCategorySelect(cat.name)}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl capitalize transition-all cursor-pointer ${
-                                                isSelected 
-                                                    ? 'bg-gray-900 text-white font-black shadow-2xs' 
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl capitalize transition-all cursor-pointer ${isSelected
+                                                    ? 'bg-gray-900 text-white font-black shadow-2xs'
                                                     : 'hover:bg-gray-100 text-gray-700'
-                                            }`}
+                                                }`}
                                         >
                                             <span style={{ color: isSelected ? '#A5CE00' : 'inherit' }}>
                                                 {getCategoryIcon(cat.name)}
@@ -537,7 +580,6 @@ const Navbar = () => {
                             )}
                         </div>
 
-                        {/* RIGHT CHEVRON BUTTON (VISIBLE ONLY IF CAN SCROLL RIGHT) */}
                         {canScrollRight && (
                             <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center bg-gradient-to-l from-white via-white/80 to-transparent pl-6">
                                 <button
@@ -549,10 +591,135 @@ const Navbar = () => {
                                 </button>
                             </div>
                         )}
-
                     </div>
                 </div>
             </header>
+
+            {/* NATIVE APP BOTTOM NAVIGATION BAR (MOBILE ONLY) - EXPLORE REMOVED */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-gray-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-2 py-1.5">
+                <div className="grid grid-cols-4 items-center text-center">
+
+                    {/* HOME */}
+                    <button
+                        onClick={() => navigate('/')}
+                        className={`flex flex-col items-center justify-center py-1 gap-1 transition-colors ${location.pathname === '/' ? 'text-gray-900 font-extrabold' : 'text-gray-400 font-medium'
+                            }`}
+                    >
+                        <div className={`p-1 rounded-xl ${location.pathname === '/' ? 'bg-gray-100' : ''}`}>
+                            <Home className="w-5 h-5" style={{ color: location.pathname === '/' ? '#A5CE00' : 'currentColor' }} />
+                        </div>
+                        <span className="text-[10px] leading-none">Home</span>
+                    </button>
+
+                    {/* CATEGORIES */}
+                    <button
+                        onClick={() => navigate('/allproducts')}
+                        className={`flex flex-col items-center justify-center py-1 gap-1 transition-colors ${location.pathname.startsWith('/products') || location.pathname === '/allproducts' ? 'text-gray-900 font-extrabold' : 'text-gray-400 font-medium'
+                            }`}
+                    >
+                        <div className={`p-1 rounded-xl ${location.pathname.startsWith('/products') || location.pathname === '/allproducts' ? 'bg-gray-100' : ''}`}>
+                            <Grid className="w-5 h-5" style={{ color: location.pathname.startsWith('/products') || location.pathname === '/allproducts' ? '#A5CE00' : 'currentColor' }} />
+                        </div>
+                        <span className="text-[10px] leading-none">Categories</span>
+                    </button>
+
+                    {/* CART WITH BADGE */}
+                    <button
+                        onClick={() => navigate('/cart')}
+                        className={`flex flex-col items-center justify-center py-1 gap-1 relative transition-colors ${location.pathname === '/cart' ? 'text-gray-900 font-extrabold' : 'text-gray-400 font-medium'
+                            }`}
+                    >
+                        <div className={`p-1 rounded-xl relative ${location.pathname === '/cart' ? 'bg-gray-100' : ''}`}>
+                            <ShoppingBag className="w-5 h-5" style={{ color: location.pathname === '/cart' ? '#A5CE00' : 'currentColor' }} />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-[#A5CE00] text-black text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                                    {cartCount}
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-[10px] leading-none">Cart</span>
+                    </button>
+
+                    {/* MENU SHEET TRIGGER */}
+                    <button
+                        onClick={() => setIsMobileMenuSheetOpen(true)}
+                        className={`flex flex-col items-center justify-center py-1 gap-1 transition-colors ${isMobileMenuSheetOpen ? 'text-gray-900 font-extrabold' : 'text-gray-400 font-medium'
+                            }`}
+                    >
+                        <div className={`p-1 rounded-xl ${isMobileMenuSheetOpen ? 'bg-gray-100' : ''}`}>
+                            <Menu className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <span className="text-[10px] leading-none">Menu</span>
+                    </button>
+                </div>
+            </nav>
+
+            {/* MOBILE MENU MODAL SHEET */}
+            {isMobileMenuSheetOpen && (
+                <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-xs md:hidden animate-fadeIn">
+                    <div className="bg-white rounded-t-3xl p-6 space-y-4 shadow-2xl border-t border-gray-100 animate-slideUp">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-gray-900 text-white font-black text-sm flex items-center justify-center uppercase">
+                                    {isLoggedIn ? userName.charAt(0) : <User className="w-4 h-4" />}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs font-black text-gray-900">{isLoggedIn ? userName : "Welcome Guest"}</span>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase">AVG Mart Express</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsMobileMenuSheetOpen(false)}
+                                className="p-1.5 rounded-xl bg-gray-100 text-gray-500"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-1 py-1">
+                            <button
+                                onClick={() => { setIsMobileMenuSheetOpen(false); navigate("/orders"); }}
+                                className="w-full flex items-center justify-between p-3 rounded-2xl bg-gray-50 hover:bg-gray-100 font-extrabold text-xs text-gray-800 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Package className="w-4 h-4 text-[#A5CE00]" />
+                                    <span>My Orders</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                            </button>
+
+                            <button
+                                onClick={() => { setIsMobileMenuSheetOpen(false); navigate("/profile"); }}
+                                className="w-full flex items-center justify-between p-3 rounded-2xl bg-gray-50 hover:bg-gray-100 font-extrabold text-xs text-gray-800 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <User className="w-4 h-4 text-[#A5CE00]" />
+                                    <span>My Account & Details</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                            </button>
+                        </div>
+
+                        {isLoggedIn ? (
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-rose-50 text-rose-600 font-black text-xs transition-colors"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                <span>Logout Account</span>
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => { setIsMobileMenuSheetOpen(false); navigate("/login"); }}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-gray-900 text-white font-black text-xs shadow-sm"
+                            >
+                                <User className="w-4 h-4 text-[#A5CE00]" />
+                                <span>Login to Account</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* LOCATION SELECTOR POPUP MODAL */}
             {isLocationModalOpen && (
@@ -567,7 +734,7 @@ const Navbar = () => {
                                     Select Delivery Location
                                 </h3>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setIsLocationModalOpen(false)}
                                 className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-black cursor-pointer"
                             >
@@ -641,11 +808,10 @@ const Navbar = () => {
                                         <button
                                             key={city}
                                             onClick={() => handleSelectManualLocation(city)}
-                                            className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
-                                                isCurrent 
+                                            className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${isCurrent
                                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-extrabold'
                                                     : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200/80'
-                                            }`}
+                                                }`}
                                         >
                                             {isCurrent && <Check className="w-3 h-3 text-emerald-600" />}
                                             <span>{city}</span>
