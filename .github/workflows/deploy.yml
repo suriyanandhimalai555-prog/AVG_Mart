@@ -1,3 +1,4 @@
+# AVG Mart deployment email notification test
 name: Deploy AVG Mart Kubernetes
 
 on:
