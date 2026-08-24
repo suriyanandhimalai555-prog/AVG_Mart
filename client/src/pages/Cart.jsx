@@ -135,7 +135,7 @@
 //       // Catch-all structural guard checking for empty variations
 //       return !i.selected_size || i.selected_size === '';
 //     }
-    
+
 //     if (invalidItem) {
 //       toast.error(`Configuration missing! Please click on "${invalidItem.name}" to assign its matrix size option before checking out.`, {
 //         duration: 4000,
@@ -194,7 +194,7 @@
 //             </div>
 //           ) : (
 //             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-              
+
 //               <div className="lg:col-span-8 space-y-4 relative overflow-hidden rounded-2xl">
 //                 {/* ACTION OVERLAY LOADER FOR QUANTITY/DELETE CHANGES */}
 //                 {actionLoading && <EcommerceLoader message={loadingMessage} />}
@@ -204,7 +204,7 @@
 
 //                   return (
 //                     <div key={item.id} className="flex flex-col sm:flex-row items-center justify-between gap-6 p-4 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md hover:border-white/10 transition-colors text-left">
-                      
+
 //                       <div 
 //                         onClick={() => navigate(`/product/${item.product_id}`, { 
 //                           state: { fromCartItemId: item.id, existingSize: activeSizeValue, existingQty: item.quantity } 
@@ -219,7 +219,7 @@
 //                             {item.category} (Click to change options matrix)
 //                           </span>
 //                           <h3 className="text-base font-black uppercase tracking-wide text-white line-clamp-1 group-hover:text-lime-accent transition-colors">{item.name}</h3>
-                          
+
 //                           {/* UNIVERSALLY CORRECT SIZE RENDERING ENGINE */}
 //                           <div className="pt-0.5 pb-1">
 //                             {activeSizeValue && activeSizeValue.trim() !== '' ? (
@@ -275,12 +275,12 @@
 
 //               <div className="lg:col-span-4 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-6">
 //                 <h3 className="text-xs font-black uppercase tracking-widest border-b border-white/5 pb-3">Order Summary</h3>
-                
+
 //                 <div className="space-y-3 font-medium text-xs text-white/60 border-b border-white/5 pb-4">
 //                   <div className="flex justify-between"><span>Total Amount</span><span className="font-mono text-white">₹{subtotal.toLocaleString('en-IN')}</span></div>
 //                   <div className="flex justify-between"><span>Ecosystem Transport (Delivery)</span><span className="text-lime-accent uppercase text-[10px] font-black">Free Secure Node</span></div>
 //                 </div>
-                
+
 //                 <div className="flex justify-between items-center border-white/5 text-[11px]">
 //                   <span className="flex items-center gap-1 text-white/40"><Calendar className="w-3.5 h-3.5 text-lime-accent/70" /> Estimated Arrival:</span>
 //                   <span className="font-mono font-bold text-lime-accent">{calculateDefaultEstimatedArrival()}</span>
@@ -299,7 +299,7 @@
 //                   Proceed to Secure Checkout
 //                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
 //                 </button>
-                
+
 //                 <div className="flex items-center gap-2.5 text-[10px] text-white/40 pt-2 font-medium tracking-wide">
 //                   <ShieldCheck className="w-4 h-4 text-lime-accent" /> End-to-End Encrypted Settlement Active.
 //                 </div>
@@ -504,7 +504,7 @@ const Cart = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              
+
               {/* LEFT CART ITEMS LIST */}
               <div className="lg:col-span-8 space-y-3 relative overflow-hidden">
                 {actionLoading && <EcommerceLoader message={loadingMessage} />}
@@ -514,10 +514,10 @@ const Cart = () => {
 
                   return (
                     <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-left">
-                      
-                      <div 
-                        onClick={() => navigate(`/product/${item.product_id}`, { 
-                          state: { fromCartItemId: item.id, existingSize: activeSizeValue, existingQty: item.quantity } 
+
+                      <div
+                        onClick={() => navigate(`/product/${item.product_id}`, {
+                          state: { fromCartItemId: item.id, existingSize: activeSizeValue, existingQty: item.quantity }
                         })}
                         className="flex items-center gap-3.5 w-full sm:w-auto cursor-pointer group flex-1"
                       >
@@ -530,7 +530,7 @@ const Cart = () => {
                             {item.category}
                           </span>
                           <h3 className="text-xs sm:text-sm font-bold text-gray-900 line-clamp-1 group-hover:text-black">{item.name}</h3>
-                          
+
                           {/* VARIANT TAG */}
                           <div className="pt-0.5">
                             {activeSizeValue && activeSizeValue.trim() !== '' ? (
@@ -551,17 +551,17 @@ const Cart = () => {
                       {/* CONTROLS */}
                       <div className="flex items-center justify-between w-full sm:w-auto gap-6 border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
                         <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl p-1">
-                          <button 
+                          <button
                             disabled={actionLoading}
-                            onClick={() => updateQuantity(item.id, item.quantity, -1)} 
+                            onClick={() => updateQuantity(item.id, item.quantity, -1)}
                             className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors cursor-pointer disabled:opacity-50"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
                           <span className="text-xs font-bold px-3 min-w-[28px] text-center text-gray-900">{item.quantity}</span>
-                          <button 
+                          <button
                             disabled={actionLoading}
-                            onClick={() => updateQuantity(item.id, item.quantity, 1)} 
+                            onClick={() => updateQuantity(item.id, item.quantity, 1)}
                             className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors cursor-pointer disabled:opacity-50"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -572,9 +572,9 @@ const Cart = () => {
                           <p className="text-sm font-black text-gray-900">₹{(Number(item.price) * item.quantity).toLocaleString('en-IN')}</p>
                         </div>
 
-                        <button 
+                        <button
                           disabled={actionLoading}
-                          onClick={() => removeItem(item.id)} 
+                          onClick={() => removeItem(item.id)}
                           className="p-2 rounded-lg bg-gray-50 border border-gray-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-50"
                           title="Remove Item"
                         >
@@ -589,7 +589,7 @@ const Cart = () => {
               {/* RIGHT ORDER SUMMARY PANEL */}
               <div className="lg:col-span-4 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-5">
                 <h3 className="text-sm font-black uppercase tracking-tight text-gray-900 border-b border-gray-100 pb-3">Order Summary</h3>
-                
+
                 <div className="space-y-2.5 text-xs text-gray-600 font-medium border-b border-gray-100 pb-4">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
@@ -600,7 +600,7 @@ const Cart = () => {
                     <span className="text-emerald-600 uppercase text-[10px] font-extrabold bg-emerald-50 px-2 py-0.5 rounded">FREE</span>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between items-center text-xs text-gray-500 font-medium">
                   <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-gray-400" /> Estimated Delivery:</span>
                   <span className="font-bold text-gray-900">{calculateDefaultEstimatedArrival()}</span>
@@ -608,15 +608,18 @@ const Cart = () => {
 
                 <div className="flex justify-between items-baseline border-t border-gray-100 pt-3">
                   <span className="text-xs font-black uppercase text-gray-900">Total</span>
-                  <span 
-                    className="text-xl font-black text-white px-2 py-0.5 rounded"
-                    style={{ backgroundColor: '#A5CE00' }}
+                  <span
+                    className="inline-flex items-center justify-center text-white font-black px-1.5 py-0.5 text-2xl tracking-tight rounded-xl border-2 border-[#123815]"
+                    style={{
+                      backgroundColor: '#A5CE00',
+                      boxShadow: '3px 3px 0px 0px #123815',
+                    }}
                   >
                     ₹{subtotal.toLocaleString('en-IN')}
                   </span>
                 </div>
 
-                <button 
+                <button
                   onClick={handleProceedToCheckout}
                   disabled={actionLoading}
                   className="w-full inline-flex items-center justify-center gap-2 bg-[#A5CE00] hover:bg-[#8DA800] text-white py-3.5 px-6 font-extrabold uppercase tracking-wider text-xs rounded-xl shadow-md transition-all cursor-pointer active:scale-98 disabled:opacity-50"
@@ -624,7 +627,7 @@ const Cart = () => {
                   <span>Proceed to Checkout</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
-                
+
                 <div className="flex items-center justify-center gap-2 text-[10px] text-gray-400 font-semibold tracking-wider uppercase pt-1">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" /> Safe & Secure Checkout
                 </div>

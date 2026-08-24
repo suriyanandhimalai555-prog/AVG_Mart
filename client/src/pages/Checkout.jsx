@@ -214,7 +214,7 @@
 //     <>
 //       <Navbar />
 //       <div className="bg-royal-dark text-white min-h-screen py-24 px-4 sm:px-6 md:px-12 relative overflow-hidden">
-        
+
 //         {/* Fullscreen Post-Payment Redirection Loader */}
 //         {isProcessingRedirect && (
 //           <div className="fixed inset-0 z-50">
@@ -227,7 +227,7 @@
 //         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-lime-accent/5 rounded-full blur-[160px] pointer-events-none" />
 
 //         <div className="max-w-6xl mx-auto relative z-10 mt-4">
-          
+
 //           {/* Header Bar */}
 //           <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
 //             <button 
@@ -248,7 +248,7 @@
 
 //             {/* Left Column: User Profile & Delivery Addresses */}
 //             <div className="lg:col-span-7 space-y-6">
-              
+
 //               {/* Profile Card */}
 //               <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 backdrop-blur-md space-y-4">
 //                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-lime-accent">
@@ -444,14 +444,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { 
-  MapPin, 
-  Plus, 
-  ShieldCheck, 
-  CreditCard, 
-  User, 
-  Mail, 
-  ArrowLeft, 
+import {
+  MapPin,
+  Plus,
+  ShieldCheck,
+  CreditCard,
+  User,
+  Mail,
+  ArrowLeft,
   Calendar,
   CheckCircle2,
   Lock,
@@ -701,7 +701,7 @@ const Checkout = () => {
     <>
       <Navbar />
       <div className="bg-gray-50 text-gray-900 min-h-screen py-8 px-4 md:px-8 font-sans">
-        
+
         {/* Fullscreen Post-Payment Redirection Loader */}
         {isProcessingRedirect && (
           <div className="fixed inset-0 z-50 bg-white/80 backdrop-blur-md flex items-center justify-center">
@@ -710,7 +710,7 @@ const Checkout = () => {
         )}
 
         <div className="max-w-6xl mx-auto space-y-6">
-          
+
           {/* BREADCRUMB & BACK HEADER */}
           <div className="flex items-center justify-between border-b border-gray-200 pb-4">
             <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
@@ -721,8 +721,8 @@ const Checkout = () => {
               <span className="text-gray-800">Checkout</span>
             </div>
 
-            <button 
-              onClick={() => navigate('/cart')} 
+            <button
+              onClick={() => navigate('/cart')}
               className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 px-3.5 py-2 rounded-xl hover:bg-gray-100 transition-colors shadow-sm cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -734,7 +734,7 @@ const Checkout = () => {
 
             {/* LEFT COLUMN: USER DETAILS & ADDRESS SELECTION */}
             <div className="lg:col-span-7 space-y-5">
-              
+
               {/* Profile Card */}
               <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
                 <h3 className="text-sm font-black uppercase tracking-tight text-gray-900 border-b border-gray-100 pb-2">
@@ -779,52 +779,52 @@ const Checkout = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-400 uppercase">Tag (e.g. Home, Work)</label>
-                        <input 
-                          type="text" required value={addressForm.tag} 
-                          onChange={(e) => setAddressForm({ ...addressForm, tag: e.target.value })} 
-                          placeholder="Home / Work" 
-                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none" 
+                        <input
+                          type="text" required value={addressForm.tag}
+                          onChange={(e) => setAddressForm({ ...addressForm, tag: e.target.value })}
+                          placeholder="Home / Work"
+                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none"
                         />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-400 uppercase">Phone Number</label>
-                        <input 
-                          type="tel" required value={addressForm.phone} 
-                          onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value.replace(/\D/g, '') })} 
+                        <input
+                          type="tel" required value={addressForm.phone}
+                          onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value.replace(/\D/g, '') })}
                           placeholder="10-digit Mobile" maxLength="12"
-                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none" 
+                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-gray-400 uppercase">Street Name / House No.</label>
-                      <input 
-                        type="text" required value={addressForm.streetName} 
-                        onChange={(e) => setAddressForm({ ...addressForm, streetName: e.target.value })} 
-                        placeholder="Flat, House No., Building, Street" 
-                        className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none" 
+                      <input
+                        type="text" required value={addressForm.streetName}
+                        onChange={(e) => setAddressForm({ ...addressForm, streetName: e.target.value })}
+                        placeholder="Flat, House No., Building, Street"
+                        className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-400 uppercase">Landmark</label>
-                        <input 
-                          type="text" value={addressForm.landmark} 
-                          onChange={(e) => setAddressForm({ ...addressForm, landmark: e.target.value })} 
-                          placeholder="Near landmark (optional)" 
-                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none" 
+                        <input
+                          type="text" value={addressForm.landmark}
+                          onChange={(e) => setAddressForm({ ...addressForm, landmark: e.target.value })}
+                          placeholder="Near landmark (optional)"
+                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none"
                         />
                       </div>
 
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-400 uppercase">City</label>
-                        <input 
-                          type="text" required value={addressForm.city} 
-                          onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} 
-                          placeholder="City" 
-                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none" 
+                        <input
+                          type="text" required value={addressForm.city}
+                          onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                          placeholder="City"
+                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none"
                         />
                       </div>
                     </div>
@@ -862,17 +862,17 @@ const Checkout = () => {
 
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-400 uppercase">Pincode</label>
-                        <input 
-                          type="text" required maxLength="6" value={addressForm.pincode} 
-                          onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value.replace(/\D/g, '') })} 
-                          placeholder="6-digit Pincode" 
-                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none" 
+                        <input
+                          type="text" required maxLength="6" value={addressForm.pincode}
+                          onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value.replace(/\D/g, '') })}
+                          placeholder="6-digit Pincode"
+                          className="w-full bg-white border border-gray-200 focus:border-gray-400 p-2.5 text-xs rounded-xl text-gray-900 font-medium outline-none"
                         />
                       </div>
                     </div>
 
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       className="w-full py-3 bg-gray-900 hover:bg-black text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md"
                     >
                       Save Address
@@ -894,11 +894,10 @@ const Checkout = () => {
                         <div
                           key={addr.id}
                           onClick={() => setSelectedAddressId(addr.id)}
-                          className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3.5 relative ${
-                            isSelected
+                          className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3.5 relative ${isSelected
                               ? 'bg-emerald-50/50 border-emerald-300 shadow-sm'
                               : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                          }`}
+                            }`}
                         >
                           <div className="mt-0.5 shrink-0">
                             {isSelected ? (
@@ -909,7 +908,7 @@ const Checkout = () => {
                           </div>
                           <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span 
+                              <span
                                 className="text-[9px] font-black uppercase px-2 py-0.5 rounded text-white tracking-wider"
                                 style={{ backgroundColor: '#A5CE00' }}
                               >
@@ -957,14 +956,17 @@ const Checkout = () => {
               </div>
 
               {/* Total Price Display */}
-              <div className="flex justify-between items-baseline">
+              <div className="flex justify-between items-center">
                 <div>
                   <span className="text-xs font-black uppercase text-gray-900 block">Grand Total</span>
                   <span className="text-[10px] text-gray-400">Includes all applicable taxes</span>
                 </div>
-                <span 
-                  className="text-2xl font-black text-white px-2.5 py-0.5 rounded"
-                  style={{ backgroundColor: '#A5CE00' }}
+                <span
+                  className="inline-flex items-center justify-center text-white font-black px-1.5 py-0.5 text-2xl tracking-tight rounded-xl border-2 border-[#123815]"
+                  style={{
+                    backgroundColor: '#A5CE00',
+                    boxShadow: '3px 3px 0px 0px #123815',
+                  }}
                 >
                   ₹{orderAmount.toLocaleString('en-IN')}
                 </span>
