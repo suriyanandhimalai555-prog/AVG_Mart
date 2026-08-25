@@ -23,10 +23,18 @@ spec:
 
   rules:
 
-    # Frontend
+    # Frontend + API
     - host: avgmart.com
       http:
         paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: avgmart-backend
+                port:
+                  number: 5000
+
           - path: /
             pathType: Prefix
             backend:
@@ -38,6 +46,14 @@ spec:
     - host: www.avgmart.com
       http:
         paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: avgmart-backend
+                port:
+                  number: 5000
+
           - path: /
             pathType: Prefix
             backend:
