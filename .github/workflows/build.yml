@@ -21,6 +21,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -41,6 +46,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/avgmart-backend:latest
             ${{ env.REGISTRY }}/${{ env.OWNER }}/avgmart-backend:${{ github.sha }}
+          cache-from: type=gha,scope=avgmart-backend
+          cache-to: type=gha,mode=max,scope=avgmart-backend
 
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v6
@@ -55,3 +62,5 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/avgmart-frontend:latest
             ${{ env.REGISTRY }}/${{ env.OWNER }}/avgmart-frontend:${{ github.sha }}
+          cache-from: type=gha,scope=avgmart-frontend
+          cache-to: type=gha,mode=max,scope=avgmart-frontend
