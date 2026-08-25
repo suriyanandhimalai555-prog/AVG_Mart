@@ -38,8 +38,13 @@ app.use((req, res, next) => {
 });
 
 // Security HTTP headers
-app.use(helmet());
-
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: {
+      policy: "same-origin-allow-popups",
+    },
+  })
+);
 // 1. CORS Configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL,

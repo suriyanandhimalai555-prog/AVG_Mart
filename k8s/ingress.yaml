@@ -17,7 +17,13 @@ spec:
         - www.avgmart.com
       secretName: avgmart-tls
 
+    - hosts:
+        - api.avgmart.com
+      secretName: avgmart-api-tls
+
   rules:
+
+    # Frontend
     - host: avgmart.com
       http:
         paths:
@@ -39,3 +45,15 @@ spec:
                 name: avgmart-frontend
                 port:
                   number: 80
+
+    # Backend API
+    - host: api.avgmart.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: avgmart-backend
+                port:
+                  number: 5000
