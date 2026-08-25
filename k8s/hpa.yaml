@@ -10,7 +10,7 @@ spec:
     kind: Deployment
     name: avgmart-backend
 
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 10
 
   metrics:
@@ -34,7 +34,7 @@ spec:
     kind: Deployment
     name: avgmart-frontend
 
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 10
 
   metrics:

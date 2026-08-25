@@ -4,7 +4,7 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node --import dotenv/config server.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
