@@ -39,7 +39,13 @@ trap rollback ERR
 echo "Applying Kubernetes manifests..."
 
 kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/
+kubectl apply -f k8s/backend-deployment.yaml
+kubectl apply -f k8s/backend-service.yaml
+kubectl apply -f k8s/backend-hpa.yaml
+kubectl apply -f k8s/frontend-deployment.yaml
+kubectl apply -f k8s/frontend-service.yaml
+kubectl apply -f k8s/hpa.yaml
+kubectl apply -f k8s/ingress.yaml
 
 echo "Updating backend image..."
 
