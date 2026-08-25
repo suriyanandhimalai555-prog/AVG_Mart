@@ -119,9 +119,9 @@ jobs:
           to: |
             Sanjayvanan03@gmail.com,
             muthukdm45@gmail.com,
-            deepakavgprimetech@gmail.com
+            devops@avgprimetech.com
 
-          from: Deepak CI/CD <deepakavgprimetech@gmail.com>
+          from: AVG Mart CI/CD <${{ secrets.SMTP_USERNAME }}>
 
           html_body: |
             <h2>AVG Mart Kubernetes Deployment Successful</h2>
@@ -157,9 +157,9 @@ jobs:
           to: |
             Sanjayvanan03@gmail.com,
             muthukdm45@gmail.com,
-            deepakavgprimetech@gmail.com
+            devops@avgprimetech.com
 
-          from: Deepak CI/CD <deepakavgprimetech@gmail.com>
+          from: AVG Mart CI/CD <${{ secrets.SMTP_USERNAME }}>
 
           html_body: |
             <h2>AVG Mart Kubernetes Deployment Failed</h2>
