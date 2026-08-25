@@ -9,20 +9,15 @@ IMAGE_TAG="${IMAGE_TAG:-$(git rev-parse HEAD)}"
 BACKEND_IMAGE="ghcr.io/suriyanandhimalai555-prog/avgmart-backend:${IMAGE_TAG}"
 FRONTEND_IMAGE="ghcr.io/suriyanandhimalai555-prog/avgmart-frontend:${IMAGE_TAG}"
 
-echo "=============================================="
-echo "AVG MART KUBERNETES DEPLOYMENT"
-echo "=============================================="
-echo "Namespace      : ${NAMESPACE}"
-echo "Image Tag      : ${IMAGE_TAG}"
-echo "Backend Image  : ${BACKEND_IMAGE}"
-echo "Frontend Image : ${FRONTEND_IMAGE}"
-echo "=============================================="
+echo "AVG Mart Kubernetes Deployment"
+echo "Namespace: ${NAMESPACE}"
+echo "Image Tag: ${IMAGE_TAG}"
+echo "Backend Image: ${BACKEND_IMAGE}"
+echo "Frontend Image: ${FRONTEND_IMAGE}"
 
 rollback() {
-    echo "=============================================="
     echo "Deployment failed"
     echo "Starting rollback..."
-    echo "=============================================="
 
     kubectl rollout undo deployment/avgmart-backend \
         -n "${NAMESPACE}" || true
@@ -63,13 +58,29 @@ echo "Checking backend rollout..."
 
 kubectl rollout status deployment/avgmart-backend \
     -n "${NAMESPACE}" \
-    --timeout=120s
+    --timeout=180s
 
 echo "Checking frontend rollout..."
 
 kubectl rollout status deployment/avgmart-frontend \
     -n "${NAMESPACE}" \
-    --timeout=120s
+    --timeout=180s
+
+echo "Checking backend image..."
+
+kubectl get deployment avgmart-backend \
+    -n "${NAMESPACE}" \
+    -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+echo
+
+echo "Checking frontend image..."
+
+kubectl get deployment avgmart-frontend \
+    -n "${NAMESPACE}" \
+    -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+echo
 
 echo "Checking deployments..."
 
@@ -83,6 +94,4 @@ echo "Checking services..."
 
 kubectl get svc -n "${NAMESPACE}"
 
-echo "=============================================="
-echo "AVG MART deployment successful"
-echo "=============================================="
+echo "AVG Mart deployment successful"

@@ -36,73 +36,80 @@ jobs:
           script: |
             set -e
 
-            echo "=============================================="
-            echo "AVG MART KUBERNETES DEPLOYMENT"
-            echo "=============================================="
-
-            echo "Deployment Commit:"
-            echo "${IMAGE_TAG}"
-
             cd /home/ubuntu/Applications/AVG_Mart
 
-            echo "=============================================="
-            echo "Updating source code"
-            echo "=============================================="
+            echo "Deploying commit: ${IMAGE_TAG}"
 
             git fetch origin
             git reset --hard origin/main
 
-            echo "Current Git Commit:"
+            echo "Current Git commit:"
             git rev-parse HEAD
 
-            echo "Expected Image Tag:"
+            echo "Expected image tag:"
             echo "${IMAGE_TAG}"
-
-            echo "=============================================="
-            echo "Starting Kubernetes deployment"
-            echo "=============================================="
 
             chmod +x scripts/k8s-deploy.sh
 
             IMAGE_TAG="${IMAGE_TAG}" ./scripts/k8s-deploy.sh
 
-            echo "=============================================="
-            echo "Checking application status"
-            echo "=============================================="
+            echo "Checking deployments..."
 
             kubectl get deployments -n avgmart
 
+            echo "Checking pods..."
+
             kubectl get pods -n avgmart
 
-            echo "=============================================="
-            echo "Checking services"
-            echo "=============================================="
+            echo "Checking services..."
 
             kubectl get svc -n avgmart
 
-            echo "=============================================="
-            echo "Checking ingress"
-            echo "=============================================="
+            echo "Checking ingress..."
 
             kubectl get ingress -n avgmart
 
-            echo "=============================================="
-            echo "Checking deployed images"
-            echo "=============================================="
+            echo "Checking backend image..."
 
             kubectl get deployment avgmart-backend \
               -n avgmart \
-              -o jsonpath='{.spec.template.spec.containers[*].image}'
+              -o jsonpath='{.spec.template.spec.containers[0].image}'
+
             echo
+
+            echo "Checking frontend image..."
 
             kubectl get deployment avgmart-frontend \
               -n avgmart \
-              -o jsonpath='{.spec.template.spec.containers[*].image}'
+              -o jsonpath='{.spec.template.spec.containers[0].image}'
+
             echo
 
-            echo "=============================================="
-            echo "Deployment completed successfully"
-            echo "=============================================="
+            echo "Waiting for backend rollout..."
+
+            kubectl rollout status deployment/avgmart-backend \
+              -n avgmart \
+              --timeout=180s
+
+            echo "Waiting for frontend rollout..."
+
+            kubectl rollout status deployment/avgmart-frontend \
+              -n avgmart \
+              --timeout=180s
+
+            echo "Checking backend health..."
+
+            BACKEND_POD=$(kubectl get pods \
+              -n avgmart \
+              -l app=avgmart-backend \
+              -o jsonpath='{.items[0].metadata.name}')
+
+            kubectl exec -n avgmart "${BACKEND_POD}" -- \
+              wget -qO- http://127.0.0.1:5000/health
+
+            echo
+
+            echo "AVG Mart deployment completed successfully."
 
       - name: Send Success Email
         if: success()
@@ -114,7 +121,7 @@ jobs:
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
 
-          subject: "✅ AVG Mart Kubernetes Deployment Successful"
+          subject: "AVG Mart Kubernetes Deployment Successful"
 
           to: |
             Sanjayvanan03@gmail.com,
@@ -127,14 +134,13 @@ jobs:
             <h2>AVG Mart Kubernetes Deployment Successful</h2>
 
             <ul>
-              <li>✅ Docker images built</li>
-              <li>✅ Images pushed to GHCR</li>
-              <li>✅ Kubernetes manifests applied</li>
-              <li>✅ Kubernetes rolling update completed</li>
-              <li>✅ Backend rollout verified</li>
-              <li>✅ Frontend rollout verified</li>
-              <li>✅ Health checks passed</li>
-              <li>✅ Deployment successful</li>
+              <li>Docker images built successfully</li>
+              <li>Multi-platform images pushed to GHCR</li>
+              <li>Kubernetes manifests applied</li>
+              <li>Backend rollout completed</li>
+              <li>Frontend rollout completed</li>
+              <li>Backend health check passed</li>
+              <li>Deployment completed successfully</li>
             </ul>
 
             <p>
@@ -152,7 +158,7 @@ jobs:
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
 
-          subject: "❌ AVG Mart Kubernetes Deployment Failed"
+          subject: "AVG Mart Kubernetes Deployment Failed"
 
           to: |
             Sanjayvanan03@gmail.com,
@@ -165,10 +171,9 @@ jobs:
             <h2>AVG Mart Kubernetes Deployment Failed</h2>
 
             <ul>
-              <li>❌ Kubernetes deployment failed</li>
-              <li>❌ Rollout verification failed</li>
-              <li>🔄 Automatic rollback was attempted</li>
-              <li>📄 Check GitHub Actions logs</li>
+              <li>Kubernetes deployment failed</li>
+              <li>Rollout verification failed</li>
+              <li>Check GitHub Actions logs</li>
             </ul>
 
             <p>
