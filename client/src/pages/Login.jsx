@@ -348,8 +348,12 @@ const Login = () => {
   };
 
   const loginWithGoogle = useGoogleLogin({
+    flow: "implicit",
+    ux_mode: "popup",
     onSuccess: handleGoogleSuccess,
-    onError: () => setErrorMessage("Google Sign-In was unsuccessful. Try again."),
+    onError: () => {
+      setErrorMessage("Google Sign-In was unsuccessful. Try again.");
+    },
   });
 
   const handleSubmit = async (e) => {
