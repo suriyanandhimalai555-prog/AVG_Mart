@@ -472,8 +472,6 @@ const Signup = () => {
   };
 
   const signupWithGoogle = useGoogleLogin({
-    flow: "implicit",
-    ux_mode: "popup",
     onSuccess: handleGoogleSuccess,
     onError: () => {
       setErrorMessage("Google Sign-Up was unsuccessful. Try again.");
