@@ -10,7 +10,7 @@
 // import Logo from "../assets/logo.png";
 // import { useNavigate } from "react-router-dom";
 // import { toast } from "react-hot-toast";
-// import { useGoogleLogin } from "@react-oauth/google";
+// import { GoogleLogin } from "@react-oauth/google";
 // import { EcommerceLoader, ButtonCartLoader } from "../components/EcommerceLoader";
 
 // const Login = () => {
@@ -52,7 +52,7 @@
 //     setRotateY(0);
 //   };
 
-//   const handleGoogleSuccess = async (tokenResponse) => {
+//   const handleGoogleSuccess = async (credentialResponse) => {
 //     setIsSubmitting(true);
 //     setLoadingText("Verifying Google Credentials...");
 //     setErrorMessage("");
@@ -60,7 +60,7 @@
 //       const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/google`, {
 //         method: "POST",
 //         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ access_token: tokenResponse.access_token }),
+//         body: JSON.stringify({ token: credentialResponse.credential }),
 //       });
 
 //       const data = await response.json();
@@ -275,7 +275,7 @@ import {
 import Logo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
 import { EcommerceLoader, ButtonCartLoader } from "../components/EcommerceLoader";
 
 const Login = () => {
@@ -317,7 +317,7 @@ const Login = () => {
     setRotateY(0);
   };
 
-  const handleGoogleSuccess = async (tokenResponse) => {
+  const handleGoogleSuccess = async (credentialResponse) => {
     setIsSubmitting(true);
     setLoadingText("Verifying Google Credentials...");
     setErrorMessage("");
@@ -325,7 +325,7 @@ const Login = () => {
       const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ access_token: tokenResponse.access_token }),
+        body: JSON.stringify({ token: credentialResponse.credential }),
       });
 
       const data = await response.json();
@@ -347,12 +347,6 @@ const Login = () => {
     }
   };
 
-  const loginWithGoogle = useGoogleLogin({
-    onSuccess: handleGoogleSuccess,
-    onError: () => {
-      setErrorMessage("Google Sign-In was unsuccessful. Try again.");
-    },
-  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -443,15 +437,16 @@ const Login = () => {
 
         <div className="space-y-5 translate-z-3d">
           {/* GOOGLE SIGN IN */}
-          <button
-            type="button"
-            onClick={() => loginWithGoogle()}
-            disabled={isSubmitting}
-            className="w-full bg-white border border-gray-200 hover:bg-gray-50 rounded-xl py-3.5 px-4 text-xs font-bold text-gray-700 uppercase flex items-center justify-center gap-3 transition-all duration-300 active:scale-[0.99] cursor-pointer shadow-xs"
-          >
-            <FaGoogle className="text-rose-500 text-sm" />
-            <span>Login with Google</span>
-          </button>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setErrorMessage("Google login failed. Please try again.")}
+            useOneTap={false}
+            theme="outline"
+            size="large"
+            text="signin_with"
+            shape="rectangular"
+            width="100%"
+          />
 
           <div className="flex items-center py-1">
             <div className="flex-1 h-[1px] bg-gray-200" />
