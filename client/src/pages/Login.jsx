@@ -443,9 +443,9 @@ const Login = () => {
             useOneTap={false}
             theme="outline"
             size="large"
-            text="signin_with"
+            text="continue_with"
             shape="rectangular"
-            width="100%"
+            width="400"
           />
 
           <div className="flex items-center py-1">
