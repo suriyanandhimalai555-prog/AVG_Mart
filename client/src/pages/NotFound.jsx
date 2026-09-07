@@ -22,8 +22,8 @@ const NotFound = () => {
         <div className="w-full bg-white border border-gray-100 rounded-3xl p-8 sm:p-12 shadow-sm space-y-6 relative overflow-hidden">
           
           {/* STATUS BADGE */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-extrabold uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#A5CE00] border border-[#A5CE00] text-white text-[10px] font-extrabold uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
             <span>ERROR 404 • ROUTE NOT FOUND</span>
           </div>
 
@@ -55,7 +55,7 @@ const NotFound = () => {
 
             <Link
               to="/"
-              className="w-full sm:w-1/2 px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer active:scale-98"
+              className="w-full sm:w-1/2 px-5 py-3 rounded-xl bg-[#A5CE00] hover:bg-[#8BAC00] text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer active:scale-98"
             >
               <FaHome /> Return Home
             </Link>

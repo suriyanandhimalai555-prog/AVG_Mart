@@ -113,9 +113,9 @@ const AllProducts = () => {
         (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (product.category && product.category.toLowerCase().includes(searchQuery.toLowerCase()))
 
-      const matchesCategory = selectedCategory === 'All' || 
+      const matchesCategory = selectedCategory === 'All' ||
         (product.category && product.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase())
-      
+
       const matchesPrice = targetPrice <= appliedMaxPrice
 
       return matchesSearch && matchesCategory && matchesPrice
@@ -297,11 +297,10 @@ const AllProducts = () => {
                         setSelectedCategory(cat)
                         setCurrentPage(1)
                       }}
-                      className={`w-full text-left text-xs font-bold py-2 px-3 rounded-lg transition-all flex items-center justify-between cursor-pointer ${
-                        selectedCategory.toLowerCase() === cat.toLowerCase()
+                      className={`w-full text-left text-xs font-bold py-2 px-3 rounded-lg transition-all flex items-center justify-between cursor-pointer ${selectedCategory.toLowerCase() === cat.toLowerCase()
                           ? 'bg-gray-100 text-black font-extrabold'
                           : 'text-gray-500 hover:bg-gray-50 hover:text-black'
-                      }`}
+                        }`}
                     >
                       <span className="capitalize truncate">{cat}</span>
                     </button>
@@ -315,7 +314,7 @@ const AllProducts = () => {
                   <span>Max Price</span>
                   <span className="text-gray-900 font-mono text-xs font-bold">₹{sliderMaxPrice}</span>
                 </div>
-                
+
                 <input
                   type="range"
                   min="0"
@@ -362,7 +361,7 @@ const AllProducts = () => {
                     <SlidersHorizontal className="w-4 h-4 text-[#A5CE00]" />
                     <span>Filter Products</span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setIsMobileFilterOpen(false)}
                     className="p-1.5 bg-gray-100 rounded-lg text-gray-500 hover:text-black cursor-pointer"
                   >
@@ -399,11 +398,10 @@ const AllProducts = () => {
                           setSelectedCategory(cat)
                           setCurrentPage(1)
                         }}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                          selectedCategory.toLowerCase() === cat.toLowerCase()
+                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${selectedCategory.toLowerCase() === cat.toLowerCase()
                             ? 'bg-gray-900 text-white border-gray-900'
                             : 'bg-gray-50 text-gray-700 border-gray-200'
-                        }`}
+                          }`}
                       >
                         {cat}
                       </button>
@@ -484,8 +482,8 @@ const AllProducts = () => {
                   <p className="text-xs text-gray-400 max-w-xs mx-auto font-medium">
                     Try clearing search parameters or adjusting filter criteria.
                   </p>
-                  <button 
-                    onClick={handleResetFilters} 
+                  <button
+                    onClick={handleResetFilters}
                     className="text-xs text-white bg-gray-900 px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider hover:bg-black transition-all cursor-pointer"
                   >
                     Reset Filters
@@ -512,7 +510,7 @@ const AllProducts = () => {
                         >
                           {/* PRODUCT IMAGE CONTAINER */}
                           <div className="relative w-full aspect-square rounded-xl bg-gray-50 overflow-hidden flex items-center justify-center p-2">
-                            
+
                             {/* BESTSELLER TAG */}
                             {product.isFeatured && (
                               <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md shadow-xs z-10">
@@ -523,20 +521,18 @@ const AllProducts = () => {
                             <img
                               src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"}
                               alt={product.name}
-                              className={`w-full h-full object-contain group-hover/card:scale-105 transition-transform duration-300 ${
-                                isOutOfStock ? 'opacity-40 grayscale' : ''
-                              }`}
+                              className={`w-full h-full object-contain group-hover/card:scale-105 transition-transform duration-300 ${isOutOfStock ? 'opacity-40 grayscale' : ''
+                                }`}
                             />
 
                             {/* ADD BUTTON */}
                             <button
                               disabled={isOutOfStock || isAdding}
                               onClick={(e) => handleAddToCart(e, product)}
-                              className={`absolute bottom-2 right-2 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border shadow-sm flex items-center gap-1 transition-all duration-200 cursor-pointer ${
-                                isOutOfStock
+                              className={`absolute bottom-2 right-2 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border shadow-sm flex items-center gap-1 transition-all duration-200 cursor-pointer ${isOutOfStock
                                   ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                                   : 'bg-white text-rose-600 border-rose-500 hover:bg-rose-500 hover:text-white active:scale-95'
-                              }`}
+                                }`}
                             >
                               {isAdding ? (
                                 <Check className="w-3 h-3 text-emerald-600" />
@@ -548,25 +544,28 @@ const AllProducts = () => {
 
                           {/* CONTENT BLOCK */}
                           <div className="pt-2.5 flex-1 flex flex-col justify-between space-y-1.5">
-                            
+
                             {/* PRICE & SAVINGS ROW */}
                             <div>
                               <div className="flex items-baseline gap-1.5 flex-wrap">
-                                <span 
-                                  className="text-xs font-black text-white px-1.5 py-0.5 rounded"
-                                  style={{ backgroundColor: '#A5CE00' }}
+                                <span
+                                  className="inline-flex items-center justify-center text-white font-black px-1.5 py-0.5 text-md tracking-tight rounded-xl border-2 border-[#123815]"
+                                  style={{
+                                    backgroundColor: '#A5CE00',
+                                    boxShadow: '3px 3px 0px 0px #123815',
+                                  }}
                                 >
                                   ₹{offer}
                                 </span>
                                 {original > offer && (
-                                  <span className="text-[11px] line-through text-gray-400 font-semibold">
+                                  <span className="text-[12px] line-through text-gray-400 font-semibold">
                                     ₹{original}
                                   </span>
                                 )}
                               </div>
 
                               {savings > 0 && (
-                                <span className="text-[10px] font-bold text-emerald-600 block mt-0.5">
+                                <span className="text-[10px] font-bold text-emerald-600 block mt-2">
                                   ₹{savings} OFF
                                 </span>
                               )}
@@ -603,11 +602,10 @@ const AllProducts = () => {
                       <button
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                          currentPage === 1 
-                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed' 
+                        className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${currentPage === 1
+                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                          }`}
                       >
                         <ChevronLeft className="w-4 h-4" /> Previous
                       </button>
@@ -619,11 +617,10 @@ const AllProducts = () => {
                       <button
                         disabled={currentPage === totalPages}
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                          currentPage === totalPages 
-                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed' 
+                        className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${currentPage === totalPages
+                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                          }`}
                       >
                         Next <ChevronRight className="w-4 h-4" />
                       </button>

@@ -10,7 +10,7 @@ spec:
     name: avgmart-backend
 
   minReplicas: 1
-  maxReplicas: 5
+  maxReplicas: 10
 
   behavior:
     scaleUp:

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { 
-    ArrowLeft, ShoppingBag, Star, MessageSquare, Calendar, User, Plus, 
-    Minus, Share2, ChevronRight, Sparkles, Check, RefreshCw, X, ChevronLeft 
+import {
+    ArrowLeft, ShoppingBag, Star, MessageSquare, Calendar, User, Plus,
+    Minus, Share2, ChevronRight, Sparkles, Check, RefreshCw, X, ChevronLeft, PackageX, Search
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -20,16 +20,16 @@ const ProductDetailView = () => {
     const existingQty = location.state?.existingQty || 1
 
     const [product, setProduct] = useState(null)
-    const [reviews, setReviews] = useState([]) 
+    const [reviews, setReviews] = useState([])
     const [averageRating, setAverageRating] = useState(0)
     const [activeImg, setActiveImg] = useState('')
     const [isLoading, setIsLoading] = useState(true)
-    
+
     // Suggested products & load-more states
     const [allAvailableProducts, setAllAvailableProducts] = useState([])
     const [visibleCount, setVisibleCount] = useState(4)
     const [addingIds, setAddingIds] = useState([])
-    
+
     // Selectable variations and quantities
     const [selectedSize, setSelectedSize] = useState('')
     const [selectedColor, setSelectedColor] = useState('')
@@ -96,8 +96,8 @@ const ProductDetailView = () => {
     const isSizeOption = (str) => {
         if (!str) return false
         if (isColorOption(str)) return false
-        if (str.includes(':')) return false 
-        
+        if (str.includes(':')) return false
+
         const lower = str.toLowerCase().trim()
         const standardSizes = ['s', 'm', 'l', 'xl', 'xxl', 'xxxl']
         if (standardSizes.includes(lower)) return true
@@ -134,7 +134,7 @@ const ProductDetailView = () => {
         const cleanColor = getCleanColorName(colorRawString)
         const strictBoundaryRegex = new RegExp(`(?:[\\/_\\.-]|^)${cleanColor}(?:[\\/_\\.-]|\\.|$)`, 'i')
         const matchedImageByKeyword = targetImages.find(imgUrl => strictBoundaryRegex.test(imgUrl))
-        
+
         if (matchedImageByKeyword) {
             setActiveImg(matchedImageByKeyword)
             return
@@ -144,7 +144,7 @@ const ProductDetailView = () => {
         const rawSizesArray = activeProductInstance?.sizes || []
         const currentColorOptions = rawSizesArray.filter(sz => isColorOption(sz))
         const colorIdx = currentColorOptions.indexOf(colorRawString)
-        
+
         if (colorIdx !== -1 && targetImages[colorIdx]) {
             setActiveImg(targetImages[colorIdx])
         }
@@ -167,15 +167,15 @@ const ProductDetailView = () => {
                 if (prodResponse.ok) {
                     const data = await prodResponse.json()
                     const foundProduct = data.find(p => String(p.id) === String(id))
-                    
+
                     if (foundProduct) {
                         setProduct(foundProduct)
-                        
-                        const defaultImage = foundProduct.images && foundProduct.images[0] 
-                            ? foundProduct.images[0] 
+
+                        const defaultImage = foundProduct.images && foundProduct.images[0]
+                            ? foundProduct.images[0]
                             : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"
                         setActiveImg(defaultImage)
-                        
+
                         if (foundProduct.sizes && foundProduct.sizes.length > 0) {
                             const colors = foundProduct.sizes.filter(sz => isColorOption(sz))
                             const sizes = foundProduct.sizes.filter(sz => isSizeOption(sz))
@@ -203,7 +203,7 @@ const ProductDetailView = () => {
                             const aggregateSum = revData.reviews.reduce((sum, item) => sum + item.rating, 0)
                             setAverageRating((aggregateSum / revData.reviews.length).toFixed(1))
                         } else {
-                            setAverageRating(4.8) 
+                            setAverageRating(4.8)
                         }
                     }
                 }
@@ -214,7 +214,7 @@ const ProductDetailView = () => {
                 setIsLoading(false)
             }
         }
-        
+
         window.scrollTo({ top: 0, behavior: 'smooth' })
         fetchProductAndReviews()
     }, [id, existingSize])
@@ -229,24 +229,59 @@ const ProductDetailView = () => {
 
     if (!product) {
         return (
-            <div className="bg-gray-50 text-gray-900 min-h-screen flex flex-col items-center justify-center space-y-4 p-4 text-center">
-                <h2 className="text-xl font-bold uppercase tracking-wider text-red-500">Product Not Found</h2>
-                <button onClick={() => navigate('/')} className="bg-gray-900 text-white px-5 py-2.5 rounded-xl text-xs uppercase font-bold tracking-wider hover:bg-black transition-colors">
-                    Return to Home
-                </button>
-            </div>
+            <>
+                <Navbar />
+                <div className="bg-gray-50 min-h-[75vh] flex flex-col items-center justify-center p-4 sm:p-6">
+                    <div className="bg-white border border-gray-100 rounded-3xl p-10 sm:p-14 text-center max-w-lg w-full shadow-xs space-y-6">
+
+                        {/* Icon Container */}
+                        <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-2 border border-gray-100">
+                            <PackageX className="w-12 h-12 text-gray-300" />
+                        </div>
+
+                        {/* Text Content */}
+                        <div className="space-y-2.5">
+                            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                                Product Not Found
+                            </h2>
+                            <p className="text-xs sm:text-sm text-gray-500 font-medium max-w-sm mx-auto leading-relaxed">
+                                The item you're looking for might have been removed, is temporarily out of stock, or the link is incorrect.
+                            </p>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors w-full sm:w-auto cursor-pointer"
+                            >
+                                <ArrowLeft className="w-4 h-4" /> Go Back
+                            </button>
+                            <button
+                                onClick={() => navigate('/')}
+                                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-xs font-bold text-white shadow-md transition-colors w-full sm:w-auto cursor-pointer"
+                                style={{ backgroundColor: '#A5CE00' }}
+                            >
+                                <Search className="w-4 h-4" /> Browse Store
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+                <Footer />
+            </>
         )
     }
 
     const getPriceMultiplier = (sizeString) => {
         if (!sizeString) return 1
         const cleanStr = sizeString.toLowerCase().replace(/\s+/g, '')
-        
+
         if (cleanStr.includes('1/2kg') || cleanStr.includes('0.5kg') || cleanStr.includes('500g') || cleanStr.includes('1/2litre') || cleanStr.includes('500ml')) return 0.5
         if (cleanStr.includes('250g') || cleanStr.includes('250ml')) return 0.25
         if (cleanStr.includes('100g') || cleanStr.includes('100ml')) return 0.1
         if (cleanStr.includes('200g') || cleanStr.includes('200ml')) return 0.2
-        
+
         const unitMatch = cleanStr.match(/^(\d+(\.\d+)?)(kg|l|litre|liter|g|gm|ml)$/)
         if (unitMatch) return parseFloat(unitMatch[1])
 
@@ -256,7 +291,7 @@ const ProductDetailView = () => {
     const baseOriginalPrice = Number(product.originalPrice || product.original_price || 0)
     const baseOfferPrice = Number(product.offerPrice || product.offer_price || baseOriginalPrice)
     const currentMultiplier = getPriceMultiplier(selectedSize)
-    
+
     const offer = Math.round(baseOfferPrice * currentMultiplier)
     const original = Math.round(baseOriginalPrice * currentMultiplier)
     const priceDifference = original - offer
@@ -272,23 +307,23 @@ const ProductDetailView = () => {
 
         const cleanColor = getCleanColorName(selectedColor)
         const strictBoundaryRegex = new RegExp(`(?:[\\/_\\.-]|^)${cleanColor}(?:[\\/_\\.-]|\\.|$)`, 'i')
-        
+
         const matchedThumbnails = allImages.filter(imgUrl => strictBoundaryRegex.test(imgUrl))
         if (matchedThumbnails.length > 0) return matchedThumbnails
 
         if (colorOptions.length > 0) {
             const currentColorIdx = colorOptions.findIndex(clr => getCleanColorName(clr) === cleanColor)
-            
+
             if (currentColorIdx !== -1) {
                 const imagesPerColor = Math.ceil(allImages.length / colorOptions.length)
                 const startIdx = currentColorIdx * imagesPerColor
                 const endIdx = Math.min(startIdx + imagesPerColor, allImages.length)
-                
+
                 const chunkedImages = allImages.slice(startIdx, endIdx)
                 if (chunkedImages.length > 0) return chunkedImages
             }
         }
-        
+
         return allImages
     }
 
@@ -316,7 +351,7 @@ const ProductDetailView = () => {
 
         const cleanSize = selectedSize
         const cleanColor = getCleanColorName(selectedColor)
-        
+
         let finalOptionString = cleanSize
         if (cleanColor) {
             finalOptionString = finalOptionString ? `${cleanSize} (${cleanColor})` : cleanColor
@@ -332,7 +367,7 @@ const ProductDetailView = () => {
                     category: productToCart.category,
                     price: offer,
                     image: activeImg,
-                    selected_size: finalOptionString || '', 
+                    selected_size: finalOptionString || '',
                     fromCartItemId,
                     isSizeUpdateOnly: !!fromCartItemId,
                     existingQty: quantity
@@ -415,7 +450,7 @@ const ProductDetailView = () => {
             <Navbar />
             <div className="bg-gray-50 text-gray-900 min-h-screen py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
                 <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
-                    
+
                     {/* BREADCRUMB & TOP CONTROLS */}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-3 sm:pb-4">
                         <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -430,11 +465,11 @@ const ProductDetailView = () => {
 
                         <div className="flex items-center justify-end gap-2 self-end sm:self-auto shrink-0">
                             <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl hover:bg-gray-100 transition-colors shadow-xs cursor-pointer">
-                                <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> 
+                                <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 <span className="hidden xs:inline">Back</span>
                             </button>
                             <button onClick={handleShare} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl hover:bg-gray-100 transition-colors shadow-xs cursor-pointer">
-                                <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> 
+                                <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 <span className="hidden xs:inline">Share</span>
                             </button>
                         </div>
@@ -469,7 +504,7 @@ const ProductDetailView = () => {
                             <div className="space-y-1.5 sm:space-y-2 border-b border-gray-100 pb-3 sm:pb-4">
                                 <span className="inline-block text-[10px] sm:text-[11px] font-extrabold uppercase text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md">{product.category}</span>
                                 <h1 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 tracking-tight leading-snug">{product.name}</h1>
-                                
+
                                 <div className="flex items-center gap-3 pt-1">
                                     <div className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold text-gray-700">
                                         <Star className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" />
@@ -481,8 +516,14 @@ const ProductDetailView = () => {
 
                             {/* PRICE */}
                             <div className="flex items-baseline flex-wrap gap-2 sm:gap-3">
-                                <span className="text-xl sm:text-2xl font-black text-white px-2.5 py-0.5 rounded" style={{ backgroundColor: '#A5CE00' }}>
-                                    ₹{offer * quantity}
+                                <span
+                                  className="inline-flex items-center justify-center text-white font-black px-1.5 py-0.5 text-[22px] tracking-tight rounded-xl border-2 border-[#123815]"
+                                  style={{
+                                    backgroundColor: '#A5CE00',
+                                    boxShadow: '3px 3px 0px 0px #123815',
+                                  }}
+                                >
+                                  ₹{offer * quantity}
                                 </span>
                                 {priceDifference > 0 && (
                                     <span className="text-xs sm:text-sm line-through text-gray-400 font-bold">₹{original * quantity}</span>
@@ -561,7 +602,7 @@ const ProductDetailView = () => {
                             {/* ADD TO CART */}
                             <div className="border-t border-gray-100 pt-4">
                                 <button disabled={product.count <= 0} onClick={() => handleAddToCart(product, localStorage.getItem("token"), navigate)} className={`w-full py-3.5 px-6 font-extrabold uppercase tracking-wider text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${product.count > 0 ? 'bg-[#A5CE00] hover:bg-[#8DA800] text-white active:scale-98' : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'}`}>
-                                    <ShoppingBag className="w-4 h-4" /> 
+                                    <ShoppingBag className="w-4 h-4" />
                                     {product.count <= 0 ? 'Out of Stock' : fromCartItemId ? 'Update Custom Configuration' : 'Add to Cart'}
                                 </button>
                             </div>
@@ -651,7 +692,7 @@ const ProductDetailView = () => {
                                         >
                                             {/* PRODUCT IMAGE CONTAINER */}
                                             <div className="relative w-full aspect-square rounded-xl bg-gray-50 overflow-hidden flex items-center justify-center p-2">
-                                                
+
                                                 {/* BESTSELLER TAG */}
                                                 {suggestedItem.isFeatured && (
                                                     <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md shadow-xs z-10">
@@ -687,11 +728,11 @@ const ProductDetailView = () => {
 
                                             {/* CONTENT BLOCK */}
                                             <div className="pt-2.5 flex-1 flex flex-col justify-between space-y-1.5">
-                                                
+
                                                 {/* PRICE & SAVINGS ROW */}
                                                 <div>
                                                     <div className="flex items-baseline gap-1.5 flex-wrap">
-                                                        <span 
+                                                        <span
                                                             className="text-xs font-black text-white px-1.5 py-0.5 rounded"
                                                             style={{ backgroundColor: '#A5CE00' }}
                                                         >
@@ -756,7 +797,7 @@ const ProductDetailView = () => {
 
             {/* REVIEW IMAGE POPUP MODAL LIGHTBOX */}
             {isImageModalOpen && modalImages.length > 0 && (
-                <div 
+                <div
                     className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
                     onClick={() => setIsImageModalOpen(false)}
                 >
@@ -769,13 +810,13 @@ const ProductDetailView = () => {
                     </button>
 
                     {/* MAIN IMAGE CONTAINER */}
-                    <div 
+                    <div
                         className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <img 
-                            src={modalImages[currentModalIdx]} 
-                            alt={`Review Attachment ${currentModalIdx + 1}`} 
+                        <img
+                            src={modalImages[currentModalIdx]}
+                            alt={`Review Attachment ${currentModalIdx + 1}`}
                             className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl select-none"
                         />
 

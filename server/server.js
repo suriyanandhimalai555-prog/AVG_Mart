@@ -100,7 +100,11 @@ app.get("/metrics", async (req, res) => {
 
 // Health check endpoint
 app.get("/", (req, res) => {
-  res.status(200).json({
+  res.status(200).send("AVG Mart Backend API is running");
+});
+
+app.get("/health", (req, res) => {
+  res.json({
     status: "ok",
     message: "Server running cleanly."
   });

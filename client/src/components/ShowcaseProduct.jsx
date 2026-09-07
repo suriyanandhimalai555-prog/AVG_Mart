@@ -149,7 +149,7 @@ const ShowcaseProduct = () => {
 
                     return (
                         <div key={catGroup.categoryName} className="space-y-3.5 relative group/rail">
-                            
+
                             {/* SECTION HEADER ROW */}
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight capitalize">
@@ -204,7 +204,7 @@ const ShowcaseProduct = () => {
                                         >
                                             {/* PRODUCT IMAGE CONTAINER */}
                                             <div className="relative w-full aspect-square rounded-xl bg-gray-50 overflow-hidden flex items-center justify-center p-2">
-                                                
+
                                                 {/* TOP BESTSELLER OR DISCOUNT TAG */}
                                                 {product.isFeatured && (
                                                     <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md shadow-2xl z-10">
@@ -215,20 +215,18 @@ const ShowcaseProduct = () => {
                                                 <img
                                                     src={product.images && product.images[0] ? product.images[0] : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"}
                                                     alt={product.name}
-                                                    className={`w-full h-full object-contain group-hover/card:scale-105 transition-transform duration-300 ${
-                                                        isOutOfStock ? 'opacity-40 grayscale' : ''
-                                                    }`}
+                                                    className={`w-full h-full object-contain group-hover/card:scale-105 transition-transform duration-300 ${isOutOfStock ? 'opacity-40 grayscale' : ''
+                                                        }`}
                                                 />
 
                                                 {/* ZEPTO-STYLE "ADD" PILL BUTTON */}
                                                 <button
                                                     disabled={isOutOfStock || isAdding}
                                                     onClick={(e) => handleAddToCart(e, product)}
-                                                    className={`absolute bottom-2 right-2 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border shadow-md flex items-center gap-1 transition-all duration-200 cursor-pointer ${
-                                                        isOutOfStock
+                                                    className={`absolute bottom-2 right-2 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border shadow-md flex items-center gap-1 transition-all duration-200 cursor-pointer ${isOutOfStock
                                                             ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                                                             : 'bg-white text-rose-600 border-rose-500 hover:bg-rose-500 hover:text-white active:scale-95'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {isAdding ? (
                                                         <Check className="w-3 h-3 text-emerald-600" />
@@ -242,13 +240,16 @@ const ShowcaseProduct = () => {
 
                                             {/* CONTENT BLOCK */}
                                             <div className="pt-2.5 flex-1 flex flex-col justify-between space-y-1.5">
-                                                
+
                                                 {/* PRICE & SAVINGS ROW */}
                                                 <div>
                                                     <div className="flex items-baseline gap-1.5 flex-wrap">
-                                                        <span 
-                                                            className="text-xs font-black text-white px-1.5 py-0.5 rounded"
-                                                            style={{ backgroundColor: '#A5CE00' }}
+                                                        <span
+                                                            className="inline-flex items-center justify-center text-white font-black px-1.5 py-0.5 text-md tracking-tight rounded-xl border-2 border-[#123815]"
+                                                            style={{
+                                                                backgroundColor: '#A5CE00',
+                                                                boxShadow: '3px 3px 0px 0px #123815',
+                                                            }}
                                                         >
                                                             ₹{offer}
                                                         </span>
@@ -260,7 +261,7 @@ const ShowcaseProduct = () => {
                                                     </div>
 
                                                     {savings > 0 && (
-                                                        <span className="text-[10px] font-bold text-emerald-600 block mt-0.5">
+                                                        <span className="text-[10px] font-bold text-emerald-600 block mt-2">
                                                             ₹{savings} OFF
                                                         </span>
                                                     )}

@@ -10,9 +10,7 @@ const client = new Client({
 
 // Completely sanitized SQL string with pure ASCII characters
 const sql = `
-ALTER TABLE cart DROP CONSTRAINT IF EXISTS unique_user_product;
-
-ALTER TABLE cart ADD CONSTRAINT unique_user_product_size UNIQUE (user_id, product_id, selected_size);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_id VARCHAR(255);
 `;
 
 async function run() {
