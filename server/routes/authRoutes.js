@@ -1,3 +1,54 @@
+// import { Router } from "express";
+// import { signup, verifySignupOtp, login, googleAuth, requestForgotPasswordOtp, resetPasswordWithOtp } from "../controllers/authController.js";
+// import { verifyToken, isAdmin } from "../middleware/authMiddleware.js";
+
+// // profile
+// import { getProfile, changePassword, addAddress, editAddress, removeAddress } from "../controllers/userController.js";
+
+// // cart
+// import { getCart, addToCart, updateCartQuantity, removeFromCart } from "../controllers/cartController.js";
+
+// // payment
+// import { createRazorpayOrder, verifyRazorpayPayment, getUserOrders, getAllCustomerOrders, updateOrderStatusByAdmin } from "../controllers/paymentController.js";
+
+// const router = Router();
+
+// // Public auth endpoints
+// router.post("/signup", signup);
+// router.post("/signup/verify-otp", verifySignupOtp);
+// router.post("/login", login);
+// router.post("/google", googleAuth);
+// router.post("/forgot-password/request-otp", requestForgotPasswordOtp);
+// router.post("/forgot-password/reset-password", resetPasswordWithOtp);
+
+// // Protected Profiles Actions & Controls
+// router.get("/profile", verifyToken, getProfile);
+// router.put("/profile/password", verifyToken, changePassword);
+// router.post("/profile/address", verifyToken, addAddress);
+// router.put("/profile/address/:id", verifyToken, editAddress);
+// router.delete("/profile/address/:id", verifyToken, removeAddress);
+
+// // Cart management
+// router.get("/cart", verifyToken, getCart);
+// router.post("/cart", verifyToken, addToCart);
+// router.put("/cart/:id", verifyToken, updateCartQuantity);
+// router.delete("/cart/:id", verifyToken, removeFromCart);
+
+// // Order & Payment management
+// router.post("/payment/order", verifyToken, createRazorpayOrder);
+// router.post("/payment/verify", verifyToken, verifyRazorpayPayment);
+// router.get("/orders", verifyToken, getUserOrders);
+// router.get("/admin/orders", verifyToken, getAllCustomerOrders); 
+// router.put("/admin/orders/:orderId", verifyToken, updateOrderStatusByAdmin);
+
+// // Admin Dashboard Command Control Center
+// router.get("/admin-dashboard", verifyToken, isAdmin, (req, res) => {
+//   res.status(200).json({ message: "Welcome to the Admin Command Control Center." });
+// });
+
+// export default router;
+
+
 import { Router } from "express";
 import { signup, verifySignupOtp, login, googleAuth, requestForgotPasswordOtp, resetPasswordWithOtp } from "../controllers/authController.js";
 import { verifyToken, isAdmin } from "../middleware/authMiddleware.js";
@@ -9,7 +60,7 @@ import { getProfile, changePassword, addAddress, editAddress, removeAddress } fr
 import { getCart, addToCart, updateCartQuantity, removeFromCart } from "../controllers/cartController.js";
 
 // payment
-import { createRazorpayOrder, verifyRazorpayPayment, getUserOrders, getAllCustomerOrders, updateOrderStatusByAdmin } from "../controllers/paymentController.js";
+import { createRazorpayOrder, verifyRazorpayPayment, createCodOrder, getUserOrders, getAllCustomerOrders, updateOrderStatusByAdmin } from "../controllers/paymentController.js";
 
 const router = Router();
 
@@ -37,6 +88,7 @@ router.delete("/cart/:id", verifyToken, removeFromCart);
 // Order & Payment management
 router.post("/payment/order", verifyToken, createRazorpayOrder);
 router.post("/payment/verify", verifyToken, verifyRazorpayPayment);
+router.post("/payment/cod", verifyToken, createCodOrder); // NEW COD ROUTE
 router.get("/orders", verifyToken, getUserOrders);
 router.get("/admin/orders", verifyToken, getAllCustomerOrders); 
 router.put("/admin/orders/:orderId", verifyToken, updateOrderStatusByAdmin);
