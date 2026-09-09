@@ -23,52 +23,117 @@ const transporter = nodemailer.createTransport({
 });
 
 // ==========================================
-// EKART INTEGRATION HELPER FUNCTION
+// SHYPFY INTEGRATION HELPER FUNCTIONS
 // ==========================================
-const createEkartShipment = async ({ orderId, addressObj, userDetails, cartItems, totalAmount, isCod }) => {
+
+// 1. Get Authentication Token from Shypfy
+const getShypfyToken = async () => {
   try {
-    const payload = {
-      client_id: process.env.EKART_CLIENT_ID,
-      order_details: {
-        client_order_id: orderId,
-        payment_mode: isCod ? "COD" : "PREPAID",
-        cod_amount: isCod ? Number(totalAmount) : 0,
-        total_amount: Number(totalAmount),
+    const clientId = process.env.SHYPFY_CLIENT_ID;
+    const response = await axios.post(
+      `https://app.shypfy.com/integrations/v2/auth/token/${clientId}`,
+      {
+        username: process.env.SHYPFY_USERNAME,
+        password: process.env.SHYPFY_PASSWORD,
       },
-      consignee_details: {
-        name: userDetails.name || addressObj.name || "Customer",
-        phone: addressObj.phone,
-        email: userDetails.email || "",
-        address_line_1: `${addressObj.street_name || addressObj.streetName}${addressObj.landmark ? `, ${addressObj.landmark}` : ''}`,
+      {
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+
+    return response.data?.access_token;
+  } catch (error) {
+    console.error("Shypfy Token Error:", error.response?.data || error.message);
+    return null;
+  }
+};
+
+// 2. Create Shipment in Shypfy Dashboard
+const createShypfyShipment = async ({ orderId, addressObj, userDetails, cartItems, totalAmount, isCod }) => {
+  try {
+    const token = await getShypfyToken();
+    if (!token) {
+      console.error("Failed to authenticate with Shypfy.");
+      return null;
+    }
+
+    const totalQty = cartItems.reduce((sum, item) => sum + Number(item.quantity || 1), 0);
+    const productNames = cartItems.map(item => `${item.name} (${item.quantity || 1})`).join(", ");
+    
+    // Default package physical specs (Adjust in .env if needed)
+    const weightInGrams = Number(process.env.SHYPFY_DEFAULT_WEIGHT_GRAMS || 500);
+    const lengthCm = Number(process.env.SHYPFY_DEFAULT_LENGTH_CM || 10);
+    const widthCm = Number(process.env.SHYPFY_DEFAULT_WIDTH_CM || 10);
+    const heightCm = Number(process.env.SHYPFY_DEFAULT_HEIGHT_CM || 10);
+
+    const totalVal = Number(totalAmount);
+    const taxVal = Math.round(totalVal * 0.18 * 100) / 100; // Estimated 18% GST calculation
+    const taxableVal = Math.round((totalVal - taxVal) * 100) / 100;
+
+    const payload = {
+      seller_name: process.env.SHYPFY_SELLER_NAME || "AVG Mart",
+      seller_address: process.env.SHYPFY_SELLER_ADDRESS || "Warehouse 1, Main Road, Bengaluru",
+      seller_gst_tin: process.env.SHYPFY_SELLER_GST || "29AAAAA0000A1Z5",
+      seller_gst_amount: taxVal,
+      consignee_gst_amount: 0,
+      order_number: String(orderId),
+      invoice_number: `INV-${orderId}`,
+      invoice_date: new Date().toISOString().split('T')[0],
+      consignee_name: userDetails.name || addressObj.name || "Customer",
+      products_desc: productNames,
+      payment_mode: isCod ? "COD" : "Prepaid",
+      category_of_goods: "General",
+      total_amount: totalVal,
+      tax_value: taxVal,
+      taxable_amount: taxableVal,
+      commodity_value: String(taxableVal),
+      cod_amount: isCod ? totalVal : 0,
+      quantity: totalQty,
+      weight: weightInGrams,
+      length: lengthCm,
+      width: widthCm,
+      height: heightCm,
+      return_reason: "",
+      drop_location: {
+        name: userDetails.name || "Customer",
+        phone: Number(String(addressObj.phone).replace(/\D/g, '')),
+        address: `${addressObj.street_name || addressObj.streetName}${addressObj.landmark ? `, ${addressObj.landmark}` : ''}`,
         city: addressObj.city,
         state: addressObj.state,
-        pincode: String(addressObj.pincode).trim(),
+        country: "India",
+        pin: Number(addressObj.pincode),
+        location_type: addressObj.tag === "Home" ? "Home" : "Office"
       },
-      order_items: cartItems.map((item) => ({
-        name: item.name,
-        qty: Number(item.quantity || 1),
-        price: Number(item.price),
+      pickup_location: {
+        name: process.env.SHYPFY_PICKUP_ALIAS || "Primary_Warehouse"
+      },
+      return_location: {
+        name: process.env.SHYPFY_RETURN_ALIAS || process.env.SHYPFY_PICKUP_ALIAS || "Primary_Warehouse"
+      },
+      items: cartItems.map(item => ({
+        product_name: item.name,
         sku: String(item.product_id),
+        quantity: Number(item.quantity || 1),
+        taxable_value: Number(item.price)
       }))
     };
 
-    const response = await axios.post(
-      `${process.env.EKART_BASE_URL || 'https://api.ekartlogistics.in'}/v2/shipments/create`,
+    const response = await axios.put(
+      "https://app.shypfy.com/api/v1/package/create",
       payload,
       {
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": process.env.EKART_API_KEY,
-          "x-client-id": process.env.EKART_CLIENT_ID,
-        },
+          "Authorization": `Bearer ${token}`
+        }
       }
     );
 
-    console.log("Ekart Shipment Response:", response.data);
-    return response.data; // Usually contains awb_number or tracking_id
+    console.log("Shypfy Order Pushed Successfully:", response.data);
+    return response.data; // Returns tracking_id, vendor, barcodes
   } catch (error) {
-    console.error("Ekart API Integration Error:", error.response?.data || error.message);
-    return null; // Keep non-blocking so order is still saved if courier API fails
+    console.error("Shypfy API Integration Error:", error.response?.data || error.message);
+    return null;
   }
 };
 
@@ -226,8 +291,8 @@ export const verifyRazorpayPayment = async (req, res) => {
 
     await client.query("COMMIT");
 
-    // Push order to Ekart Courier API
-    const ekartResult = await createEkartShipment({
+    // Push order to Shypfy Courier API
+    const shypfyResult = await createShypfyShipment({
       orderId: razorpay_order_id,
       addressObj,
       userDetails,
@@ -236,10 +301,9 @@ export const verifyRazorpayPayment = async (req, res) => {
       isCod: false
     });
 
-    // Optionally update Ekart AWB/Tracking Code in DB if returned
-    if (ekartResult?.tracking_id || ekartResult?.awb_number) {
-      const trackingCode = ekartResult.tracking_id || ekartResult.awb_number;
-      await pool.query("UPDATE orders SET tracking_id = $1 WHERE id = $2;", [trackingCode, razorpay_order_id]);
+    // Save Shypfy tracking_id in DB if returned
+    if (shypfyResult?.tracking_id) {
+      await pool.query("UPDATE orders SET tracking_id = $1 WHERE id = $2;", [shypfyResult.tracking_id, razorpay_order_id]);
     }
 
     // Send confirmation email
@@ -247,7 +311,7 @@ export const verifyRazorpayPayment = async (req, res) => {
       sendOrderEmail(userDetails, razorpay_order_id, razorpay_payment_id, addressObj, cartItems, amount, "Online Payment");
     }
 
-    return res.status(200).json({ message: "Order processed, stock updated, Ekart shipment pushed, and email sent." });
+    return res.status(200).json({ message: "Order processed, stock updated, Shypfy shipment created, and email sent." });
 
   } catch (error) {
     await client.query("ROLLBACK");
@@ -373,8 +437,8 @@ export const createCodOrder = async (req, res) => {
 
     await client.query("COMMIT");
 
-    // Push COD order to Ekart
-    const ekartResult = await createEkartShipment({
+    // Push COD order to Shypfy
+    const shypfyResult = await createShypfyShipment({
       orderId: codOrderId,
       addressObj,
       userDetails,
@@ -383,9 +447,8 @@ export const createCodOrder = async (req, res) => {
       isCod: true
     });
 
-    if (ekartResult?.tracking_id || ekartResult?.awb_number) {
-      const trackingCode = ekartResult.tracking_id || ekartResult.awb_number;
-      await pool.query("UPDATE orders SET tracking_id = $1 WHERE id = $2;", [trackingCode, codOrderId]);
+    if (shypfyResult?.tracking_id) {
+      await pool.query("UPDATE orders SET tracking_id = $1 WHERE id = $2;", [shypfyResult.tracking_id, codOrderId]);
     }
 
     // Send confirmation email
@@ -393,7 +456,7 @@ export const createCodOrder = async (req, res) => {
       sendOrderEmail(userDetails, codOrderId, "CASH_ON_DELIVERY", addressObj, cartItems, amount, "Cash on Delivery");
     }
 
-    return res.status(200).json({ message: "COD Order placed and sent to Ekart successfully!", orderId: codOrderId });
+    return res.status(200).json({ message: "COD Order placed and sent to Shypfy successfully!", orderId: codOrderId });
 
   } catch (error) {
     await client.query("ROLLBACK");
