@@ -124,7 +124,6 @@ jobs:
           subject: "AVG Mart Kubernetes Deployment Successful"
 
           to: |
-            Sanjayvanan03@gmail.com,
             muthukdm45@gmail.com,
             devops@avgprimetech.com
 
@@ -161,7 +160,6 @@ jobs:
           subject: "AVG Mart Kubernetes Deployment Failed"
 
           to: |
-            Sanjayvanan03@gmail.com,
             muthukdm45@gmail.com,
             devops@avgprimetech.com
 
