@@ -50,6 +50,13 @@ export const findOrCreateGoogleUserModel = async (name, email) => {
   return newUser.rows[0];
 };
 
+// --- DELETE USER ACCOUNT ---
+export const deleteUserModel = async (userId) => {
+  const query = "DELETE FROM users WHERE id = $1 RETURNING id;";
+  const { rows } = await pool.query(query, [userId]);
+  return rows[0];
+};
+
 // --- OTP OPERATIONS ---
 export const saveOtpModel = async (email, otp, type) => {
   // Delete previous pending OTPs for this email & type
