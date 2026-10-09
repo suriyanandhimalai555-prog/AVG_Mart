@@ -50,7 +50,7 @@
 
 
 import { Router } from "express";
-import { signup, verifySignupOtp, login, googleAuth, requestForgotPasswordOtp, resetPasswordWithOtp } from "../controllers/authController.js";
+import { signup, verifySignupOtp, login, googleAuth, requestForgotPasswordOtp, resetPasswordWithOtp, deleteAccount } from "../controllers/authController.js";
 import { verifyToken, isAdmin } from "../middleware/authMiddleware.js";
 
 // profile
@@ -75,6 +75,7 @@ router.post("/forgot-password/reset-password", resetPasswordWithOtp);
 // Protected Profiles Actions & Controls
 router.get("/profile", verifyToken, getProfile);
 router.put("/profile/password", verifyToken, changePassword);
+router.delete("/profile/delete", verifyToken, deleteAccount);
 router.post("/profile/address", verifyToken, addAddress);
 router.put("/profile/address/:id", verifyToken, editAddress);
 router.delete("/profile/address/:id", verifyToken, removeAddress);
@@ -92,6 +93,12 @@ router.post("/payment/cod", verifyToken, createCodOrder); // NEW COD ROUTE
 router.get("/orders", verifyToken, getUserOrders);
 router.get("/admin/orders", verifyToken, getAllCustomerOrders);
 router.put("/admin/orders/:orderId", verifyToken, updateOrderStatusByAdmin);
+
+// Live tracking from shypfy
+// router.get("/orders/track/:trackingId", verifyToken, getLiveShypfyTracking);
+
+// Cancel order
+// router.post('/orders/cancel/:orderId', verifyToken, cancelOrder);
 
 // Admin Dashboard Command Control Center
 router.get("/admin-dashboard", verifyToken, isAdmin, (req, res) => {

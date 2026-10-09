@@ -9,7 +9,8 @@ import {
   saveOtpModel,
   verifyOtpModel,
   markUserAsVerifiedModel,
-  updatePasswordModel
+  updatePasswordModel,
+  deleteUserModel
 } from "../models/userModel.js";
 import BranchAdminModel from "../models/branchAdminModel.js";
 
@@ -331,5 +332,23 @@ export const googleAuth = async (req, res) => {
   } catch (error) {
     console.error("Google Auth Error:", error);
     return res.status(401).json({ message: "Google authentication failed." });
+  }
+};
+
+export const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.id; // Extracted from verifyToken middleware
+
+    const deletedUser = await deleteUserModel(userId);
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User account not found." });
+    }
+
+    return res.status(200).json({
+      message: "Account and associated data deleted successfully."
+    });
+  } catch (error) {
+    console.error("Delete Account Error:", error);
+    return res.status(500).json({ message: "Failed to delete account. Please try again." });
   }
 };
