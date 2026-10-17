@@ -72,7 +72,7 @@ jobs:
           cache-from: type=gha,scope=frontend-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=frontend-${{ matrix.arch }}
           build-args: |
-            VITE_APP_BASE_URL=https://avgmart.com
+            VITE_APP_BASE_URL=https://api.avgmart.com
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           tags: |
             ghcr.io/${{ env.OWNER }}/avgmart-frontend:${{ github.sha }}-${{ matrix.arch }}
