@@ -190,12 +190,13 @@ const SellerLogin = () => {
                 <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
                   Password
                 </label>
-                <a
-                  href="#"
+                <button
+                  type="button"
+                  onClick={() => navigate("/seller/forgot-password")}
                   className="text-[10px] text-gray-400 hover:text-[#0A224E] font-bold tracking-wider transition-colors"
                 >
-                  Forgot Key?
-                </a>
+                  Forgot Password?
+                </button>
               </div>
               <div className="relative flex items-center">
                 <FaKey className="absolute left-4 text-gray-400 text-xs" />

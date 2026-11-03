@@ -18,7 +18,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Configure Nodemailer Transport
 const transporter = nodemailer.createTransport({
-  host: 'smtp.hostinger.com',
+  host: 'smtp.elasticemail.com',
   port: 465,
   secure: true,
   auth: {

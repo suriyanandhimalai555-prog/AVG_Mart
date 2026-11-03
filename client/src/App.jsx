@@ -50,6 +50,7 @@ import SellerDashboard from './pages/seller/SellerDashboard'
 import SellerProfile from './pages/seller/SellerProfile'
 import SellerCategory from './pages/seller/SellerCategory'
 import SellerProduct from './pages/seller/SellerProduct'
+import SellerForgotPassword from './pages/seller/SellerForgotPassword'
 
 // Marketer Imports
 import MarketLogin from './pages/marketing/MarketLogin'
@@ -85,6 +86,7 @@ const App = () => {
         <Route path="terms-and-conditions" element={<TermsCondition />} />
         <Route path="privacy-policy" element={<PrivacyPolicy />} />
         <Route path="shipping-policy" element={<ShippingPolicy />} />
+        <Route path="/seller/forgot-password" element={<SellerForgotPassword />} />
 
         <Route path="loader" element={<EcommerceLoader />} />
 
