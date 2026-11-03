@@ -67,7 +67,7 @@ import ForgotPassword from './pages/ForgotPassword'
 
 const App = () => {
   return (
-    <div className="min-h-screen font-sans selection:bg-lime-accent selection:text-royal-dark">
+    <div className="min-h-screen font-sans selection:bg-lime-accent selection:text-royal-dark mb-15 md:mb-0">
       <ScrollToTop />
       
       <Routes>

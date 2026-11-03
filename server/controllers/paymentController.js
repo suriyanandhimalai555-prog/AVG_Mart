@@ -23,59 +23,65 @@ const transporter = nodemailer.createTransport({
 });
 
 // ==========================================
-// SHYPFY INTEGRATION HELPER FUNCTIONS
+// SHYPFY INTEGRATION HELPER FUNCTION (UPDATED ENDPOINT ROUTING)
 // ==========================================
 
-// 1. Get Authentication Token from Shypfy
-const getShypfyToken = async () => {
-  try {
-    const clientId = process.env.SHYPFY_CLIENT_ID;
-    const response = await axios.post(
-      `https://app.shypfy.com/integrations/v2/auth/token/${clientId}`,
-      {
-        username: process.env.SHYPFY_USERNAME,
-        password: process.env.SHYPFY_PASSWORD,
-      },
-      {
-        headers: { "Content-Type": "application/json" }
-      }
-    );
-
-    return response.data?.access_token;
-  } catch (error) {
-    console.error("Shypfy Token Error:", error.response?.data || error.message);
-    return null;
-  }
-};
-
-// 2. Create Shipment in Shypfy Dashboard
 const createShypfyShipment = async ({ orderId, addressObj, userDetails, cartItems, totalAmount, isCod }) => {
   try {
-    const token = await getShypfyToken();
-    if (!token) {
-      console.error("Failed to authenticate with Shypfy.");
+    // Clean and sanitize env variables to eliminate quotes or hidden spaces
+    const clientId = process.env.SHYPFY_CLIENT_ID?.replace(/['"]/g, '').trim();
+    const username = (process.env.SHYPFY_EMAIL || process.env.SHYPFY_USERNAME)?.replace(/['"]/g, '').trim();
+    const password = process.env.SHYPFY_PASSWORD?.replace(/['"]/g, '').trim();
+
+    if (!clientId || !username || !password) {
+      console.error("Shypfy Error: SHYPFY_CLIENT_ID, SHYPFY_EMAIL (or SHYPFY_USERNAME), and SHYPFY_PASSWORD must be defined in .env");
       return null;
     }
 
+    // Step 1: Authenticate and retrieve Bearer token
+    let token = null;
+    try {
+      const authUrl = `https://app.shypfy.com/integrations/v2/auth/token/${clientId}`;
+      
+      const authResponse = await axios.post(
+        authUrl,
+        {
+          username: username,
+          password: password
+        },
+        {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      token = authResponse.data?.access_token;
+
+      if (!token) {
+        console.error("Shypfy Auth Error: Response missing access_token", authResponse.data);
+        return null;
+      }
+    } catch (authErr) {
+      console.error("Shypfy Auth Error:", authErr.response?.data || authErr.message);
+      return null;
+    }
+
+    // Step 2: Build Shipment Payload
     const totalQty = cartItems.reduce((sum, item) => sum + Number(item.quantity || 1), 0);
     const productNames = cartItems.map(item => `${item.name} (${item.quantity || 1})`).join(", ");
-    
-    // Default package physical specs (Adjust in .env if needed)
-    const weightInGrams = Number(process.env.SHYPFY_DEFAULT_WEIGHT_GRAMS || 500);
-    const lengthCm = Number(process.env.SHYPFY_DEFAULT_LENGTH_CM || 10);
-    const widthCm = Number(process.env.SHYPFY_DEFAULT_WIDTH_CM || 10);
-    const heightCm = Number(process.env.SHYPFY_DEFAULT_HEIGHT_CM || 10);
 
     const totalVal = Number(totalAmount);
-    const taxVal = Math.round(totalVal * 0.18 * 100) / 100; // Estimated 18% GST calculation
+    const taxVal = Math.round(totalVal * 0.18 * 100) / 100;
     const taxableVal = Math.round((totalVal - taxVal) * 100) / 100;
 
     const payload = {
       seller_name: process.env.SHYPFY_SELLER_NAME || "AVG Mart",
-      seller_address: process.env.SHYPFY_SELLER_ADDRESS || "Warehouse 1, Main Road, Bengaluru",
-      seller_gst_tin: process.env.SHYPFY_SELLER_GST || "29AAAAA0000A1Z5",
+      seller_address: process.env.SHYPFY_SELLER_ADDRESS || "",
+      seller_gst_tin: process.env.SHYPFY_SELLER_GST || "",
       seller_gst_amount: taxVal,
       consignee_gst_amount: 0,
+      integrated_gst_amount: 0,
       order_number: String(orderId),
       invoice_number: `INV-${orderId}`,
       invoice_date: new Date().toISOString().split('T')[0],
@@ -89,17 +95,17 @@ const createShypfyShipment = async ({ orderId, addressObj, userDetails, cartItem
       commodity_value: String(taxableVal),
       cod_amount: isCod ? totalVal : 0,
       quantity: totalQty,
-      weight: weightInGrams,
-      length: lengthCm,
-      width: widthCm,
-      height: heightCm,
+      weight: Number(process.env.SHYPFY_DEFAULT_WEIGHT_GRAMS || 500),
+      length: Number(process.env.SHYPFY_DEFAULT_LENGTH_CM || 10),
+      width: Number(process.env.SHYPFY_DEFAULT_WIDTH_CM || 10),
+      height: Number(process.env.SHYPFY_DEFAULT_HEIGHT_CM || 10),
       return_reason: "",
       drop_location: {
         name: userDetails.name || "Customer",
         phone: Number(String(addressObj.phone).replace(/\D/g, '')),
-        address: `${addressObj.street_name || addressObj.streetName}${addressObj.landmark ? `, ${addressObj.landmark}` : ''}`,
-        city: addressObj.city,
-        state: addressObj.state,
+        address: `${addressObj.street_name || addressObj.streetName || ''}${addressObj.landmark ? `, ${addressObj.landmark}` : ''}`,
+        city: addressObj.city || "",
+        state: addressObj.state || "",
         country: "India",
         pin: Number(addressObj.pincode),
         location_type: addressObj.tag === "Home" ? "Home" : "Office"
@@ -118,21 +124,18 @@ const createShypfyShipment = async ({ orderId, addressObj, userDetails, cartItem
       }))
     };
 
-    const response = await axios.put(
-      "https://app.shypfy.com/api/v1/package/create",
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
+    // Step 3: Create Package Request
+    const response = await axios.put("https://app.shypfy.com/api/v1/package/create", payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       }
-    );
+    });
 
-    console.log("Shypfy Order Pushed Successfully:", response.data);
-    return response.data; // Returns tracking_id, vendor, barcodes
+    console.log("Shypfy Order Created Successfully:", response.data);
+    return response.data;
   } catch (error) {
-    console.error("Shypfy API Integration Error:", error.response?.data || error.message);
+    console.error("Shypfy Package Creation Error:", error.response?.data || error.message);
     return null;
   }
 };
@@ -171,7 +174,6 @@ export const verifyRazorpayPayment = async (req, res) => {
       return res.status(400).json({ message: "Missing required verification token parameters." });
     }
 
-    // 1. Verify standard HMAC SHA256 Signature
     const textData = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSign = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
@@ -189,12 +191,10 @@ export const verifyRazorpayPayment = async (req, res) => {
 
     await client.query("BEGIN");
 
-    // Fetch user details
     const userQuery = "SELECT name, email FROM users WHERE id = $1 LIMIT 1;";
     const { rows: userRows } = await client.query(userQuery, [req.user.id]);
     const userDetails = userRows[0] || { name: 'Valued Customer', email: '' };
 
-    // Fetch cart contents
     const cartQuery = "SELECT * FROM cart WHERE user_id = $1;";
     const { rows: cartItems } = await client.query(cartQuery, [req.user.id]);
 
@@ -203,7 +203,6 @@ export const verifyRazorpayPayment = async (req, res) => {
       return res.status(400).json({ message: "Cannot checkout an empty cart." });
     }
 
-    // 2. STOCK CHECK & DECREMENT
     for (const item of cartItems) {
       const productRes = await client.query("SELECT count FROM products WHERE id = $1 FOR UPDATE;", [item.product_id]);
 
@@ -226,7 +225,6 @@ export const verifyRazorpayPayment = async (req, res) => {
       );
     }
 
-    // Fetch delivery address details
     const addressQuery = "SELECT * FROM addresses WHERE id = $1 LIMIT 1;";
     const { rows: addressRows } = await client.query(addressQuery, [address_id]);
 
@@ -237,7 +235,6 @@ export const verifyRazorpayPayment = async (req, res) => {
     const addressObj = addressRows[0];
     const orderPincode = String(addressObj.pincode).trim();
 
-    // Match branch admin based on pincodes
     const findBranchQuery = `
       SELECT id, node_id FROM branch_admins
       WHERE pincodes LIKE $1 OR pincodes LIKE $2 OR pincodes LIKE $3 OR pincodes = $4 LIMIT 1;
@@ -252,7 +249,6 @@ export const verifyRazorpayPayment = async (req, res) => {
     const { rows: branchRows } = await client.query(findBranchQuery, searchPatterns);
     const assignedBranchNodeId = branchRows.length > 0 ? branchRows[0].node_id : null;
 
-    // Insert into master orders ledger
     const insertOrderQuery = `
       INSERT INTO orders (id, user_id, address_id, total_price, payment_id, branch_node_id, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
@@ -267,7 +263,6 @@ export const verifyRazorpayPayment = async (req, res) => {
       'Preparing'
     ]);
 
-    // Snapshot order items
     const insertItemQuery = `
       INSERT INTO order_items (order_id, product_id, name, price, quantity, image, selected_size)
       VALUES ($1, $2, $3, $4, $5, $6, $7);
@@ -286,12 +281,10 @@ export const verifyRazorpayPayment = async (req, res) => {
       ]);
     }
 
-    // Clear active user cart
     await client.query("DELETE FROM cart WHERE user_id = $1;", [req.user.id]);
 
     await client.query("COMMIT");
 
-    // Push order to Shypfy Courier API
     const shypfyResult = await createShypfyShipment({
       orderId: razorpay_order_id,
       addressObj,
@@ -301,12 +294,11 @@ export const verifyRazorpayPayment = async (req, res) => {
       isCod: false
     });
 
-    // Save Shypfy tracking_id in DB if returned
-    if (shypfyResult?.tracking_id) {
-      await pool.query("UPDATE orders SET tracking_id = $1 WHERE id = $2;", [shypfyResult.tracking_id, razorpay_order_id]);
+    if (shypfyResult?.tracking_id || shypfyResult?.awb_number || shypfyResult?.data?.tracking_id) {
+      const trackingId = shypfyResult.tracking_id || shypfyResult.awb_number || shypfyResult.data?.tracking_id;
+      await pool.query("UPDATE orders SET tracking_id = $1 WHERE id = $2;", [trackingId, razorpay_order_id]);
     }
 
-    // Send confirmation email
     if (userDetails.email) {
       sendOrderEmail(userDetails, razorpay_order_id, razorpay_payment_id, addressObj, cartItems, amount, "Online Payment");
     }
@@ -333,12 +325,10 @@ export const createCodOrder = async (req, res) => {
 
     await client.query("BEGIN");
 
-    // Fetch user details
     const userQuery = "SELECT name, email FROM users WHERE id = $1 LIMIT 1;";
     const { rows: userRows } = await client.query(userQuery, [req.user.id]);
     const userDetails = userRows[0] || { name: 'Valued Customer', email: '' };
 
-    // Fetch cart items
     const cartQuery = "SELECT * FROM cart WHERE user_id = $1;";
     const { rows: cartItems } = await client.query(cartQuery, [req.user.id]);
 
@@ -347,7 +337,6 @@ export const createCodOrder = async (req, res) => {
       return res.status(400).json({ message: "Cannot checkout an empty cart." });
     }
 
-    // Stock verification & decrement
     for (const item of cartItems) {
       const productRes = await client.query("SELECT count FROM products WHERE id = $1 FOR UPDATE;", [item.product_id]);
 
@@ -370,7 +359,6 @@ export const createCodOrder = async (req, res) => {
       );
     }
 
-    // Fetch delivery address
     const addressQuery = "SELECT * FROM addresses WHERE id = $1 LIMIT 1;";
     const { rows: addressRows } = await client.query(addressQuery, [address_id]);
 
@@ -381,7 +369,6 @@ export const createCodOrder = async (req, res) => {
     const addressObj = addressRows[0];
     const orderPincode = String(addressObj.pincode).trim();
 
-    // Match branch admin
     const findBranchQuery = `
       SELECT id, node_id FROM branch_admins
       WHERE pincodes LIKE $1 OR pincodes LIKE $2 OR pincodes LIKE $3 OR pincodes = $4 LIMIT 1;
@@ -398,7 +385,6 @@ export const createCodOrder = async (req, res) => {
 
     const codOrderId = `COD_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // Insert order record
     const insertOrderQuery = `
       INSERT INTO orders (id, user_id, address_id, total_price, payment_id, branch_node_id, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
@@ -413,7 +399,6 @@ export const createCodOrder = async (req, res) => {
       "Preparing"
     ]);
 
-    // Insert order items
     const insertItemQuery = `
       INSERT INTO order_items (order_id, product_id, name, price, quantity, image, selected_size)
       VALUES ($1, $2, $3, $4, $5, $6, $7);
@@ -432,12 +417,10 @@ export const createCodOrder = async (req, res) => {
       ]);
     }
 
-    // Clear user cart
     await client.query("DELETE FROM cart WHERE user_id = $1;", [req.user.id]);
 
     await client.query("COMMIT");
 
-    // Push COD order to Shypfy
     const shypfyResult = await createShypfyShipment({
       orderId: codOrderId,
       addressObj,
@@ -447,11 +430,11 @@ export const createCodOrder = async (req, res) => {
       isCod: true
     });
 
-    if (shypfyResult?.tracking_id) {
-      await pool.query("UPDATE orders SET tracking_id = $1 WHERE id = $2;", [shypfyResult.tracking_id, codOrderId]);
+    if (shypfyResult?.tracking_id || shypfyResult?.awb_number || shypfyResult?.data?.tracking_id) {
+      const trackingId = shypfyResult.tracking_id || shypfyResult.awb_number || shypfyResult.data?.tracking_id;
+      await pool.query("UPDATE orders SET tracking_id = $1 WHERE id = $2;", [trackingId, codOrderId]);
     }
 
-    // Send confirmation email
     if (userDetails.email) {
       sendOrderEmail(userDetails, codOrderId, "CASH_ON_DELIVERY", addressObj, cartItems, amount, "Cash on Delivery");
     }
@@ -467,7 +450,6 @@ export const createCodOrder = async (req, res) => {
   }
 };
 
-// Helper function to send order email
 const sendOrderEmail = async (userDetails, orderId, paymentId, addressObj, cartItems, amount, paymentMethod) => {
   try {
     const itemsListHtml = cartItems.map((item, idx) => `
@@ -782,5 +764,163 @@ export const updateOrderStatusByAdmin = async (req, res) => {
   } catch (error) {
     console.error("Admin order pipeline patch breakdown:", error);
     return res.status(500).json({ message: "Failed updating logistics lifecycle." });
+  }
+};
+
+export const getLiveShypfyTracking = async (req, res) => {
+  try {
+    const { trackingId } = req.params;
+
+    if (!trackingId || trackingId === 'N/A') {
+      return res.status(400).json({ message: "No valid tracking ID provided." });
+    }
+
+    // Correct Endpoint according to Shypfy API Docs: /api/v1/track/{id}
+    const trackingUrl = `https://app.shypfy.com/api/v1/track/${trackingId}`;
+    
+    // Open API request (no bearer token required)
+    const trackingResponse = await axios.get(trackingUrl);
+
+    return res.status(200).json(trackingResponse.data);
+  } catch (error) {
+    console.error("Shypfy Live Tracking Error:", error.response?.data || error.message);
+    return res.status(500).json({ 
+      message: "Unable to retrieve live shipment metrics from courier network.",
+      error: error.response?.data || error.message 
+    });
+  }
+};
+
+// ==========================================
+// CANCEL ORDER CONTROLLER (WITH SHYPFY & RAZORPAY)
+// ==========================================
+
+export const cancelOrder = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { orderId } = req.params;
+    const userId = req.user.id;
+
+    await client.query("BEGIN");
+
+    // 1. Fetch Order with FOR UPDATE OF o (locks only the orders table row)
+    const orderQuery = `
+      SELECT o.*, u.email, u.name 
+      FROM orders o
+      LEFT JOIN users u ON u.id = o.user_id
+      WHERE o.id::text = $1::text AND o.user_id::text = $2::text
+      FOR UPDATE OF o;
+    `;
+    const { rows: orderRows } = await client.query(orderQuery, [String(orderId), String(userId)]);
+
+    if (orderRows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Order not found or unauthorized." });
+    }
+
+    const order = orderRows[0];
+    const currentStatus = (order.status || '').toLowerCase();
+
+    // Check if order is already cancelled or delivered/in-transit
+    if (currentStatus.includes("cancel")) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "Order is already cancelled." });
+    }
+
+    if (
+      currentStatus.includes("dispatch") ||
+      currentStatus.includes("deliver") ||
+      currentStatus.includes("transit") ||
+      currentStatus.includes("shipped")
+    ) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "Order cannot be cancelled as it is already dispatched or in transit." });
+    }
+
+    // 2. Cancel Order on Shypfy Dashboard
+    try {
+      const clientId = process.env.SHYPFY_CLIENT_ID?.replace(/['"]/g, '').trim();
+      const username = (process.env.SHYPFY_EMAIL || process.env.SHYPFY_USERNAME)?.replace(/['"]/g, '').trim();
+      const password = process.env.SHYPFY_PASSWORD?.replace(/['"]/g, '').trim();
+
+      if (clientId && username && password) {
+        // Authenticate Shypfy
+        const authUrl = `https://app.shypfy.com/integrations/v2/auth/token/${clientId}`;
+        const authResponse = await axios.post(
+          authUrl,
+          { username, password },
+          { headers: { "Content-Type": "application/json" } }
+        );
+
+        const token = authResponse.data?.access_token;
+        const trackingId = order.tracking_id || order.id;
+
+        if (token && trackingId) {
+          // Send Cancel Request via DELETE with tracking_id as Query Parameter
+          const cancelUrl = `https://app.shypfy.com/api/v1/package/cancel`;
+          const shypfyCancelRes = await axios.delete(cancelUrl, {
+            params: { tracking_id: String(trackingId) },
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          console.log("Shypfy Cancel Response:", shypfyCancelRes.data);
+        }
+      }
+    } catch (shypfyErr) {
+      console.error("Shypfy Cancellation Error (Non-fatal):", shypfyErr.response?.data || shypfyErr.message);
+    }
+
+    // 3. Trigger Razorpay Refund for Prepaid Orders
+    let refundInfo = null;
+    if (order.payment_id && order.payment_id !== "CASH_ON_DELIVERY" && typeof razorpayInstance !== 'undefined') {
+      try {
+        const refundAmount = Math.round(Number(order.total_price || 0) * 100);
+        if (refundAmount > 0) {
+          refundInfo = await razorpayInstance.payments.refund(order.payment_id, {
+            amount: refundAmount, // amount in paise
+            speed: "optimum",
+            notes: {
+              reason: "User requested order cancellation",
+              order_id: String(order.id)
+            }
+          });
+          console.log("Razorpay Refund Initiated:", refundInfo.id);
+        }
+      } catch (refundErr) {
+        console.error("Razorpay Refund Error (Non-fatal):", refundErr.message || refundErr);
+      }
+    }
+
+    // 4. Restore Product Quantities in Database Inventory
+    const itemsQuery = "SELECT product_id, quantity FROM order_items WHERE order_id::text = $1::text;";
+    const { rows: orderItems } = await client.query(itemsQuery, [String(orderId)]);
+
+    for (const item of orderItems) {
+      if (item.product_id) {
+        await client.query(
+          "UPDATE products SET count = COALESCE(count, 0) + $1 WHERE id::text = $2::text;",
+          [Number(item.quantity || 1), String(item.product_id)]
+        );
+      }
+    }
+
+    // 5. Update Order Status in Database
+    await client.query("UPDATE orders SET status = 'Cancelled' WHERE id::text = $1::text;", [String(orderId)]);
+
+    await client.query("COMMIT");
+
+    return res.status(200).json({
+      message: "Order cancelled successfully.",
+      refundDetails: refundInfo ? "Refund initiated via payment gateway." : "Order status updated to cancelled."
+    });
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Cancel Order Error Breakdown:", error);
+    return res.status(500).json({ message: error.message || "Failed to process order cancellation." });
+  } finally {
+    client.release();
   }
 };
