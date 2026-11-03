@@ -205,7 +205,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-gray-50 text-gray-800 pt-16 pb-8 px-6 md:px-12 border-t border-gray-200 relative overflow-hidden select-none">
+    <footer className="hidden md:block bg-gray-50 text-gray-800 pt-16 pb-8 px-6 md:px-12 border-t border-gray-200 relative overflow-hidden select-none">
 
       {/* BACKGROUND ACCENT GLOWS */}
       <div

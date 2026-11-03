@@ -60,7 +60,7 @@ import { getProfile, changePassword, addAddress, editAddress, removeAddress } fr
 import { getCart, addToCart, updateCartQuantity, removeFromCart } from "../controllers/cartController.js";
 
 // payment
-import { createRazorpayOrder, verifyRazorpayPayment, createCodOrder, getUserOrders, getAllCustomerOrders, updateOrderStatusByAdmin } from "../controllers/paymentController.js";
+import { createRazorpayOrder, verifyRazorpayPayment, createCodOrder, getUserOrders, getAllCustomerOrders, updateOrderStatusByAdmin, getLiveShypfyTracking, cancelOrder } from "../controllers/paymentController.js";
 
 const router = Router();
 
@@ -95,10 +95,10 @@ router.get("/admin/orders", verifyToken, getAllCustomerOrders);
 router.put("/admin/orders/:orderId", verifyToken, updateOrderStatusByAdmin);
 
 // Live tracking from shypfy
-// router.get("/orders/track/:trackingId", verifyToken, getLiveShypfyTracking);
+router.get("/orders/track/:trackingId", verifyToken, getLiveShypfyTracking);
 
 // Cancel order
-// router.post('/orders/cancel/:orderId', verifyToken, cancelOrder);
+router.post('/orders/cancel/:orderId', verifyToken, cancelOrder)
 
 // Admin Dashboard Command Control Center
 router.get("/admin-dashboard", verifyToken, isAdmin, (req, res) => {
