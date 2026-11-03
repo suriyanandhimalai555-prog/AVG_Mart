@@ -5,7 +5,7 @@ import { pool } from '../config/db.js';
 
 // UPDATED: Using Hostinger SMTP configuration instead of Gmail
 const transporter = nodemailer.createTransport({
-  host: 'smtp.hostinger.com',
+  host: 'smtp.elasticemail.com',
   port: 465,
   secure: true, // SSL required for port 465
   auth: {
