@@ -22,6 +22,7 @@ const SellerSidebar = () => {
     { name: 'Add Products', path: '/seller/products', icon: <Package className="w-5 h-5" /> },
     // { name: 'Orders & Fulfillment', path: '/seller/orders', icon: <ShoppingBag className="w-5 h-5" /> },
     { name: 'Profile', path: '/seller/profile', icon: <Store className="w-5 h-5" /> },
+    { name: 'Referral Network', path: '/seller/referral-tree', icon: <Store className="w-5 h-5" /> }
   ];
 
   // Handle logout with toast feedback
