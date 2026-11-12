@@ -222,23 +222,112 @@ export const verifySellerOtp = async (req, res) => {
   }
 };
 
+
 export const getSellerDashboardData = async (req, res) => {
   try {
+    const sellerId = req.user.id; // From auth middleware
+
+    // 1. Fetch products created by this seller with ordered count (using ::text casting for safe joins)
+    const productsResult = await pool.query(
+      `SELECT 
+         p.id, 
+         p.name, 
+         p.category, 
+         p.original_price, 
+         p.offer_price, 
+         p.count, 
+         p.images, 
+         p.is_featured, 
+         p.is_approved,
+         COALESCE(SUM(oi.quantity), 0) AS ordered_count
+       FROM products p
+       LEFT JOIN order_items oi ON p.id::text = oi.product_id::text
+       WHERE p.seller_id::text = $1::text
+       GROUP BY p.id, p.name, p.category, p.original_price, p.offer_price, p.count, p.images, p.is_featured, p.is_approved
+       ORDER BY p.id DESC`,
+      [String(sellerId)]
+    );
+
+    const products = productsResult.rows;
+    const activeProducts = products.length;
+
+    // 2. Fetch order stats by joining orders, order_items, and products safely
+    let totalSales = 0;
+    let totalOrders = 0;
+    let pendingShipments = 0;
+    let recentOrders = [];
+
+    try {
+      const statsResult = await pool.query(
+        `SELECT 
+           COALESCE(SUM(COALESCE(o.total_price, 0)), 0) AS total_sales,
+           COUNT(DISTINCT o.id) AS total_orders,
+           COUNT(DISTINCT o.id) FILTER (WHERE LOWER(o.status) IN ('pending', 'processing', 'preparing')) AS pending_shipments
+         FROM orders o
+         JOIN order_items oi ON o.id::text = oi.order_id::text
+         JOIN products p ON oi.product_id::text = p.id::text
+         WHERE p.seller_id::text = $1::text`,
+        [String(sellerId)]
+      );
+
+      if (statsResult.rows.length > 0) {
+        totalSales = statsResult.rows[0].total_sales;
+        totalOrders = statsResult.rows[0].total_orders;
+        pendingShipments = statsResult.rows[0].pending_shipments;
+      }
+
+      const recentOrdersResult = await pool.query(
+        `SELECT DISTINCT o.id, 
+                COALESCE(u.name, 'Customer') AS customer_name, 
+                COALESCE(o.total_price, 0) AS amount, 
+                o.status, 
+                p.name AS product_name
+         FROM orders o
+         LEFT JOIN users u ON o.user_id::text = u.id::text
+         JOIN order_items oi ON o.id::text = oi.order_id::text
+         JOIN products p ON oi.product_id::text = p.id::text
+         WHERE p.seller_id::text = $1::text
+         ORDER BY o.id DESC 
+         LIMIT 5`,
+        [String(sellerId)]
+      );
+
+      recentOrders = recentOrdersResult.rows.map(order => ({
+        id: String(order.id).startsWith('ORD-') ? order.id : `ORD-${order.id}`,
+        customer: order.customer_name,
+        product: order.product_name,
+        amount: `₹${Number(order.amount).toLocaleString('en-IN')}`,
+        status: order.status || 'Processing'
+      }));
+    } catch (orderErr) {
+      console.log("Orders query notice:", orderErr.message);
+    }
+
     res.status(200).json({
+      success: true,
       stats: {
-        totalSales: "₹1,48,920",
-        totalOrders: 342,
-        activeProducts: 48,
-        pendingShipments: 12
+        totalSales: `₹${Number(totalSales).toLocaleString('en-IN')}`,
+        totalOrders: Number(totalOrders),
+        activeProducts: activeProducts,
+        pendingShipments: Number(pendingShipments)
       },
-      recentOrders: [
-        { id: "ORD-9910", customer: "Rahul Sharma", product: "Wireless Earbuds", amount: "₹1,299", status: "Processing" },
-        { id: "ORD-9909", customer: "Priya Nair", product: "Smart Watch V2", amount: "₹3,499", status: "Shipped" },
-        { id: "ORD-9908", customer: "Ankit Verma", product: "Gaming Mouse", amount: "₹899", status: "Delivered" },
-      ]
+      recentOrders: recentOrders,
+      products: products.map(item => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        originalPrice: item.original_price,
+        offerPrice: item.offer_price,
+        count: item.count,
+        images: item.images,
+        isFeatured: item.is_featured,
+        isApproved: item.is_approved,
+        orderedCount: Number(item.ordered_count || 0)
+      }))
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching seller dashboard data:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

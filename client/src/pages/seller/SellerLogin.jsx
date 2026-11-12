@@ -78,7 +78,7 @@ const SellerLogin = () => {
       localStorage.setItem("userName", data.user.name || data.user.store_name);
 
       toast.success(`Welcome back, ${data.user.name || data.user.store_name}!`);
-      navigate("/seller/profile");
+      navigate("/seller/dashboard");
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
