@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Star, ChevronRight, ChevronLeft, Plus, Check } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
-const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products`
+const API_BASE_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/products/public/approved`
 const API_CATEGORIES_URL = `${import.meta.env.VITE_APP_BASE_URL}/api/categories`
 
 const ShowcaseProduct = () => {

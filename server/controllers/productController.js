@@ -38,19 +38,16 @@ export const createProduct = async (req, res) => {
       uploadedImageUrls.push("https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500");
     }
 
-    // Assign seller_id based on logged-in user role
     let assignedSellerId = null;
 
     if (req.user.role === "seller") {
       assignedSellerId = req.user.sellerId || req.user.id;
     }
 
-    // Admin products will have seller_id = NULL
     if (req.user.role === "admin") {
       assignedSellerId = null;
     }
 
-    // Include both seller_id and sellerId so SQL models handle column binding properly
     const newProduct = await ProductModel.create({
       name,
       category,
@@ -76,11 +73,16 @@ export const getAllProducts = async (req, res) => {
   try {
     let products;
 
-    // Seller request
+    // If a specific sellerId is requested
     if (req.query.sellerId) {
       products = await ProductModel.findAll(req.query.sellerId);
-    } else {
-      // Admin request
+    } 
+    // If explicitly requested for public user view
+    else if (req.query.public === 'true') {
+      products = await ProductModel.findApproved();
+    } 
+    // DEFAULT ADMIN / INVENTORY VIEW: Fetch ALL products (approved + pending)
+    else {
       products = await ProductModel.findAll();
     }
 
@@ -96,7 +98,8 @@ export const getAllProducts = async (req, res) => {
       count: item.count,
       images: item.images,
       isFeatured: item.is_featured,
-      sellerId: item.seller_id
+      sellerId: item.seller_id,
+      isApproved: item.is_approved
     }));
 
     res.json(data);
@@ -133,7 +136,8 @@ export const getProductById = async (req, res) => {
       count: item.count,
       images: item.images,
       isFeatured: item.is_featured,
-      sellerId: item.seller_id
+      sellerId: item.seller_id,
+      isApproved: item.is_approved
     };
 
     return res.status(200).json({
@@ -175,7 +179,8 @@ export const getFilteredProducts = async (req, res) => {
       if (sellerId) {
         rawProducts = await ProductModel.findAll(sellerId);
       } else {
-        rawProducts = await ProductModel.findAll();
+        // CRITICAL FIX: Only fetch approved products for public user store catalogs
+        rawProducts = await ProductModel.findApproved();
       }
     } catch (dbErr) {
       console.error("Database fetch error in getFilteredProducts:", dbErr);
@@ -186,7 +191,6 @@ export const getFilteredProducts = async (req, res) => {
       rawProducts = [];
     }
 
-    // Apply Filters safely in memory
     let filtered = rawProducts.filter(item => {
       const targetPrice = Number(item.offer_price || item.offerPrice || item.original_price || item.originalPrice || 0);
       const itemCategory = item.category || '';
@@ -208,7 +212,6 @@ export const getFilteredProducts = async (req, res) => {
       return matchesSearch && matchesCategory && matchesPrice;
     });
 
-    // Apply Sorting safely
     filtered.sort((a, b) => {
       const priceA = Number(a.offer_price || a.offerPrice || a.original_price || a.originalPrice || 0);
       const priceB = Number(b.offer_price || b.offerPrice || b.original_price || b.originalPrice || 0);
@@ -235,7 +238,8 @@ export const getFilteredProducts = async (req, res) => {
       count: item.count,
       images: item.images,
       isFeatured: item.is_featured ?? item.isFeatured,
-      sellerId: item.seller_id ?? item.sellerId
+      sellerId: item.seller_id ?? item.sellerId,
+      isApproved: item.is_approved ?? item.isApproved
     }));
 
     return res.status(200).json({
@@ -322,5 +326,53 @@ export const deleteProduct = async (req, res) => {
   } catch (error) {
     console.error('Error in deleteProduct Controller:', error);
     return res.status(500).json({ success: false, message: 'Failed to drop item row' });
+  }
+};
+
+export const approveProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const updatedProduct = await ProductModel.updateApprovalStatus(id, true);
+
+    if (!updatedProduct) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Product approved successfully and is now live for users!', 
+      product: updatedProduct 
+    });
+  } catch (error) {
+    console.error('Error approving product:', error);
+    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+export const getApprovedProducts = async (req, res) => {
+  try {
+    const products = await ProductModel.findApproved();
+
+    const data = products.map(item => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      sizes: item.sizes,
+      description: item.description,
+      originalPrice: item.original_price,
+      offerPrice: item.offer_price,
+      branchAdminPrice: item.branch_admin_price,
+      count: item.count,
+      images: item.images,
+      isFeatured: item.is_featured,
+      sellerId: item.seller_id,
+      isApproved: item.is_approved
+    }));
+
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching approved products:", err);
+    return res.status(500).json({ message: "Server Error" });
   }
 };
