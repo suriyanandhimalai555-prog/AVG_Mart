@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaSitemap, FaUsers, FaCopy, FaCheck, FaStore, FaPhone, FaEnvelope, FaSpinner } from 'react-icons/fa';
+import { FaUsers, FaCopy, FaCheck, FaStore, FaPhone, FaEnvelope, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 
 const SellerReferralTree = () => {
@@ -9,7 +9,7 @@ const SellerReferralTree = () => {
   const [sellerCode, setSellerCode] = useState('');
 
   useEffect(() => {
-    fetchReferralTree();
+    fetchDirectReferrals();
     fetchProfileCode();
   }, []);
 
@@ -28,7 +28,7 @@ const SellerReferralTree = () => {
     }
   };
 
-  const fetchReferralTree = async () => {
+  const fetchDirectReferrals = async () => {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/seller/referral-tree`, {
@@ -39,7 +39,7 @@ const SellerReferralTree = () => {
         setReferralData(data);
       }
     } catch (err) {
-      toast.error('Failed to load referral network');
+      toast.error('Failed to load referrals');
     } finally {
       setLoading(false);
     }
@@ -69,11 +69,11 @@ const SellerReferralTree = () => {
       <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 bg-lime-400/10 border border-lime-400/30 rounded-2xl flex items-center justify-center text-lime-400 text-2xl">
-            <FaSitemap />
+            <FaUsers />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-black uppercase tracking-wider text-white">Merchant Referral Tree</h1>
-            <p className="text-xs text-white/50 mt-1">Grow your merchant downline network and track active referrals.</p>
+            <h1 className="text-xl md:text-2xl font-black uppercase tracking-wider text-white">Direct Referrals</h1>
+            <p className="text-xs text-white/50 mt-1">View all merchants who registered directly using your referral link.</p>
           </div>
         </div>
 
@@ -104,66 +104,46 @@ const SellerReferralTree = () => {
             <FaUsers />
           </div>
           <div>
-            <p className="text-[10px] uppercase text-white/40 font-bold">Total Direct Referrals (Level 1)</p>
+            <p className="text-[10px] uppercase text-white/40 font-bold">Total Direct Referrals</p>
             <p className="text-2xl font-black text-white mt-0.5">{referralData.totalDirect}</p>
           </div>
         </div>
       </div>
 
-      {/* TREE LIST VIEW */}
+      {/* DIRECT REFERRALS LIST */}
       <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 space-y-6">
         <h2 className="text-xs font-black uppercase tracking-widest text-lime-400 border-b border-white/10 pb-3">
-          Your Downline Network Tree
+          Referred Merchants List
         </h2>
 
         {referralData.referrals.length === 0 ? (
           <div className="text-center py-12 text-white/40 text-xs">
-            No merchants referred yet. Share your link to start building your network tree!
+            No merchants referred yet. Share your link to get started!
           </div>
         ) : (
           <div className="space-y-4">
             {referralData.referrals.map((seller, index) => (
-              <div key={seller.id} className="bg-black/30 border border-white/10 rounded-2xl p-5 space-y-4">
+              <div key={seller.id} className="bg-black/30 border border-white/10 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 
-                {/* Level 1 Node */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-lime-400 font-bold text-sm">
-                      #{index + 1}
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black text-white flex items-center gap-2">
-                        <FaStore className="text-xs text-lime-400" /> {seller.store_name}
-                      </h3>
-                      <p className="text-xs text-white/50 mt-0.5">Owner: {seller.owner_name}</p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-lime-400 font-bold text-xs">
+                    #{index + 1}
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-white/70">
-                    <span className="flex items-center gap-1.5"><FaPhone className="text-lime-400 text-[10px]" /> {seller.phone}</span>
-                    <span className="flex items-center gap-1.5"><FaEnvelope className="text-lime-400 text-[10px]" /> {seller.email}</span>
-                    <span className="px-2.5 py-1 bg-lime-400/10 text-lime-400 font-mono font-bold rounded-lg text-[10px]">
-                      {seller.referral_code}
-                    </span>
+                  <div>
+                    <h3 className="text-sm font-black text-white flex items-center gap-2">
+                      <FaStore className="text-xs text-lime-400" /> {seller.store_name}
+                    </h3>
+                    <p className="text-xs text-white/50 mt-0.5">Owner: <span className="text-white font-medium">{seller.owner_name}</span></p>
                   </div>
                 </div>
 
-                {/* Level 2 Sub-referrals (if any) */}
-                {seller.subReferrals && seller.subReferrals.length > 0 && (
-                  <div className="ml-6 pl-4 border-l-2 border-lime-400/30 space-y-3 pt-2">
-                    <p className="text-[10px] uppercase font-bold text-lime-400">Level 2 Downline ({seller.subReferrals.length})</p>
-                    {seller.subReferrals.map((sub) => (
-                      <div key={sub.id} className="bg-white/5 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FaStore className="text-xs text-white/40" />
-                          <span className="text-xs font-bold text-white">{sub.store_name}</span>
-                          <span className="text-[10px] text-white/40">({sub.owner_name})</span>
-                        </div>
-                        <span className="text-[10px] font-mono text-lime-400">{sub.referral_code}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-wrap items-center gap-4 text-xs text-white/70">
+                  <span className="flex items-center gap-1.5"><FaPhone className="text-lime-400 text-[10px]" /> {seller.phone}</span>
+                  <span className="flex items-center gap-1.5"><FaEnvelope className="text-lime-400 text-[10px]" /> {seller.email}</span>
+                  <span className="px-2.5 py-1 bg-lime-400/10 text-lime-400 font-mono font-bold rounded-lg text-[10px] border border-lime-400/20">
+                    {seller.referral_code}
+                  </span>
+                </div>
 
               </div>
             ))}

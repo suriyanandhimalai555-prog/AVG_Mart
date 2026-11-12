@@ -93,12 +93,11 @@ export const registerSeller = async (req, res) => {
   }
 };
 
-// ADD THIS NEW CONTROLLER TO GET REFERRED SELLERS (TREE STRUCTURE)
+// Fetch only direct merchant referrals
 export const getSellerReferralTree = async (req, res) => {
   try {
     const sellerId = req.user.id;
 
-    // Fetch direct referrals (Level 1)
     const directQuery = await pool.query(
       `SELECT s.id, s.store_name, s.owner_name, s.email, s.phone, s.created_at, s.referral_code
        FROM seller_referrals r
@@ -108,32 +107,13 @@ export const getSellerReferralTree = async (req, res) => {
       [sellerId]
     );
 
-    const directReferrals = directQuery.rows;
-
-    // Optional: Fetch Level 2 referrals (referrals of your referrals)
-    const referralTree = [];
-    for (let direct of directReferrals) {
-      const subQuery = await pool.query(
-        `SELECT s.id, s.store_name, s.owner_name, s.email, s.phone, s.created_at, s.referral_code
-         FROM seller_referrals r
-         JOIN sellers s ON r.referred_id = s.id
-         WHERE r.referrer_id = $1
-         ORDER BY r.created_at DESC`,
-        [direct.id]
-      );
-      referralTree.push({
-        ...direct,
-        subReferrals: subQuery.rows
-      });
-    }
-
     res.status(200).json({
       success: true,
-      totalDirect: directReferrals.length,
-      referrals: referralTree
+      totalDirect: directQuery.rows.length,
+      referrals: directQuery.rows
     });
   } catch (error) {
-    console.error("Referral Tree Error:", error);
+    console.error("Direct Referrals Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
