@@ -7,7 +7,8 @@ import {
   resetPasswordWithOtp,
   getSellerDashboardData, 
   getSellerProfile,
-  getAllSellers
+  getAllSellers,
+  getSellerReferralTree
 } from '../controllers/sellerController.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
 
@@ -27,5 +28,7 @@ router.get('/profile', verifyToken, getSellerProfile);
 // Get all sellers: Handle both root and empty path explicitly
 router.get('/all', verifyToken, getAllSellers); // Dedicated /all subpath
 router.get('/', verifyToken, getAllSellers);
+
+router.get('/referral-tree', verifyToken, getSellerReferralTree);
 
 export default router;

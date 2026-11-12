@@ -51,6 +51,7 @@ import SellerProfile from './pages/seller/SellerProfile'
 import SellerCategory from './pages/seller/SellerCategory'
 import SellerProduct from './pages/seller/SellerProduct'
 import SellerForgotPassword from './pages/seller/SellerForgotPassword'
+import SellerReferralTree from './pages/seller/SellerReferralTree'
 
 // Marketer Imports
 import MarketLogin from './pages/marketing/MarketLogin'
@@ -115,6 +116,7 @@ const App = () => {
                     <Route path="categories" element={<SellerCategory />} />
                     <Route path="products" element={<SellerProduct />} />
                     <Route path="profile" element={<SellerProfile />} />
+                    <Route path="referral-tree" element={<SellerReferralTree />} />
                   </Routes>
                 </div>
               </div>

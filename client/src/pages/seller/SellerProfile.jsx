@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FaUser, 
-  FaEnvelope, 
-  FaPhone, 
   FaBuilding, 
-  FaCreditCard, 
   FaStore, 
   FaMapMarkerAlt, 
-  FaTruck, 
   FaUniversity, 
   FaCheckCircle, 
-  FaSpinner 
+  FaSpinner,
+  FaGift,
+  FaCopy,
+  FaCheck
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 
 const SellerProfile = () => {
   const [seller, setSeller] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -40,6 +40,15 @@ const SellerProfile = () => {
       toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCopyCode = () => {
+    if (seller?.referral_code) {
+      navigator.clipboard.writeText(seller.referral_code);
+      setCopied(true);
+      toast.success('Referral code copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -111,6 +120,33 @@ const SellerProfile = () => {
               <div>
                 <p className="text-[10px] uppercase text-white/40 font-bold">Phone Number</p>
                 <p className="text-xs font-semibold text-white mt-1">{seller.phone}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 1.5: REFERRAL PROGRAM CARD */}
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl p-6 space-y-5">
+            <h2 className="text-xs font-black uppercase tracking-widest text-lime-400 flex items-center gap-2 border-b border-white/10 pb-3">
+              <FaGift /> Merchant Referral Program
+            </h2>
+            <div className="space-y-3">
+              <p className="text-xs text-white/60">
+                Share your unique referral code with other merchants and grow the AVG ecosystem.
+              </p>
+              <div className="flex items-center justify-between bg-black/30 p-3 rounded-2xl border border-white/10">
+                <div>
+                  <p className="text-[10px] uppercase text-white/40 font-bold">Your Referral Code</p>
+                  <p className="font-mono text-base font-bold text-lime-400 tracking-wider mt-0.5">
+                    {seller.referral_code || 'Generating...'}
+                  </p>
+                </div>
+                <button
+                  onClick={handleCopyCode}
+                  className="px-4 py-2 bg-lime-400 hover:bg-lime-500 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-2"
+                >
+                  {copied ? <FaCheck /> : <FaCopy />}
+                  {copied ? 'Copied' : 'Copy Code'}
+                </button>
               </div>
             </div>
           </div>

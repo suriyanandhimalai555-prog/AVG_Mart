@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaRupeeSign, FaBox, FaShoppingBag, FaShippingFast } from 'react-icons/fa';
+import { FaRupeeSign, FaBox, FaShoppingBag, FaShippingFast, FaUsers } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 
 const SellerDashboard = () => {
@@ -47,7 +47,9 @@ const SellerDashboard = () => {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        
+        {/* Total Sales */}
         <div className="bg-white/[0.02] border border-white/10 p-5 rounded-2xl flex items-center justify-between">
           <div>
             <p className="text-[10px] uppercase font-bold text-white/40">Total Sales</p>
@@ -56,6 +58,7 @@ const SellerDashboard = () => {
           <div className="w-10 h-10 bg-lime-400/10 rounded-xl flex items-center justify-center text-lime-400 text-lg"><FaRupeeSign /></div>
         </div>
 
+        {/* Total Orders */}
         <div className="bg-white/[0.02] border border-white/10 p-5 rounded-2xl flex items-center justify-between">
           <div>
             <p className="text-[10px] uppercase font-bold text-white/40">Total Orders</p>
@@ -64,6 +67,7 @@ const SellerDashboard = () => {
           <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 text-lg"><FaShoppingBag /></div>
         </div>
 
+        {/* Live Products */}
         <div className="bg-white/[0.02] border border-white/10 p-5 rounded-2xl flex items-center justify-between">
           <div>
             <p className="text-[10px] uppercase font-bold text-white/40">Live Products</p>
@@ -72,6 +76,7 @@ const SellerDashboard = () => {
           <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400 text-lg"><FaBox /></div>
         </div>
 
+        {/* Pending Shipments */}
         <div className="bg-white/[0.02] border border-white/10 p-5 rounded-2xl flex items-center justify-between">
           <div>
             <p className="text-[10px] uppercase font-bold text-white/40">Pending Shipments</p>
@@ -79,37 +84,17 @@ const SellerDashboard = () => {
           </div>
           <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 text-lg"><FaShippingFast /></div>
         </div>
-      </div>
 
-      {/* Seller Added Products Preview Section */}
-      {/* <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6">
-        <h2 className="text-sm font-bold uppercase text-white mb-4">Your Added Products & Order Counts</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data?.products?.length > 0 ? (
-            data.products.map((product) => (
-              <div key={product.id} className="bg-black/30 border border-white/5 p-4 rounded-xl flex items-center gap-4">
-                <img 
-                  src={product.images?.[0] || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"} 
-                  alt={product.name} 
-                  className="w-14 h-14 object-cover rounded-lg border border-white/10"
-                />
-                <div className="overflow-hidden flex-1">
-                  <h4 className="text-xs font-bold text-white truncate">{product.name}</h4>
-                  <p className="text-[10px] text-lime-400 font-mono mt-0.5">₹{product.offerPrice}</p>
-                  <p className="text-[10px] text-white/60 mt-0.5">
-                    Total Ordered: <span className="font-bold text-white">{product.orderedCount || 0} units</span>
-                  </p>
-                  <span className={`inline-block mt-1 text-[8px] px-2 py-0.5 rounded uppercase font-bold ${product.isApproved ? 'bg-lime-400/10 text-lime-400 border border-lime-400/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
-                    {product.isApproved ? 'Approved & Live' : 'Pending Approval'}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-xs text-white/40 col-span-full text-center py-4">No products found added by this seller.</p>
-          )}
+        {/* Total Referrals Card */}
+        <div className="bg-white/[0.02] border border-white/10 p-5 rounded-2xl flex items-center justify-between sm:col-span-2 lg:col-span-1">
+          <div>
+            <p className="text-[10px] uppercase font-bold text-white/40">Total Referrals</p>
+            <h3 className="text-xl font-black text-emerald-400 mt-1">{data?.stats?.totalReferrals || "0"}</h3>
+          </div>
+          <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400 text-lg"><FaUsers /></div>
         </div>
-      </div> */}
+
+      </div>
 
       {/* Recent Orders Table */}
       <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6">
