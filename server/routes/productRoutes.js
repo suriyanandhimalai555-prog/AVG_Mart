@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createProduct, getAllProducts, getProductById, getFilteredProducts, updateProduct, deleteProduct } from '../controllers/productController.js';
+import { createProduct, getAllProducts, getProductById, getFilteredProducts, updateProduct, deleteProduct, approveProduct, getApprovedProducts } from '../controllers/productController.js';
 import { addProductReview, getProductReviews } from "../controllers/reviewController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import { uploadFiles } from '../middleware/upload.js'; 
@@ -21,5 +21,9 @@ router.delete('/:id', verifyToken, deleteProduct);
 // Review Management
 router.get('/:productId/reviews', getProductReviews);
 router.post('/reviews', verifyToken, uploadFiles.array('reviewImages', 15), addProductReview);
+
+router.put('/:id/approve', verifyToken, approveProduct);
+// Public endpoint for users to fetch ONLY approved products
+router.get('/public/approved', getApprovedProducts);
 
 export default router;
