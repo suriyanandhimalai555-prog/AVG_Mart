@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "com.avg.avgmart",
       "sha256_cert_fingerprints": [
-        "4B:C2:27:F4:94:A8:B5:47:D0:60:F1:B3:1D:3E:30:2A:2D:0D:B8:A3:A9:9A:07:3B:6C:65:7A:65:CE:27:9D:B8"
+        "4B:C2:27:F4:94:A8:B5:47:D0:60:F1:B3:1D:3E:30:2A:2D:0D:B8:A3:A9:9A:07:3B:6C:65:7A:65:CE:27:9D:B8",
+        "04:1A:39:C0:52:EF:DB:B3:B0:0F:17:D4:C0:6A:A8:5B:C8:F9:3E:7F:11:F8:21:09:D7:2F:BC:79:0C:1A:1F:C5"
       ]
     }
   }
