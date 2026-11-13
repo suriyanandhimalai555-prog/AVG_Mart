@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.avg.avgmart",
+      "sha256_cert_fingerprints": [
+        "4B:C2:27:F4:94:A8:B5:47:D0:60:F1:B3:1D:3E:30:2A:2D:0D:B8:A3:A9:9A:07:3B:6C:65:7A:65:CE:27:9D:B8"
+      ]
+    }
+  }
+]

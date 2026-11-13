@@ -40,7 +40,19 @@ jobs:
 
             echo "Deploying commit: ${IMAGE_TAG}"
 
-            git fetch origin
+            git fetch origin main
+
+            LATEST_MAIN=$(git rev-parse FETCH_HEAD)
+
+            echo "Build commit: ${IMAGE_TAG}"
+            echo "Latest main:  ${LATEST_MAIN}"
+
+            if [ "${IMAGE_TAG}" != "${LATEST_MAIN}" ]; then
+              echo "Skipping deployment: a newer commit exists on main."
+              exit 0
+            fi
+
+            git checkout -B main origin/main
             git reset --hard origin/main
 
             echo "Current Git commit:"
@@ -49,9 +61,9 @@ jobs:
             echo "Expected image tag:"
             echo "${IMAGE_TAG}"
 
-            chmod +x scripts/k8s-deploy.sh
+            chmod +x scripts/k8s-deploy-frontend.sh
 
-            IMAGE_TAG="${IMAGE_TAG}" ./scripts/k8s-deploy.sh
+            IMAGE_TAG="${IMAGE_TAG}" ./scripts/k8s-deploy-frontend.sh
 
             echo "Checking deployments..."
 
