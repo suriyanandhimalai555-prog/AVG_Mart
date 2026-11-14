@@ -20,7 +20,7 @@ const SellerSidebar = () => {
     { name: 'Dashboard', path: '/seller/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'Add Category', path: '/seller/categories', icon: <Package className="w-5 h-5" /> },
     { name: 'Add Products', path: '/seller/products', icon: <Package className="w-5 h-5" /> },
-    // { name: 'Orders & Fulfillment', path: '/seller/orders', icon: <ShoppingBag className="w-5 h-5" /> },
+    { name: 'Daily Payouts', path: '/seller/payouts', icon: <ShoppingBag className="w-5 h-5" /> },
     { name: 'Profile', path: '/seller/profile', icon: <Store className="w-5 h-5" /> },
     { name: 'Referral Network', path: '/seller/referral-tree', icon: <Store className="w-5 h-5" /> }
   ];
