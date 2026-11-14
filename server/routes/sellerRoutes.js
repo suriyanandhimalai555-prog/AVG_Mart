@@ -9,7 +9,9 @@ import {
   getSellerDashboardData, 
   getSellerProfile,
   getAllSellers,
-  getSellerReferralTree
+  getSellerReferralTree,
+  updateSellerPayoutStatus, // <--- New Payout Status Update Controller
+  getSellerMyPayouts        // <--- New Seller Payout Ledger View Controller
 } from '../controllers/sellerController.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
 
@@ -23,7 +25,6 @@ const upload = multer({
 });
 
 // Public routes
-// Added upload.single('gst_document') to handle multipart form-data & file upload
 router.post('/register', upload.single('gst_document'), registerSeller);
 router.post('/login', loginSeller);
 router.post('/forgot-password', forgotPassword);
@@ -34,9 +35,15 @@ router.post('/reset-password', resetPasswordWithOtp);
 router.get('/dashboard-stats', verifyToken, getSellerDashboardData);
 router.get('/profile', verifyToken, getSellerProfile);
 
-// Get all sellers: Handle both root and empty path explicitly
-router.get('/all', verifyToken, getAllSellers); // Dedicated /all subpath
+// Get all sellers (Admin directory & Payout management)
+router.get('/all', verifyToken, getAllSellers);
 router.get('/', verifyToken, getAllSellers);
+
+// Admin Payout Status Update Route
+router.post('/payout-status', verifyToken, updateSellerPayoutStatus);
+
+// Seller My Daily Payouts Route (For logged-in sellers to view their daily earnings & status)
+router.get('/my-payouts', verifyToken, getSellerMyPayouts);
 
 router.get('/referral-tree', verifyToken, getSellerReferralTree);
 
