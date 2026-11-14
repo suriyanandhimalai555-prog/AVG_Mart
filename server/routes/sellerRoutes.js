@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import { 
   registerSeller, 
   loginSeller, 
@@ -14,8 +15,16 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+// Configure multer to store uploaded files in memory buffer for S3 upload
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+});
+
 // Public routes
-router.post('/register', registerSeller);
+// Added upload.single('gst_document') to handle multipart form-data & file upload
+router.post('/register', upload.single('gst_document'), registerSeller);
 router.post('/login', loginSeller);
 router.post('/forgot-password', forgotPassword);
 router.post('/verify-otp', verifySellerOtp);

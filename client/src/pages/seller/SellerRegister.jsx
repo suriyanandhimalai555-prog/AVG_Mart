@@ -17,6 +17,7 @@ import {
   FaChevronLeft,
   FaCircleNotch,
   FaTag,
+  FaFileUpload,
 } from "react-icons/fa";
 import Logo from "../../assets/logo.png";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
@@ -51,6 +52,7 @@ const SellerRegister = () => {
 
     // Step 2: Tax Details
     gst_number: "",
+    gst_document: null,
     pan_number: "",
 
     // Step 3: Store details
@@ -92,7 +94,20 @@ const SellerRegister = () => {
   const [glowY, setGlowY] = useState(50);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    let { name, value } = e.target;
+    
+    // Auto uppercase and restrict to alphanumeric for GST and PAN
+    if (name === "gst_number" || name === "pan_number") {
+      value = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    }
+
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFormData({ ...formData, [e.target.name]: e.target.files[0] });
+    }
   };
 
   const handleMouseMove = (e) => {
@@ -126,8 +141,16 @@ const SellerRegister = () => {
         return false;
       }
     } else if (currentStep === 2) {
-      if (!formData.gst_number) {
-        setErrorMessage("Please enter your GST number.");
+      if (!formData.pan_number || formData.pan_number.trim() === "") {
+        setErrorMessage("Please enter your PAN number.");
+        return false;
+      }
+      if (formData.pan_number.length !== 10) {
+        setErrorMessage("PAN number must be exactly 10 characters.");
+        return false;
+      }
+      if (formData.gst_number && formData.gst_number.trim() !== "" && formData.gst_number.length !== 15) {
+        setErrorMessage("GSTIN number must be exactly 15 characters if provided.");
         return false;
       }
     } else if (currentStep === 3) {
@@ -168,10 +191,16 @@ const SellerRegister = () => {
     setErrorMessage("");
 
     try {
+      const dataPayload = new FormData();
+      Object.keys(formData).forEach((key) => {
+        if (formData[key] !== null && formData[key] !== undefined) {
+          dataPayload.append(key, formData[key]);
+        }
+      });
+
       const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL}/api/seller/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: dataPayload,
       });
 
       const data = await response.json();
@@ -195,29 +224,12 @@ const SellerRegister = () => {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center p-4 md:p-8 relative overflow-hidden select-none perspective-1000">
       
-      {/* <style dangerouslySetInnerHTML={{__html: `
-        .perspective-1000 { perspective: 1200px; }
-        .preserve-3d { transform-style: preserve-3d; transition: transform 0.15s ease-out, box-shadow 0.3s ease; }
-        .translate-z-3d { transform: translateZ(25px); }
-      `}} /> */}
-
-      {/* BACKGROUND AMBIENT GLOW */}
-      {/* <div className="absolute inset-0 pointer-events-none z-0">
-        <div 
-          className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[140px] opacity-20"
-          style={{ backgroundColor: '#A5CE00' }}
-        />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#0A224E]/5 rounded-full blur-[140px]" />
-      </div> */}
-
-      {/* 3D GLASS CONTAINER */}
       <div
         ref={cardRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         style={{
           transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
-          boxShadow: `${-rotateY * 2}px ${rotateX * 2}px 30px rgba(10, 34, 78, 0.08), 0 10px 40px rgba(0, 0, 0, 0.04)`
         }}
         className="w-full max-w-4xl bg-white border border-gray-200/80 rounded-3xl p-6 md:p-10 preserve-3d relative z-10 group transition-colors duration-300"
       >
@@ -297,7 +309,9 @@ const SellerRegister = () => {
           {currentStep === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Full Name / Owner Name</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Full Name / Owner Name <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaUser className="absolute left-4 text-gray-400 text-xs" />
                   <input
@@ -313,7 +327,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Email Address</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Email Address <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaEnvelope className="absolute left-4 text-gray-400 text-xs" />
                   <input
@@ -329,7 +345,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Phone Number</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Phone Number <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaPhone className="absolute left-4 text-gray-400 text-xs" />
                   <input
@@ -345,7 +363,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Password</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Password <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaKey className="absolute left-4 text-gray-400 text-xs" />
                   <input
@@ -367,7 +387,6 @@ const SellerRegister = () => {
                 </div>
               </div>
 
-              {/* Editable Referral Code Field */}
               <div className="space-y-1.5 md:col-span-2">
                 <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
                   Referral Code <span className="text-gray-400 font-normal lowercase">(optional)</span>
@@ -395,34 +414,61 @@ const SellerRegister = () => {
           {currentStep === 2 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">GSTIN Number</label>
-                <div className="relative flex items-center">
-                  <FaBuilding className="absolute left-4 text-gray-400 text-xs" />
-                  <input
-                    type="text"
-                    name="gst_number"
-                    required
-                    value={formData.gst_number}
-                    onChange={handleChange}
-                    placeholder="22AAAAA0000A1Z5"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 uppercase focus:border-[#0A224E] focus:bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">PAN Number</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  PAN Number <span className="text-rose-500">*</span> <span className="text-gray-400 font-normal lowercase">(10 chars)</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaCreditCard className="absolute left-4 text-gray-400 text-xs" />
                   <input
                     type="text"
                     name="pan_number"
+                    required
+                    maxLength={10}
                     value={formData.pan_number}
                     onChange={handleChange}
                     placeholder="ABCDE1234F"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 uppercase focus:border-[#0A224E] focus:bg-white"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 uppercase focus:border-[#0A224E] focus:bg-white tracking-widest"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  GSTIN Number <span className="text-gray-400 font-normal lowercase">(optional - 15 chars)</span>
+                </label>
+                <div className="relative flex items-center">
+                  <FaBuilding className="absolute left-4 text-gray-400 text-xs" />
+                  <input
+                    type="text"
+                    name="gst_number"
+                    maxLength={15}
+                    value={formData.gst_number}
+                    onChange={handleChange}
+                    placeholder="22AAAAA0000A1Z5"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-xs outline-none font-bold text-gray-900 uppercase focus:border-[#0A224E] focus:bg-white tracking-widest"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Upload GST Certificate <span className="text-gray-400 font-normal lowercase">(optional - PDF / Image)</span>
+                </label>
+                <div className="relative flex items-center">
+                  <FaFileUpload className="absolute left-4 text-gray-400 text-xs" />
+                  <input
+                    type="file"
+                    name="gst_document"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleFileChange}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-2.5 text-xs outline-none font-bold text-gray-700 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-[#0A224E] file:text-white hover:file:opacity-90 cursor-pointer"
+                  />
+                </div>
+                {formData.gst_document && (
+                  <p className="text-[10px] text-emerald-600 font-bold pl-2">
+                    Selected file: {formData.gst_document.name}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -430,7 +476,9 @@ const SellerRegister = () => {
           {currentStep === 3 && (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Display Store Name</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Display Store Name <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaStore className="absolute left-4 text-gray-400 text-xs" />
                   <input
@@ -446,7 +494,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Store Description</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Store Description <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                </label>
                 <textarea
                   name="store_description"
                   rows="3"
@@ -462,7 +512,9 @@ const SellerRegister = () => {
           {currentStep === 4 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Pickup Address / Hub Location</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Pickup Address / Hub Location <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaMapMarkerAlt className="absolute left-4 text-gray-400 text-xs" />
                   <input
@@ -478,7 +530,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">City</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  City <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="city"
@@ -491,7 +545,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">State</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  State <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="state"
@@ -504,7 +560,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Pincode</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Pincode <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="pincode"
@@ -517,7 +575,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Shipping Mode</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Shipping Mode <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaTruck className="absolute left-4 text-gray-400 text-xs" />
                   <select
@@ -537,7 +597,9 @@ const SellerRegister = () => {
           {currentStep === 5 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Account Holder Name</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Account Holder Name <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaUser className="absolute left-4 text-gray-400 text-xs" />
                   <input
@@ -553,7 +615,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Bank Name</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Bank Name <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="bank_name"
@@ -566,7 +630,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">IFSC Code</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  IFSC Code <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="ifsc_code"
@@ -579,7 +645,9 @@ const SellerRegister = () => {
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">Bank Account Number</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#0A224E]">
+                  Bank Account Number <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative flex items-center">
                   <FaUniversity className="absolute left-4 text-gray-400 text-xs" />
                   <input

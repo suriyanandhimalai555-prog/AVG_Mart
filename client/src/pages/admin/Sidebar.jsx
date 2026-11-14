@@ -13,6 +13,7 @@ import {
   Boxes,
   Users,
   Megaphone,
+  CreditCard
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import Logo from "../../assets/logo.png"
@@ -29,6 +30,7 @@ const Sidebar = () => {
     { name: 'Branch Admin', path: '/admin/create-branch-admin', icon: <ShieldCheck className="w-5 h-5" /> },
     { name: 'Stock Request', path: '/admin/stock-request', icon: <Boxes className="w-5 h-5" /> },
     { name: 'Seller List', path: '/admin/sellers-list', icon: <Users className="w-5 h-5" /> },
+    { name: 'Seller Payout', path: '/admin/seller-payout', icon: <CreditCard className="w-5 h-5" /> },
     { name: 'Marketing List', path: '/admin/marketers-list', icon: <Megaphone className="w-5 h-5" /> },
     { name: 'App Settings', path: '/admin/app-settings', icon: <ShieldAlert className="w-5 h-5" /> },
     { name: 'App Banner', path: '/admin/app-banner', icon: <CassetteTape className="w-5 h-5" /> },

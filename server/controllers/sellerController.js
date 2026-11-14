@@ -2,7 +2,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import Seller from '../models/sellerModel.js';
-import {pool} from '../config/db.js';
+import { s3Client, BUCKET_NAME } from '../config/s3.js';
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { pool } from '../config/db.js';
 
 // Configure Nodemailer with Elastic Email SMTP
 const transporter = nodemailer.createTransport({
@@ -33,7 +35,6 @@ const generateReferralCode = async () => {
   return referralCode;
 };
 
-// Inside registerSeller (update where newSeller is created):
 export const registerSeller = async (req, res) => {
   try {
     const {
@@ -43,18 +44,61 @@ export const registerSeller = async (req, res) => {
       account_number, referral_code
     } = req.body;
 
+    // 1. Check if email already exists
     const existingSeller = await Seller.findByEmail(email);
     if (existingSeller) {
       return res.status(400).json({ message: "Seller account already exists with this email." });
+    }
+
+    // 2. Check if PAN number is already registered (Unique constraint check)
+    if (pan_number) {
+      const existingPan = await pool.query('SELECT id FROM sellers WHERE UPPER(pan_number) = UPPER($1)', [pan_number.trim()]);
+      if (existingPan.rows.length > 0) {
+        return res.status(400).json({ message: "An account with this PAN number is already registered." });
+      }
+    }
+
+    let gstDocumentUrl = null;
+
+    // Handle File Upload to AWS S3 if a file was attached via req.file
+    if (req.file) {
+      const fileKey = `sellers/gst-docs/${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
+      
+      const uploadParams = {
+        Bucket: BUCKET_NAME,
+        Key: fileKey,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      };
+
+      await s3Client.send(new PutObjectCommand(uploadParams));
+      
+      const region = process.env.AWS_REGION || 'us-east-1';
+      gstDocumentUrl = `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${fileKey}`;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const generatedReferralCode = await generateReferralCode();
 
     const newSeller = await Seller.create({
-      owner_name, email, password: hashedPassword, phone, gst_number, pan_number,
-      store_name, store_description, pickup_address, city, state, pincode,
-      shipping_type, account_holder, bank_name, ifsc_code, account_number,
+      owner_name, 
+      email, 
+      password: hashedPassword, 
+      phone, 
+      gst_number: gst_number ? gst_number.trim() : null, 
+      gst_document: gstDocumentUrl,
+      pan_number: pan_number.trim(),
+      store_name, 
+      store_description, 
+      pickup_address, 
+      city, 
+      state, 
+      pincode,
+      shipping_type, 
+      account_holder, 
+      bank_name, 
+      ifsc_code, 
+      account_number,
       referral_code: generatedReferralCode
     });
 
@@ -67,7 +111,6 @@ export const registerSeller = async (req, res) => {
 
       if (referrerResult.rows.length > 0) {
         const referrerId = referrerResult.rows[0].id;
-        // Prevent self-referral
         if (referrerId !== newSeller.id) {
           await pool.query(
             'INSERT INTO seller_referrals (referrer_id, referred_id) VALUES ($1, $2)',
@@ -89,16 +132,16 @@ export const registerSeller = async (req, res) => {
       user: { ...newSeller, role: 'seller' }
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Seller Registration Error:", error);
+    res.status(500).json({ message: error.message || "Server error during registration." });
   }
 };
 
-// ADD THIS NEW CONTROLLER TO GET REFERRED SELLERS (TREE STRUCTURE)
+// Fetch only direct merchant referrals
 export const getSellerReferralTree = async (req, res) => {
   try {
     const sellerId = req.user.id;
 
-    // Fetch direct referrals (Level 1)
     const directQuery = await pool.query(
       `SELECT s.id, s.store_name, s.owner_name, s.email, s.phone, s.created_at, s.referral_code
        FROM seller_referrals r
@@ -108,32 +151,13 @@ export const getSellerReferralTree = async (req, res) => {
       [sellerId]
     );
 
-    const directReferrals = directQuery.rows;
-
-    // Optional: Fetch Level 2 referrals (referrals of your referrals)
-    const referralTree = [];
-    for (let direct of directReferrals) {
-      const subQuery = await pool.query(
-        `SELECT s.id, s.store_name, s.owner_name, s.email, s.phone, s.created_at, s.referral_code
-         FROM seller_referrals r
-         JOIN sellers s ON r.referred_id = s.id
-         WHERE r.referrer_id = $1
-         ORDER BY r.created_at DESC`,
-        [direct.id]
-      );
-      referralTree.push({
-        ...direct,
-        subReferrals: subQuery.rows
-      });
-    }
-
     res.status(200).json({
       success: true,
-      totalDirect: directReferrals.length,
-      referrals: referralTree
+      totalDirect: directQuery.rows.length,
+      referrals: directQuery.rows
     });
   } catch (error) {
-    console.error("Referral Tree Error:", error);
+    console.error("Direct Referrals Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -251,8 +275,6 @@ export const resetPasswordWithOtp = async (req, res) => {
   }
 };
 
-// Add this new function to sellerController.js
-
 export const verifySellerOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -277,12 +299,10 @@ export const verifySellerOtp = async (req, res) => {
   }
 };
 
-
 export const getSellerDashboardData = async (req, res) => {
   try {
     const sellerId = req.user.id; // From auth middleware
 
-    // 1. Fetch products created by this seller with ordered count
     const productsResult = await pool.query(
       `SELECT 
          p.id, 
@@ -306,7 +326,6 @@ export const getSellerDashboardData = async (req, res) => {
     const products = productsResult.rows;
     const activeProducts = products.length;
 
-    // 2. Fetch total referrals count for this seller
     let totalReferrals = 0;
     try {
       const referralResult = await pool.query(
@@ -320,7 +339,6 @@ export const getSellerDashboardData = async (req, res) => {
       console.log("Referral count query notice:", refErr.message);
     }
 
-    // 3. Fetch order stats by joining orders, order_items, and products safely
     let totalSales = 0;
     let totalOrders = 0;
     let pendingShipments = 0;
@@ -379,7 +397,7 @@ export const getSellerDashboardData = async (req, res) => {
         totalOrders: Number(totalOrders),
         activeProducts: activeProducts,
         pendingShipments: Number(pendingShipments),
-        totalReferrals: totalReferrals // <--- Added referral count here
+        totalReferrals: totalReferrals
       },
       recentOrders: recentOrders,
       products: products.map(item => ({

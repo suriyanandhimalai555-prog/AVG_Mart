@@ -9,8 +9,9 @@ const Seller = {
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         phone VARCHAR(20) NOT NULL,
-        gst_number VARCHAR(50) NOT NULL,
-        pan_number VARCHAR(50),
+        gst_number VARCHAR(50),
+        gst_document TEXT,
+        pan_number VARCHAR(50) NOT NULL,
         store_name VARCHAR(255) NOT NULL,
         store_description TEXT,
         pickup_address TEXT NOT NULL,
@@ -35,7 +36,7 @@ const Seller = {
   findAll: async () => {
     const res = await pool.query(
       `SELECT 
-        id, owner_name, email, phone, gst_number, pan_number, 
+        id, owner_name, email, phone, gst_number, gst_document, pan_number, 
         store_name, store_description, pickup_address, city, state, 
         pincode, shipping_type, account_holder, bank_name, ifsc_code, 
         account_number, referral_code, status, created_at 
@@ -52,7 +53,7 @@ const Seller = {
   findById: async (id) => {
     const res = await pool.query(
       `SELECT 
-        id, owner_name, email, phone, gst_number, pan_number, 
+        id, owner_name, email, phone, gst_number, gst_document, pan_number, 
         store_name, store_description, pickup_address, city, state, 
         pincode, shipping_type, account_holder, bank_name, ifsc_code, referral_code, status 
        FROM sellers WHERE id = $1`,
@@ -68,6 +69,7 @@ const Seller = {
       password,
       phone,
       gst_number,
+      gst_document,
       pan_number,
       store_name,
       store_description,
@@ -85,17 +87,18 @@ const Seller = {
 
     const res = await pool.query(
       `INSERT INTO sellers (
-        owner_name, email, password, phone, gst_number, pan_number,
+        owner_name, email, password, phone, gst_number, gst_document, pan_number,
         store_name, store_description, pickup_address, city, state,
         pincode, shipping_type, account_holder, bank_name, ifsc_code, account_number, referral_code
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING id, store_name, owner_name, email, referral_code, status`,
       [
         owner_name,
         email,
         password,
         phone,
-        gst_number,
+        gst_number || null,
+        gst_document || null,
         pan_number,
         store_name,
         store_description,
@@ -103,7 +106,7 @@ const Seller = {
         city,
         state,
         pincode,
-        shipping_type,
+        shipping_type || 'standard',
         account_holder,
         bank_name,
         ifsc_code,
