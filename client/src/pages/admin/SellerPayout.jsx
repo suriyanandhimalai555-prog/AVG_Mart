@@ -168,7 +168,7 @@ const SellerPayout = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
           <div>
             <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.25em] uppercase bg-white/5 border border-white/10 px-3 py-1 rounded-full text-lime-accent mb-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-lime-accent" /> Daily Settlement Operations
+              <ShieldCheck className="w-3.5 h-3.5 text-lime-accent" />demo Daily Settlement Operations
             </div>
             <h1 className="text-3xl md:text-4xl font-black uppercase tracking-wider text-white">
               Merchant <span className="text-lime-accent">Payouts</span> Ledger
