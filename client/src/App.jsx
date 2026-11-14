@@ -28,6 +28,7 @@ import SellerList from './pages/admin/SellerList'
 import MarketersList from './pages/admin/MarketersList'
 import AppSettings from './pages/admin/AppSetting'
 import AppBanner from './pages/admin/AppBanner'
+import SellerPayout from './pages/admin/SellerPayout'
 
 // Route Protection Guards
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoutes'
@@ -167,6 +168,7 @@ const App = () => {
                     <Route path="marketers-list" element={<MarketersList />} />
                     <Route path="app-settings" element={<AppSettings />} />
                     <Route path="app-banner" element={<AppBanner />} />
+                    <Route path="seller-payout" element={<SellerPayout />} />
                   </Routes>
                 </div>
               </div>
