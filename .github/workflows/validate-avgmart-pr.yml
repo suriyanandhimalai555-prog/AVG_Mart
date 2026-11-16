@@ -67,3 +67,132 @@ jobs:
           build-args: |
             VITE_APP_BASE_URL=https://api.avgmart.com
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+
+  notify-failure:
+    name: Send PR Validation Failure Email
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - validate
+    if: >-
+      ${{
+        always() &&
+        needs.validate.result == 'failure' &&
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      }}
+
+    steps:
+      - name: Send Microsoft Graph Failure Notification
+        shell: bash
+        env:
+          MS_TENANT_ID: ${{ secrets.MS_TENANT_ID }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
+          MS_SENDER_EMAIL: ${{ vars.MS_SENDER_EMAIL }}
+          MAIL_TO: ${{ vars.MAIL_TO }}
+          MAIL_CC: ${{ vars.MAIL_CC }}
+
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SOURCE_BRANCH: ${{ github.head_ref }}
+          TARGET_BRANCH: ${{ github.base_ref }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+
+        run: |
+          set -euo pipefail
+
+          echo "Preparing AVG Mart PR validation failure notification..."
+
+          : "${MS_TENANT_ID:?Missing MS_TENANT_ID GitHub secret}"
+          : "${MS_CLIENT_ID:?Missing MS_CLIENT_ID GitHub secret}"
+          : "${MS_CLIENT_SECRET:?Missing MS_CLIENT_SECRET GitHub secret}"
+          : "${MS_SENDER_EMAIL:?Missing MS_SENDER_EMAIL repository variable}"
+          : "${MAIL_TO:?Missing MAIL_TO repository variable}"
+
+          SUBJECT="FAILED: AVG Mart PR Validation - PR #${PR_NUMBER}"
+
+          echo "Requesting Microsoft Graph access token..."
+
+          TOKEN_RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/token" \
+            --header "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "client_id=${MS_CLIENT_ID}" \
+            --data-urlencode "client_secret=${MS_CLIENT_SECRET}" \
+            --data-urlencode "scope=https://graph.microsoft.com/.default" \
+            --data-urlencode "grant_type=client_credentials")
+
+          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
+          unset TOKEN_RESPONSE MS_CLIENT_SECRET
+
+          if [[ -z "$ACCESS_TOKEN" ]]; then
+            echo "ERROR: Microsoft Graph access token was not returned."
+            exit 1
+          fi
+
+          MAIL_PAYLOAD=$(jq -n \
+            --arg subject "$SUBJECT" \
+            --arg repository "$REPOSITORY" \
+            --arg pr "$PR_NUMBER" \
+            --arg source "$SOURCE_BRANCH" \
+            --arg target "$TARGET_BRANCH" \
+            --arg commit "$COMMIT_SHA" \
+            --arg workflow_url "$WORKFLOW_URL" \
+            --arg to "$MAIL_TO" \
+            --arg cc "${MAIL_CC:-}" \
+            '{
+              message: {
+                subject: $subject,
+                body: {
+                  contentType: "HTML",
+                  content: (
+                    "<h2>AVG Mart PR Validation FAILED</h2>" +
+                    "<p>PR validation failed. The pull request must not be merged until the failure is investigated and corrected.</p>" +
+                    "<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\">" +
+                    "<tr><td><b>Repository</b></td><td>" + ($repository | @html) + "</td></tr>" +
+                    "<tr><td><b>Pull request</b></td><td>#" + ($pr | @html) + "</td></tr>" +
+                    "<tr><td><b>Source branch</b></td><td>" + ($source | @html) + "</td></tr>" +
+                    "<tr><td><b>Target branch</b></td><td>" + ($target | @html) + "</td></tr>" +
+                    "<tr><td><b>Commit</b></td><td>" + ($commit | @html) + "</td></tr>" +
+                    "</table>" +
+                    "<p><a href=\"" + ($workflow_url | @html) + "\">View failed GitHub Actions run</a></p>"
+                  )
+                },
+                toRecipients: [
+                  {emailAddress: {address: $to}}
+                ],
+                ccRecipients: (
+                  if ($cc | length) > 0
+                  then [{emailAddress: {address: $cc}}]
+                  else []
+                  end
+                )
+              },
+              saveToSentItems: true
+            }')
+
+          echo "Sending failure email through Microsoft Graph..."
+
+          HTTP_STATUS=$(curl --silent --show-error \
+            --output /tmp/avgmart-pr-validation-mail-response.txt \
+            --write-out "%{http_code}" \
+            --request POST \
+            --url "https://graph.microsoft.com/v1.0/users/${MS_SENDER_EMAIL}/sendMail" \
+            --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$MAIL_PAYLOAD")
+
+          unset ACCESS_TOKEN MAIL_PAYLOAD
+
+          if [[ "$HTTP_STATUS" != "202" ]]; then
+            echo "ERROR: Microsoft Graph email request failed."
+            echo "HTTP status: $HTTP_STATUS"
+            cat /tmp/avgmart-pr-validation-mail-response.txt
+            exit 1
+          fi
+
+          echo "Microsoft Graph accepted the PR validation failure notification."
+          echo "Recipient: $MAIL_TO"
+          echo "CC configured: $([[ -n "${MAIL_CC:-}" ]] && echo yes || echo no)"
