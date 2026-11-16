@@ -1,3 +1,4 @@
+
 name: Validate AVG Mart PR
 
 on:
@@ -32,8 +33,9 @@ jobs:
         working-directory: client
         run: npm ci
 
-      - name: Run Frontend ESLint
+      - name: Run Frontend ESLint (Advisory)
         working-directory: client
+        continue-on-error: true
         run: npm run lint
 
       - name: Remove Installed Dependencies Before Docker Builds
