@@ -1,0 +1,261 @@
+name: AVG Mart Automatic PR Integration
+
+on:
+  push:
+    branches:
+      - recover-my-work
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: avgmart-auto-pr
+  cancel-in-progress: false
+
+jobs:
+  create-or-update-pr:
+    name: Create or Update AVG Mart PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: recover-my-work
+
+      - name: Fetch Latest Main and Recovery Branch
+        run: |
+          git fetch origin main recover-my-work
+
+      - name: Check for New Commits
+        id: compare
+        shell: bash
+        run: |
+          AHEAD=$(git rev-list --count origin/main..origin/recover-my-work)
+          BEHIND=$(git rev-list --count origin/recover-my-work..origin/main)
+
+          echo "ahead=$AHEAD" >> "$GITHUB_OUTPUT"
+          echo "behind=$BEHIND" >> "$GITHUB_OUTPUT"
+
+          echo "Recovery commits ahead: $AHEAD"
+          echo "Recovery commits behind: $BEHIND"
+
+          if [ "$AHEAD" -eq 0 ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No new recovery commits. Nothing to integrate."
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check Merge Conflicts
+        if: steps.compare.outputs.has_changes == 'true'
+        id: conflict
+        shell: bash
+        run: |
+          if git merge-tree --write-tree origin/main origin/recover-my-work \
+              > /tmp/merge-result.txt 2>&1; then
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+            echo "No merge conflicts detected."
+          else
+            RESULT=$?
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+            echo "Merge check failed. Automatic integration stopped."
+            echo "Git exit code: $RESULT"
+            cat /tmp/merge-result.txt
+            exit 1
+          fi
+
+      - name: Find Existing Pull Request
+        if: steps.compare.outputs.has_changes == 'true'
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.AVG_MART_AUTOMATION_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "${GITHUB_REPOSITORY_OWNER}:recover-my-work" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request
+        if: steps.compare.outputs.has_changes == 'true' && steps.existing.outputs.number == ''
+        env:
+          GH_TOKEN: ${{ secrets.AVG_MART_AUTOMATION_TOKEN }}
+        run: |
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head recover-my-work \
+            --title "AVG Mart: Integrate recover-my-work into main" \
+            --body "## Automatic Integration Request
+
+          Developer changes from recover-my-work are ready for validation.
+
+          - Source: recover-my-work
+          - Target: main
+          - Conflict check: passed
+          - Production deployment: not triggered by this workflow
+
+          Required validation checks must pass before merging.
+          Merge conflicts must be resolved by the developer."
+
+      - name: Update Existing Pull Request
+        if: steps.compare.outputs.has_changes == 'true' && steps.existing.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.AVG_MART_AUTOMATION_TOKEN }}
+          PR_NUMBER: ${{ steps.existing.outputs.number }}
+        run: |
+          gh pr edit "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "AVG Mart: Integrate recover-my-work into main" \
+            --body "## Automatic Integration Request
+
+          This PR has been updated with the latest recover-my-work commits.
+
+          - Source: recover-my-work
+          - Target: main
+          - Conflict check: passed
+          - Production deployment: not triggered by this workflow
+
+          Required validation checks must pass before merging.
+          Merge conflicts must be resolved by the developer."
+
+      - name: Report No Changes
+        if: steps.compare.outputs.has_changes == 'false'
+        run: |
+          echo "No new developer commits found."
+          echo "No PR was created and no production action was taken."
+
+  notify-failure:
+    name: Send Failure Email Notification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - create-or-update-pr
+    if: ${{ always() && needs.create-or-update-pr.result == 'failure' }}
+
+    steps:
+      - name: Send Microsoft Graph Failure Notification
+        shell: bash
+        env:
+          MS_TENANT_ID: ${{ secrets.MS_TENANT_ID }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
+
+          MS_SENDER_EMAIL: ${{ vars.MS_SENDER_EMAIL }}
+          MAIL_TO: ${{ vars.MAIL_TO }}
+          MAIL_CC: ${{ vars.MAIL_CC }}
+
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_BRANCH: recover-my-work
+          TARGET_BRANCH: main
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EVENT_NAME: ${{ github.event_name }}
+          INTEGRATION_RESULT: ${{ needs.create-or-update-pr.result }}
+
+        run: |
+          set -euo pipefail
+
+          echo "Preparing AVG Mart PR integration failure notification..."
+
+          : "${MS_TENANT_ID:?Missing MS_TENANT_ID GitHub secret}"
+          : "${MS_CLIENT_ID:?Missing MS_CLIENT_ID GitHub secret}"
+          : "${MS_CLIENT_SECRET:?Missing MS_CLIENT_SECRET GitHub secret}"
+          : "${MS_SENDER_EMAIL:?Missing MS_SENDER_EMAIL repository variable}"
+          : "${MAIL_TO:?Missing MAIL_TO repository variable}"
+
+          SUBJECT="FAILED: AVG Mart Automatic PR Integration"
+
+          DETAILS="Automatic integration from recover-my-work to main failed. This may be due to merge conflicts or a PR creation/update error. No automatic conflict resolution or production deployment was performed by this workflow."
+
+          echo "Requesting Microsoft Graph access token..."
+
+          TOKEN_RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/token" \
+            --header "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "client_id=${MS_CLIENT_ID}" \
+            --data-urlencode "client_secret=${MS_CLIENT_SECRET}" \
+            --data-urlencode "scope=https://graph.microsoft.com/.default" \
+            --data-urlencode "grant_type=client_credentials")
+
+          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
+
+          if [[ -z "$ACCESS_TOKEN" ]]; then
+            echo "ERROR: Microsoft Graph access token was not returned."
+            exit 1
+          fi
+
+          MAIL_PAYLOAD=$(jq -n \
+            --arg subject "$SUBJECT" \
+            --arg details "$DETAILS" \
+            --arg repository "$REPOSITORY" \
+            --arg source "$SOURCE_BRANCH" \
+            --arg target "$TARGET_BRANCH" \
+            --arg event "$EVENT_NAME" \
+            --arg result "$INTEGRATION_RESULT" \
+            --arg workflow_url "$WORKFLOW_URL" \
+            --arg to "$MAIL_TO" \
+            --arg cc "${MAIL_CC:-}" \
+            '{
+              message: {
+                subject: $subject,
+                body: {
+                  contentType: "HTML",
+                  content: (
+                    "<h2>AVG Mart Automatic PR Integration FAILED</h2>" +
+                    "<p>" + $details + "</p>" +
+                    "<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\">" +
+                    "<tr><td><b>Repository</b></td><td>" + $repository + "</td></tr>" +
+                    "<tr><td><b>Source branch</b></td><td>" + $source + "</td></tr>" +
+                    "<tr><td><b>Target branch</b></td><td>" + $target + "</td></tr>" +
+                    "<tr><td><b>Trigger</b></td><td>" + $event + "</td></tr>" +
+                    "<tr><td><b>Integration job result</b></td><td>" + $result + "</td></tr>" +
+                    "</table>" +
+                    "<p><a href=\"" + $workflow_url + "\">View failed GitHub Actions run</a></p>"
+                  )
+                },
+                toRecipients: [
+                  {emailAddress: {address: $to}}
+                ],
+                ccRecipients: (
+                  if ($cc | length) > 0
+                  then [{emailAddress: {address: $cc}}]
+                  else []
+                  end
+                )
+              },
+              saveToSentItems: true
+            }')
+
+          echo "Sending failure email through Microsoft Graph..."
+
+          HTTP_STATUS=$(curl --silent --show-error \
+            --output /tmp/graph-mail-response.txt \
+            --write-out "%{http_code}" \
+            --request POST \
+            --url "https://graph.microsoft.com/v1.0/users/${MS_SENDER_EMAIL}/sendMail" \
+            --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$MAIL_PAYLOAD")
+
+          unset ACCESS_TOKEN TOKEN_RESPONSE MS_CLIENT_SECRET
+
+          if [[ "$HTTP_STATUS" != "202" ]]; then
+            echo "ERROR: Microsoft Graph email request failed."
+            echo "HTTP status: $HTTP_STATUS"
+            cat /tmp/graph-mail-response.txt
+            exit 1
+          fi
+
+          echo "Microsoft Graph accepted the failure notification."
+          echo "Recipient: $MAIL_TO"
+          echo "CC configured: $([[ -n "${MAIL_CC:-}" ]] && echo yes || echo no)"
