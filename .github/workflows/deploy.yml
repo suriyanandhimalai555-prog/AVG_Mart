@@ -9,6 +9,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -16,11 +19,12 @@ jobs:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    outputs:
+      ssh_stdout: ${{ steps.remote_deploy.outputs.stdout }}
 
+    steps:
       - name: Deploy AVG Mart Kubernetes
+        id: remote_deploy
         uses: appleboy/ssh-action@v1.2.2
         env:
           IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
@@ -32,6 +36,7 @@ jobs:
           timeout: 60s
           command_timeout: 20m
           envs: IMAGE_TAG
+          capture_stdout: true
 
           script: |
             set -e
@@ -123,70 +128,153 @@ jobs:
 
             echo "AVG Mart deployment completed successfully."
 
-      - name: Send Success Email
-        if: success()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          secure: true
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
+  notify:
+    name: Send Microsoft Graph Email Notification
+    runs-on: ubuntu-latest
+    needs:
+      - deploy
+    if: always()
 
-          subject: "AVG Mart Kubernetes Deployment Successful"
+    steps:
+      - name: Send deployment notification
+        shell: bash
+        env:
+          MS_TENANT_ID: ${{ secrets.MS_TENANT_ID }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
 
-          to: |
-            muthukdm45@gmail.com,
-            devops@avgprimetech.com
+          MS_SENDER_EMAIL: ${{ vars.MS_SENDER_EMAIL }}
+          MAIL_TO: ${{ vars.MAIL_TO }}
+          MAIL_CC: ${{ vars.MAIL_CC }}
 
-          from: AVG Mart CI/CD <${{ secrets.SMTP_USERNAME }}>
+          BUILD_RESULT: ${{ github.event.workflow_run.conclusion }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          SSH_STDOUT: ${{ needs.deploy.outputs.ssh_stdout }}
 
-          html_body: |
-            <h2>AVG Mart Kubernetes Deployment Successful</h2>
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          BUILD_RUN_URL: ${{ github.event.workflow_run.html_url }}
+          DEPLOY_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
 
-            <ul>
-              <li>Docker images built successfully</li>
-              <li>Multi-platform images pushed to GHCR</li>
-              <li>Kubernetes manifests applied</li>
-              <li>Backend rollout completed</li>
-              <li>Frontend rollout completed</li>
-              <li>Backend health check passed</li>
-              <li>Deployment completed successfully</li>
-            </ul>
+        run: |
+          set -euo pipefail
 
-            <p>
-              <strong>Image Tag:</strong>
-              ${{ github.event.workflow_run.head_sha }}
-            </p>
+          echo "Checking build and deployment results..."
 
-      - name: Send Failure Email
-        if: failure()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          secure: true
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
+          if [[ "$BUILD_RESULT" != "success" || "$DEPLOY_RESULT" == "failure" ]]; then
+            STATUS="FAILED"
+            SUBJECT="AVG Mart Kubernetes Deployment Failed"
+          elif [[ "$DEPLOY_RESULT" == "skipped" ]]; then
+            STATUS="SKIPPED"
+            SUBJECT="AVG Mart Kubernetes Deployment Skipped"
+          elif [[ "$SSH_STDOUT" == *"Skipping deployment: a newer commit exists on main."* ]]; then
+            STATUS="SKIPPED"
+            SUBJECT="AVG Mart Kubernetes Deployment Skipped - Newer Commit Exists"
+          elif [[ "$DEPLOY_RESULT" == "success" ]]; then
+            STATUS="SUCCESSFUL"
+            SUBJECT="AVG Mart Kubernetes Deployment Successful"
+          else
+            STATUS="FAILED"
+            SUBJECT="AVG Mart Kubernetes Deployment Failed"
+          fi
 
-          subject: "AVG Mart Kubernetes Deployment Failed"
+          echo "Build result: $BUILD_RESULT"
+          echo "Deployment result: $DEPLOY_RESULT"
+          echo "Final status: $STATUS"
 
-          to: |
-            muthukdm45@gmail.com,
-            devops@avgprimetech.com
+          echo "Requesting Microsoft Graph access token..."
 
-          from: AVG Mart CI/CD <${{ secrets.SMTP_USERNAME }}>
+          TOKEN_RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/token" \
+            --header "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "client_id=${MS_CLIENT_ID}" \
+            --data-urlencode "client_secret=${MS_CLIENT_SECRET}" \
+            --data-urlencode "scope=https://graph.microsoft.com/.default" \
+            --data-urlencode "grant_type=client_credentials")
 
-          html_body: |
-            <h2>AVG Mart Kubernetes Deployment Failed</h2>
+          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
 
-            <ul>
-              <li>Kubernetes deployment failed</li>
-              <li>Rollout verification failed</li>
-              <li>Check GitHub Actions logs</li>
-            </ul>
+          if [[ -z "$ACCESS_TOKEN" ]]; then
+            echo "ERROR: Microsoft Graph access token was not returned."
+            exit 1
+          fi
 
-            <p>
-              <strong>Image Tag:</strong>
-              ${{ github.event.workflow_run.head_sha }}
-            </p>
+          echo "Access token obtained successfully."
+
+          case "$STATUS" in
+            SUCCESSFUL)
+              DETAILS="Docker image build, Kubernetes deployment, rollout checks and backend health check completed successfully."
+              ;;
+            SKIPPED)
+              DETAILS="This deployment was skipped because a newer commit exists or the deployment job did not run. Check the workflow logs before considering the latest code deployed."
+              ;;
+            *)
+              DETAILS="The Docker build or Kubernetes deployment failed. Review the GitHub Actions logs to identify the failure."
+              ;;
+          esac
+
+          MAIL_PAYLOAD=$(jq -n \
+            --arg subject "$SUBJECT" \
+            --arg status "$STATUS" \
+            --arg details "$DETAILS" \
+            --arg repository "$REPOSITORY" \
+            --arg image_tag "$IMAGE_TAG" \
+            --arg build_result "$BUILD_RESULT" \
+            --arg deploy_result "$DEPLOY_RESULT" \
+            --arg build_url "$BUILD_RUN_URL" \
+            --arg deploy_url "$DEPLOY_RUN_URL" \
+            --arg to "$MAIL_TO" \
+            --arg cc "$MAIL_CC" \
+            '{
+              message: {
+                subject: $subject,
+                body: {
+                  contentType: "HTML",
+                  content: (
+                    "<h2>AVG Mart Kubernetes Deployment " + $status + "</h2>" +
+                    "<p>" + $details + "</p>" +
+                    "<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\">" +
+                    "<tr><td><b>Repository</b></td><td>" + $repository + "</td></tr>" +
+                    "<tr><td><b>Image Tag / Commit</b></td><td>" + $image_tag + "</td></tr>" +
+                    "<tr><td><b>Docker Build Result</b></td><td>" + $build_result + "</td></tr>" +
+                    "<tr><td><b>Deployment Job Result</b></td><td>" + $deploy_result + "</td></tr>" +
+                    "</table>" +
+                    "<p><a href=\"" + $build_url + "\">View Docker Build Run</a></p>" +
+                    "<p><a href=\"" + $deploy_url + "\">View Deployment Workflow Run</a></p>"
+                  )
+                },
+                toRecipients: [
+                  {emailAddress: {address: $to}}
+                ],
+                ccRecipients: [
+                  {emailAddress: {address: $cc}}
+                ]
+              },
+              saveToSentItems: true
+            }')
+
+          echo "Sending email through Microsoft Graph..."
+
+          HTTP_STATUS=$(curl --silent --show-error \
+            --output /tmp/graph-mail-response.txt \
+            --write-out "%{http_code}" \
+            --request POST \
+            --url "https://graph.microsoft.com/v1.0/users/${MS_SENDER_EMAIL}/sendMail" \
+            --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$MAIL_PAYLOAD")
+
+          unset ACCESS_TOKEN TOKEN_RESPONSE MS_CLIENT_SECRET
+
+          if [[ "$HTTP_STATUS" != "202" ]]; then
+            echo "ERROR: Microsoft Graph email request failed."
+            echo "HTTP status: $HTTP_STATUS"
+            cat /tmp/graph-mail-response.txt
+            exit 1
+          fi
+
+          echo "SUCCESS: Microsoft Graph accepted the $STATUS notification."
+          echo "Sender: $MS_SENDER_EMAIL"
+          echo "To: $MAIL_TO"
+          echo "CC: $MAIL_CC"
