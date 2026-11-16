@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: avgmart-production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -39,7 +43,7 @@ jobs:
           capture_stdout: true
 
           script: |
-            set -e
+            set -euo pipefail
 
             cd /home/ubuntu/Applications/AVG_Mart
 
@@ -66,9 +70,9 @@ jobs:
             echo "Expected image tag:"
             echo "${IMAGE_TAG}"
 
-            chmod +x scripts/k8s-deploy-frontend.sh
+            chmod +x scripts/k8s-deploy-safe.sh
 
-            IMAGE_TAG="${IMAGE_TAG}" ./scripts/k8s-deploy-frontend.sh
+            IMAGE_TAG="${IMAGE_TAG}" ./scripts/k8s-deploy-safe.sh
 
             echo "Checking deployments..."
 
