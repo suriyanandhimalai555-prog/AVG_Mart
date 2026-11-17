@@ -218,7 +218,7 @@ jobs:
     steps:
       - name: Enable automatic squash merge
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.AVG_MART_AUTOMATION_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
           gh pr merge "$PR_URL" --auto --squash
