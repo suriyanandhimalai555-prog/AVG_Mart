@@ -51,24 +51,6 @@ jobs:
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check Merge Conflicts
-        if: steps.compare.outputs.has_changes == 'true'
-        id: conflict
-        shell: bash
-        run: |
-          if git merge-tree --write-tree origin/main origin/recover-my-work \
-              > /tmp/merge-result.txt 2>&1; then
-            echo "conflict=false" >> "$GITHUB_OUTPUT"
-            echo "No merge conflicts detected."
-          else
-            RESULT=$?
-            echo "conflict=true" >> "$GITHUB_OUTPUT"
-            echo "Merge check failed. Automatic integration stopped."
-            echo "Git exit code: $RESULT"
-            cat /tmp/merge-result.txt
-            exit 1
-          fi
-
       - name: Find Existing Pull Request
         if: steps.compare.outputs.has_changes == 'true'
         id: existing
@@ -101,11 +83,11 @@ jobs:
 
           - Source: recover-my-work
           - Target: main
-          - Conflict check: passed
+          - GitHub determines whether the PR is mergeable
           - Production deployment: not triggered by this workflow
 
           Required validation checks must pass before merging.
-          Merge conflicts must be resolved by the developer."
+          If conflicts exist, resolve them in the source branch. Automatic merging remains blocked until the PR is mergeable and all required checks pass."
 
       - name: Update Existing Pull Request
         if: steps.compare.outputs.has_changes == 'true' && steps.existing.outputs.number != ''
@@ -122,11 +104,11 @@ jobs:
 
           - Source: recover-my-work
           - Target: main
-          - Conflict check: passed
+          - GitHub determines whether the PR is mergeable
           - Production deployment: not triggered by this workflow
 
           Required validation checks must pass before merging.
-          Merge conflicts must be resolved by the developer."
+          If conflicts exist, resolve them in the source branch. Automatic merging remains blocked until the PR is mergeable and all required checks pass."
 
       - name: Report No Changes
         if: steps.compare.outputs.has_changes == 'false'
