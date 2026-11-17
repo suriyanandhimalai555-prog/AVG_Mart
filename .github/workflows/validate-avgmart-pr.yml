@@ -34,10 +34,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Install Backend Dependencies
-        working-directory: server
-        run: npm ci
+          cache: npm
+          cache-dependency-path: client/package-lock.json
 
       - name: Install Frontend Dependencies
         working-directory: client
@@ -55,25 +53,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Backend Image (AMD64 and ARM64)
+      - name: Build Backend Image (AMD64)
         uses: docker/build-push-action@v7
         with:
           context: ./server
           file: ./server/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: false
           provenance: false
           sbom: false
+          cache-from: type=gha,scope=avgmart-backend-pr
+          cache-to: type=gha,mode=max,scope=avgmart-backend-pr
 
-      - name: Build Frontend Image (AMD64 and ARM64)
+      - name: Build Frontend Image (AMD64)
         uses: docker/build-push-action@v7
         with:
           context: ./client
           file: ./client/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: false
           provenance: false
           sbom: false
+          cache-from: type=gha,scope=avgmart-frontend-pr
+          cache-to: type=gha,mode=max,scope=avgmart-frontend-pr
           build-args: |
             VITE_APP_BASE_URL=https://api.avgmart.com
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
