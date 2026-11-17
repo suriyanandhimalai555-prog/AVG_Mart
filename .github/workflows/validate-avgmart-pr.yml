@@ -1,14 +1,24 @@
-
-name: Validate AVG Mart PR
+name: AVG Mart - PR Validation and Auto Merge
 
 on:
   workflow_dispatch:
+
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: avgmart-pr-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -113,8 +123,6 @@ jobs:
 
           SUBJECT="FAILED: AVG Mart PR Validation - PR #${PR_NUMBER}"
 
-          echo "Requesting Microsoft Graph access token..."
-
           TOKEN_RESPONSE=$(curl --fail-with-body --silent --show-error \
             --request POST \
             --url "https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/token" \
@@ -149,7 +157,7 @@ jobs:
                   contentType: "HTML",
                   content: (
                     "<h2>AVG Mart PR Validation FAILED</h2>" +
-                    "<p>PR validation failed. The pull request must not be merged until the failure is investigated and corrected.</p>" +
+                    "<p>PR validation failed. Investigate before merging.</p>" +
                     "<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\">" +
                     "<tr><td><b>Repository</b></td><td>" + ($repository | @html) + "</td></tr>" +
                     "<tr><td><b>Pull request</b></td><td>#" + ($pr | @html) + "</td></tr>" +
@@ -173,8 +181,6 @@ jobs:
               saveToSentItems: true
             }')
 
-          echo "Sending failure email through Microsoft Graph..."
-
           HTTP_STATUS=$(curl --silent --show-error \
             --output /tmp/avgmart-pr-validation-mail-response.txt \
             --write-out "%{http_code}" \
@@ -193,6 +199,26 @@ jobs:
             exit 1
           fi
 
-          echo "Microsoft Graph accepted the PR validation failure notification."
-          echo "Recipient: $MAIL_TO"
-          echo "CC configured: $([[ -n "${MAIL_CC:-}" ]] && echo yes || echo no)"
+          echo "Microsoft Graph accepted the failure notification."
+
+  auto-merge:
+    name: Automatically Merge AVG Mart PR
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+
+    if: >-
+      ${{
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.base.ref == 'main' &&
+        !github.event.pull_request.draft
+      }}
+
+    steps:
+      - name: Enable automatic squash merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr merge "$PR_URL" --auto --squash
