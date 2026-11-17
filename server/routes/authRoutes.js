@@ -38,7 +38,7 @@
 // router.post("/payment/order", verifyToken, createRazorpayOrder);
 // router.post("/payment/verify", verifyToken, verifyRazorpayPayment);
 // router.get("/orders", verifyToken, getUserOrders);
-// router.get("/admin/orders", verifyToken, getAllCustomerOrders); 
+// router.get("/admin/orders", verifyToken, getAllCustomerOrders);
 // router.put("/admin/orders/:orderId", verifyToken, updateOrderStatusByAdmin);
 
 // // Admin Dashboard Command Control Center
@@ -91,7 +91,7 @@ router.post("/payment/order", verifyToken, createRazorpayOrder);
 router.post("/payment/verify", verifyToken, verifyRazorpayPayment);
 router.post("/payment/cod", verifyToken, createCodOrder); // NEW COD ROUTE
 router.get("/orders", verifyToken, getUserOrders);
-router.get("/admin/orders", verifyToken, getAllCustomerOrders); 
+router.get("/admin/orders", verifyToken, getAllCustomerOrders);
 router.put("/admin/orders/:orderId", verifyToken, updateOrderStatusByAdmin);
 
 // Live tracking from shypfy
