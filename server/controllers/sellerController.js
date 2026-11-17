@@ -427,10 +427,13 @@ export const getAllSellers = async (req, res) => {
     const { date, startDate, endDate } = req.query;
     const sellers = await Seller.findAll();
 
+    const targetDate = date || new Date().toISOString().split('T')[0];
+
     const enrichedSellers = await Promise.all(
       sellers.map(async (seller) => {
         let periodEarnings = 0;
         let dailySales = [];
+        let currentPayoutStatus = 'pending';
 
         try {
           let dateFilterQuery = '';
@@ -446,10 +449,9 @@ export const getAllSellers = async (req, res) => {
             dateFilterQuery = ` AND o.created_at >= $2::timestamp AND o.created_at <= $3::timestamp`;
             queryParams.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
           } else {
-            // Default to today's date if no filter is passed, so the dashboard shows today's 12AM-11:59PM payout by default
-            const todayStr = new Date().toISOString().split('T')[0];
+            // Default to today's date if no filter is passed
             dateFilterQuery = ` AND o.created_at >= $2::timestamp AND o.created_at <= $3::timestamp`;
-            queryParams.push(`${todayStr} 00:00:00`, `${todayStr} 23:59:59`);
+            queryParams.push(`${targetDate} 00:00:00`, `${targetDate} 23:59:59`);
           }
 
           // Calculate earnings strictly within the 12:00 AM - 11:59 PM window
@@ -464,6 +466,16 @@ export const getAllSellers = async (req, res) => {
 
           if (earningsQuery.rows.length > 0) {
             periodEarnings = Number(earningsQuery.rows[0].period_earned);
+          }
+
+          // Fetch saved payout status from daily_payout_logs for this seller and date
+          const statusQuery = await pool.query(
+            `SELECT status FROM daily_payout_logs WHERE seller_id = $1 AND payout_date = $2`,
+            [seller.id, targetDate]
+          );
+
+          if (statusQuery.rows.length > 0) {
+            currentPayoutStatus = statusQuery.rows[0].status;
           }
 
           // Daily breakdown
@@ -493,7 +505,8 @@ export const getAllSellers = async (req, res) => {
 
         return {
           ...seller,
-          total_earnings: periodEarnings, // Represents the specific daily/period payout window amount
+          total_earnings: periodEarnings,
+          payout_status: currentPayoutStatus, // Properly mapped from daily_payout_logs
           daily_sales: dailySales
         };
       })
