@@ -13,7 +13,7 @@ const razorpayInstance = new Razorpay({
 });
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.hostinger.com',
+  host: 'smtp.gmail.com',
   port: 465,
   secure: true,
   auth: {
