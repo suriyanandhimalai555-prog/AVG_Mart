@@ -1,6 +1,7 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, BUCKET_NAME } from '../config/s3.js';
 import { ProductModel } from '../models/productModel.js';
+import { pool } from '../config/db.js';
 import crypto from 'crypto';
 
 export const createProduct = async (req, res) => {
@@ -71,39 +72,69 @@ export const createProduct = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
   try {
-    let products;
+    let query = `
+      SELECT
+        p.*,
+        s.owner_name,
+        s.store_name,
+        s.email AS seller_email,
+        s.phone AS seller_phone,
+        s.pickup_address,
+        s.city,
+        s.state,
+        s.pincode
+      FROM products p
+      LEFT JOIN sellers s ON p.seller_id::text = s.id::text
+    `;
+    const params = [];
 
-    // If a specific sellerId is requested
     if (req.query.sellerId) {
-      products = await ProductModel.findAll(req.query.sellerId);
-    } 
-    // If explicitly requested for public user view
-    else if (req.query.public === 'true') {
-      products = await ProductModel.findApproved();
-    } 
-    // DEFAULT ADMIN / INVENTORY VIEW: Fetch ALL products (approved + pending)
-    else {
-      products = await ProductModel.findAll();
+      params.push(String(req.query.sellerId));
+      query += ` WHERE p.seller_id::text = $1`;
+    } else if (req.query.public === 'true') {
+      query += ` WHERE p.is_approved = true`;
     }
 
-    const data = products.map(item => ({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      sizes: item.sizes,
-      description: item.description,
-      originalPrice: item.original_price,
-      offerPrice: item.offer_price,
-      branchAdminPrice: item.branch_admin_price,
-      count: item.count,
-      images: item.images,
-      isFeatured: item.is_featured,
-      sellerId: item.seller_id,
-      isApproved: item.is_approved
-    }));
+    query += ` ORDER BY p.id DESC`;
+
+    const { rows: products } = await pool.query(query, params);
+
+    const data = products.map(item => {
+      const fullAddress = [item.pickup_address, item.city, item.state, item.pincode]
+        .filter(Boolean)
+        .join(', ');
+
+      return {
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        sizes: item.sizes,
+        description: item.description,
+        originalPrice: item.original_price,
+        offerPrice: item.offer_price,
+        branchAdminPrice: item.branch_admin_price,
+        count: item.count,
+        images: item.images,
+        isFeatured: item.is_featured,
+        sellerId: item.seller_id,
+        ownerName: item.owner_name || null,
+        owner_name: item.owner_name || null,
+        storeName: item.store_name || null,
+        store_name: item.store_name || null,
+        sellerEmail: item.seller_email || null,
+        seller_email: item.seller_email || null,
+        sellerPhone: item.seller_phone || null,
+        seller_phone: item.seller_phone || null,
+        pickupAddress: item.pickup_address || null,
+        city: item.city || null,
+        state: item.state || null,
+        pincode: item.pincode || null,
+        sellerAddress: fullAddress || null,
+        isApproved: item.is_approved
+      };
+    });
 
     res.json(data);
-
   } catch (err) {
     console.log(err);
     res.status(500).json({
@@ -115,7 +146,25 @@ export const getAllProducts = async (req, res) => {
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
-    const item = await ProductModel.findById(id);
+
+    const { rows } = await pool.query(
+      `SELECT
+         p.*,
+         s.owner_name,
+         s.store_name,
+         s.email AS seller_email,
+         s.phone AS seller_phone,
+         s.pickup_address,
+         s.city,
+         s.state,
+         s.pincode
+       FROM products p
+       LEFT JOIN sellers s ON p.seller_id::text = s.id::text
+       WHERE p.id::text = $1::text`,
+      [String(id)]
+    );
+
+    const item = rows[0];
 
     if (!item) {
       return res.status(404).json({
@@ -123,6 +172,10 @@ export const getProductById = async (req, res) => {
         message: "Product not found"
       });
     }
+
+    const fullAddress = [item.pickup_address, item.city, item.state, item.pincode]
+      .filter(Boolean)
+      .join(', ');
 
     const data = {
       id: item.id,
@@ -137,6 +190,19 @@ export const getProductById = async (req, res) => {
       images: item.images,
       isFeatured: item.is_featured,
       sellerId: item.seller_id,
+      ownerName: item.owner_name || null,
+      owner_name: item.owner_name || null,
+      storeName: item.store_name || null,
+      store_name: item.store_name || null,
+      sellerEmail: item.seller_email || null,
+      seller_email: item.seller_email || null,
+      sellerPhone: item.seller_phone || null,
+      seller_phone: item.seller_phone || null,
+      pickupAddress: item.pickup_address || null,
+      city: item.city || null,
+      state: item.state || null,
+      pincode: item.pincode || null,
+      sellerAddress: fullAddress || null,
       isApproved: item.is_approved
     };
 
@@ -144,7 +210,6 @@ export const getProductById = async (req, res) => {
       success: true,
       product: data
     });
-
   } catch (err) {
     console.error("Error in getProductById Controller:", err);
     return res.status(500).json({
