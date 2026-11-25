@@ -118,7 +118,7 @@ const SellerProfile = () => {
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 bg-lime-400/10 border border-lime-400/30 rounded-2xl flex items-center justify-center text-lime-400 text-2xl font-black">
-              <FaStore />
+              {/* <FaStore /> */}
             </div>
             <div>
               <div className="flex items-center gap-2">
