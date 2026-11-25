@@ -1,9 +1,8 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import helmet from "helmet";
 import client from "prom-client";
-
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
@@ -15,7 +14,6 @@ import marketerRoutes from './routes/marketerRoutes.js';
 import appSettingRoutes from './routes/appSettingRoutes.js';
 import appBannerRoutes from './routes/appBannerRoutes.js';
 
-dotenv.config();
 
 const app = express();
 
@@ -40,8 +38,11 @@ app.use((req, res, next) => {
 });
 
 // Security HTTP headers
-app.use(helmet());
-
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: false,
+  })
+);
 // 1. CORS Configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL,

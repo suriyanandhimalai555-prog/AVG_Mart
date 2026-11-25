@@ -166,7 +166,7 @@ export const createRazorpayOrder = async (req, res) => {
 };
 
 export const verifyRazorpayPayment = async (req, res) => {
-  const client = await pool.connect(); 
+  const client = await pool.connect();
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, address_id, amount } = req.body;
 
@@ -205,7 +205,7 @@ export const verifyRazorpayPayment = async (req, res) => {
 
     for (const item of cartItems) {
       const productRes = await client.query("SELECT count FROM products WHERE id = $1 FOR UPDATE;", [item.product_id]);
-      
+
       if (productRes.rows.length === 0) {
         await client.query("ROLLBACK");
         return res.status(400).json({ message: `Product ID ${item.product_id} no longer exists.` });
@@ -227,7 +227,7 @@ export const verifyRazorpayPayment = async (req, res) => {
 
     const addressQuery = "SELECT * FROM addresses WHERE id = $1 LIMIT 1;";
     const { rows: addressRows } = await client.query(addressQuery, [address_id]);
-    
+
     if (addressRows.length === 0) {
       await client.query("ROLLBACK");
       return res.status(400).json({ message: "Delivery address node not found." });
@@ -236,7 +236,7 @@ export const verifyRazorpayPayment = async (req, res) => {
     const orderPincode = String(addressObj.pincode).trim();
 
     const findBranchQuery = `
-      SELECT id, node_id FROM branch_admins 
+      SELECT id, node_id FROM branch_admins
       WHERE pincodes LIKE $1 OR pincodes LIKE $2 OR pincodes LIKE $3 OR pincodes = $4 LIMIT 1;
     `;
     const searchPatterns = [
@@ -245,7 +245,7 @@ export const verifyRazorpayPayment = async (req, res) => {
       `%, ${orderPincode}`,
       orderPincode
     ];
-    
+
     const { rows: branchRows } = await client.query(findBranchQuery, searchPatterns);
     const assignedBranchNodeId = branchRows.length > 0 ? branchRows[0].node_id : null;
 
@@ -254,11 +254,11 @@ export const verifyRazorpayPayment = async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
     `;
     await client.query(insertOrderQuery, [
-      razorpay_order_id, 
-      req.user.id, 
-      address_id, 
-      amount, 
-      razorpay_payment_id, 
+      razorpay_order_id,
+      req.user.id,
+      address_id,
+      amount,
+      razorpay_payment_id,
       assignedBranchNodeId,
       'Preparing'
     ]);
@@ -271,11 +271,11 @@ export const verifyRazorpayPayment = async (req, res) => {
       const productSize = item.selected_size || item.size || null;
 
       await client.query(insertItemQuery, [
-        razorpay_order_id, 
-        item.product_id, 
-        item.name, 
-        item.price, 
-        item.quantity, 
+        razorpay_order_id,
+        item.product_id,
+        item.name,
+        item.price,
+        item.quantity,
         item.image,
         productSize
       ]);
@@ -339,7 +339,7 @@ export const createCodOrder = async (req, res) => {
 
     for (const item of cartItems) {
       const productRes = await client.query("SELECT count FROM products WHERE id = $1 FOR UPDATE;", [item.product_id]);
-      
+
       if (productRes.rows.length === 0) {
         await client.query("ROLLBACK");
         return res.status(400).json({ message: `Product ID ${item.product_id} no longer exists.` });
@@ -361,7 +361,7 @@ export const createCodOrder = async (req, res) => {
 
     const addressQuery = "SELECT * FROM addresses WHERE id = $1 LIMIT 1;";
     const { rows: addressRows } = await client.query(addressQuery, [address_id]);
-    
+
     if (addressRows.length === 0) {
       await client.query("ROLLBACK");
       return res.status(400).json({ message: "Delivery address not found." });
@@ -370,7 +370,7 @@ export const createCodOrder = async (req, res) => {
     const orderPincode = String(addressObj.pincode).trim();
 
     const findBranchQuery = `
-      SELECT id, node_id FROM branch_admins 
+      SELECT id, node_id FROM branch_admins
       WHERE pincodes LIKE $1 OR pincodes LIKE $2 OR pincodes LIKE $3 OR pincodes = $4 LIMIT 1;
     `;
     const searchPatterns = [
@@ -379,7 +379,7 @@ export const createCodOrder = async (req, res) => {
       `%, ${orderPincode}`,
       orderPincode
     ];
-    
+
     const { rows: branchRows } = await client.query(findBranchQuery, searchPatterns);
     const assignedBranchNodeId = branchRows.length > 0 ? branchRows[0].node_id : null;
 
@@ -390,11 +390,11 @@ export const createCodOrder = async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
     `;
     await client.query(insertOrderQuery, [
-      codOrderId, 
-      req.user.id, 
-      address_id, 
-      amount, 
-      "CASH_ON_DELIVERY", 
+      codOrderId,
+      req.user.id,
+      address_id,
+      amount,
+      "CASH_ON_DELIVERY",
       assignedBranchNodeId,
       "Preparing"
     ]);
@@ -407,11 +407,11 @@ export const createCodOrder = async (req, res) => {
       const productSize = item.selected_size || item.size || null;
 
       await client.query(insertItemQuery, [
-        codOrderId, 
-        item.product_id, 
-        item.name, 
-        item.price, 
-        item.quantity, 
+        codOrderId,
+        item.product_id,
+        item.name,
+        item.price,
+        item.quantity,
         item.image,
         productSize
       ]);
@@ -571,10 +571,10 @@ export const getUserOrders = async (req, res) => {
     const finalUserId = isNaN(parsedUserId) ? rawUserId : parsedUserId;
 
     const query = `
-      SELECT 
-        o.id, 
-        o.total_price AS "totalPrice", 
-        o.status, 
+      SELECT
+        o.id,
+        o.total_price AS "totalPrice",
+        o.status,
         o.tracking_id,
         o.created_at AS "date",
         o.created_at,
@@ -585,9 +585,9 @@ export const getUserOrders = async (req, res) => {
           json_agg(
             json_build_object(
               'product_id', oi.product_id,
-              'name', oi.name, 
-              'price', oi.price, 
-              'quantity', oi.quantity, 
+              'name', oi.name,
+              'price', oi.price,
+              'quantity', oi.quantity,
               'image', oi.image,
               'selected_size', oi.selected_size
             )
@@ -599,10 +599,10 @@ export const getUserOrders = async (req, res) => {
       GROUP BY o.id
       ORDER BY o.created_at DESC;
     `;
-    
+
     const { rows } = await pool.query(query, [String(finalUserId)]);
     return res.status(200).json(rows);
-    
+
   } catch (error) {
     console.error("Fetch Live Orders Error:", error);
     return res.status(500).json({ message: "Failed retrieving order telemetry vectors." });
@@ -750,16 +750,16 @@ export const updateOrderStatusByAdmin = async (req, res) => {
     queryParams.push(orderId);
 
     const { rows } = await pool.query(updateQuery, queryParams);
-    
+
     if (rows.length === 0) {
       return res.status(404).json({ message: "Target order tracking node not found." });
     }
 
     const updatedOrder = rows[0];
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       message: "Order logistics tracking state updated successfully.",
-      order: updatedOrder 
+      order: updatedOrder
     });
   } catch (error) {
     console.error("Admin order pipeline patch breakdown:", error);
