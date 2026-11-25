@@ -9,8 +9,6 @@ import {
   FaSpinner,
   FaSearch,
   FaSitemap,
-  FaSearchPlus,
-  FaSearchMinus,
   FaUndo,
   FaChevronDown,
   FaChevronRight,
@@ -44,7 +42,7 @@ const TreeNode = ({
       {/* Connector line from parent above */}
       {!isRoot && <div className="w-px h-6 bg-white/25" />}
 
-      {/* Node Card (stop pointer propagation so clicking/reading a card doesn't trigger canvas drag) */}
+      {/* Node Card */}
       <div
         onPointerDown={(e) => e.stopPropagation()}
         onClick={() => onSelect(node)}
@@ -161,15 +159,34 @@ const SellerReferralTree = () => {
   const [zoom, setZoom] = useState(1);
   const [selectedSeller, setSelectedSeller] = useState(null);
 
-  // Drag-to-pan state
+  // Drag-to-pan & pinch-zoom refs/state
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const viewportRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const pointersRef = useRef(new Map());
+  const pinchStartDistRef = useRef(null);
+  const pinchStartZoomRef = useRef(1);
 
   useEffect(() => {
     fetchReferralTree();
     fetchProfileCode();
   }, []);
+
+  // Attach non-passive wheel listener so scrolling over the tree zooms smoothly without scrolling the page
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      const step = e.deltaY < 0 ? 0.08 : -0.08;
+      setZoom((prev) => Math.min(1.8, Math.max(0.45, Number((prev + step).toFixed(2)))));
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [loading]);
 
   const fetchProfileCode = async () => {
     try {
@@ -217,10 +234,26 @@ const SellerReferralTree = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Pointer drag handlers for moving the tree around the canvas
+  const getPinchDistance = () => {
+    const pts = Array.from(pointersRef.current.values());
+    if (pts.length < 2) return null;
+    const dx = pts[0].x - pts[1].x;
+    const dy = pts[0].y - pts[1].y;
+    return Math.hypot(dx, dy);
+  };
+
   const handlePointerDown = (e) => {
     if (e.button !== 0 && e.pointerType === "mouse") return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointersRef.current.size === 2) {
+      setIsDragging(false);
+      pinchStartDistRef.current = getPinchDistance();
+      pinchStartZoomRef.current = zoom;
+      return;
+    }
+
     setIsDragging(true);
     dragStartRef.current = {
       x: e.clientX,
@@ -231,6 +264,22 @@ const SellerReferralTree = () => {
   };
 
   const handlePointerMove = (e) => {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointersRef.current.size === 2 && pinchStartDistRef.current) {
+      const currentDist = getPinchDistance();
+      if (currentDist) {
+        const scaleFactor = currentDist / pinchStartDistRef.current;
+        const nextZoom = Math.min(
+          1.8,
+          Math.max(0.45, Number((pinchStartZoomRef.current * scaleFactor).toFixed(2)))
+        );
+        setZoom(nextZoom);
+      }
+      return;
+    }
+
     if (!isDragging) return;
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
@@ -241,8 +290,13 @@ const SellerReferralTree = () => {
   };
 
   const handlePointerUp = (e) => {
-    if (!isDragging) return;
-    setIsDragging(false);
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) {
+      pinchStartDistRef.current = null;
+    }
+    if (pointersRef.current.size === 0) {
+      setIsDragging(false);
+    }
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
@@ -319,7 +373,7 @@ const SellerReferralTree = () => {
               </span>
             </div>
             <p className="text-xs text-white/50 mt-1">
-              Click and drag anywhere on the canvas to move the tree and inspect downline referrals.
+              Drag to move, scroll or pinch inside the tree to zoom in and out.
             </p>
           </div>
         </div>
@@ -375,7 +429,7 @@ const SellerReferralTree = () => {
         </div>
       </div>
 
-      {/* INTERACTIVE DRAGGABLE TREE CANVAS */}
+      {/* INTERACTIVE TREE CANVAS */}
       <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden">
         {/* Toolbar */}
         <div className="p-4 md:p-5 border-b border-white/10 bg-black/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -394,30 +448,14 @@ const SellerReferralTree = () => {
             </div>
 
             <span className="hidden md:inline-flex items-center gap-1.5 text-[11px] text-white/45 font-medium">
-              <FaArrowsAlt className="text-lime-400" /> Drag canvas to move
+              <FaArrowsAlt className="text-lime-400" /> Drag to move • Scroll to zoom
             </span>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(1))))}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-              title="Zoom Out"
-            >
-              <FaSearchMinus />
-            </button>
-            <span className="text-xs font-mono font-bold px-2 text-white/70">
+          <div className="flex items-center gap-2.5 self-end sm:self-auto">
+            <span className="text-xs font-mono font-bold px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/75">
               {Math.round(zoom * 100)}%
             </span>
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(1))))}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-              title="Zoom In"
-            >
-              <FaSearchPlus />
-            </button>
             <button
               type="button"
               onClick={handleResetView}
@@ -456,8 +494,9 @@ const SellerReferralTree = () => {
           </div>
         )}
 
-        {/* Pannable Viewport */}
+        {/* Pannable & Wheel/Pinch Zoomable Viewport */}
         <div
+          ref={viewportRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
