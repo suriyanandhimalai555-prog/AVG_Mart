@@ -10,8 +10,9 @@ import {
   getSellerProfile,
   getAllSellers,
   getSellerReferralTree,
-  updateSellerPayoutStatus, // <--- New Payout Status Update Controller
-  getSellerMyPayouts        // <--- New Seller Payout Ledger View Controller
+  updateSellerPayoutStatus,
+  getSellerMyPayouts,
+  deleteSellerAccount
 } from '../controllers/sellerController.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
 
@@ -34,6 +35,8 @@ router.post('/reset-password', resetPasswordWithOtp);
 // Dashboard & Profile
 router.get('/dashboard-stats', verifyToken, getSellerDashboardData);
 router.get('/profile', verifyToken, getSellerProfile);
+
+router.delete('/profile', verifyToken, deleteSellerAccount);
 
 // Get all sellers (Admin directory & Payout management)
 router.get('/all', verifyToken, getAllSellers);

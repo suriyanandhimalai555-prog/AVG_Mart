@@ -5,6 +5,7 @@ import Seller from '../models/sellerModel.js';
 import { s3Client, BUCKET_NAME } from '../config/s3.js';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { pool } from '../config/db.js';
+import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 // Configure Nodemailer with Elastic Email SMTP
 const transporter = nodemailer.createTransport({
@@ -481,8 +482,27 @@ export const getSellerProfile = async (req, res) => {
 export const getAllSellers = async (req, res) => {
   try {
     const { date, startDate, endDate } = req.query;
-    const sellers = await Seller.findAll();
 
+    const sellersResult = await pool.query(
+      `SELECT
+         s.*,
+         ref_seller.id AS referred_by_id,
+         ref_seller.owner_name AS referred_by_name,
+         ref_seller.store_name AS referred_by_store,
+         ref_seller.referral_code AS referred_by_code
+       FROM sellers s
+       LEFT JOIN LATERAL (
+         SELECT sr.referrer_id
+         FROM seller_referrals sr
+         WHERE sr.referred_id = s.id
+         ORDER BY sr.created_at DESC
+         LIMIT 1
+       ) latest_ref ON true
+       LEFT JOIN sellers ref_seller ON ref_seller.id = latest_ref.referrer_id
+       ORDER BY s.id DESC`
+    );
+
+    const sellers = sellersResult.rows;
     const targetDate = date || new Date().toISOString().split('T')[0];
 
     const enrichedSellers = await Promise.all(
@@ -495,22 +515,17 @@ export const getAllSellers = async (req, res) => {
           let dateFilterQuery = '';
           let queryParams = [String(seller.id)];
 
-          // If a specific single date is queried (for daily 12AM-11:59PM payout generation)
           if (date) {
             dateFilterQuery = ` AND o.created_at >= $2::timestamp AND o.created_at <= $3::timestamp`;
             queryParams.push(`${date} 00:00:00`, `${date} 23:59:59`);
-          } 
-          // If a custom range is provided
-          else if (startDate && endDate) {
+          } else if (startDate && endDate) {
             dateFilterQuery = ` AND o.created_at >= $2::timestamp AND o.created_at <= $3::timestamp`;
             queryParams.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
           } else {
-            // Default to today's date if no filter is passed
             dateFilterQuery = ` AND o.created_at >= $2::timestamp AND o.created_at <= $3::timestamp`;
             queryParams.push(`${targetDate} 00:00:00`, `${targetDate} 23:59:59`);
           }
 
-          // Calculate earnings strictly within the 12:00 AM - 11:59 PM window
           const earningsQuery = await pool.query(
             `SELECT COALESCE(SUM(COALESCE(oi.price, p.offer_price, p.original_price, 0) * oi.quantity), 0) AS period_earned
              FROM order_items oi
@@ -524,7 +539,6 @@ export const getAllSellers = async (req, res) => {
             periodEarnings = Number(earningsQuery.rows[0].period_earned);
           }
 
-          // Fetch saved payout status from daily_payout_logs for this seller and date
           const statusQuery = await pool.query(
             `SELECT status FROM daily_payout_logs WHERE seller_id = $1 AND payout_date = $2`,
             [seller.id, targetDate]
@@ -534,7 +548,6 @@ export const getAllSellers = async (req, res) => {
             currentPayoutStatus = statusQuery.rows[0].status;
           }
 
-          // Daily breakdown
           const dailyQuery = await pool.query(
             `SELECT DATE(o.created_at) AS sale_date,
                     COALESCE(SUM(COALESCE(oi.price, p.offer_price, p.original_price, 0) * oi.quantity), 0) AS daily_amount,
@@ -549,21 +562,23 @@ export const getAllSellers = async (req, res) => {
             [String(seller.id)]
           );
 
-          dailySales = dailyQuery.rows.map(row => ({
+          dailySales = dailyQuery.rows.map((row) => ({
             date: row.sale_date,
             amount: Number(row.daily_amount),
-            orders: Number(row.order_count)
+            orders: Number(row.order_count),
           }));
-
         } catch (err) {
           console.log(`Earnings calculation notice for seller ${seller.id}:`, err.message);
         }
 
         return {
           ...seller,
+          referred_by_name: seller.referred_by_name || null,
+          referred_by_store: seller.referred_by_store || null,
+          referred_by_code: seller.referred_by_code || null,
           total_earnings: periodEarnings,
-          payout_status: currentPayoutStatus, // Properly mapped from daily_payout_logs
-          daily_sales: dailySales
+          payout_status: currentPayoutStatus,
+          daily_sales: dailySales,
         };
       })
     );
@@ -571,13 +586,13 @@ export const getAllSellers = async (req, res) => {
     return res.status(200).json({
       success: true,
       count: enrichedSellers.length,
-      sellers: enrichedSellers
+      sellers: enrichedSellers,
     });
   } catch (error) {
-    console.error("Error in getAllSellers:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: error.message || "Failed to retrieve sellers from database." 
+    console.error('Error in getAllSellers:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to retrieve sellers from database.',
     });
   }
 };
@@ -632,5 +647,112 @@ export const getSellerMyPayouts = async (req, res) => {
   } catch (error) {
     console.error("Error fetching seller payouts:", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteSellerAccount = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const sellerId = req.user.id;
+
+    const sellerRes = await client.query(
+      `SELECT id, gst_document FROM sellers WHERE id = $1`,
+      [sellerId]
+    );
+
+    if (sellerRes.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ success: false, message: "Seller account not found." });
+    }
+
+    const sellerRecord = sellerRes.rows[0];
+
+    await client.query("BEGIN");
+
+    // Helper for optional/related tables so a missing table won't abort the whole transaction
+    const safeExec = async (sql, params) => {
+      await client.query("SAVEPOINT sp_delete");
+      try {
+        await client.query(sql, params);
+        await client.query("RELEASE SAVEPOINT sp_delete");
+      } catch (err) {
+        await client.query("ROLLBACK TO SAVEPOINT sp_delete");
+        if (err.code !== "42P01") {
+          throw err;
+        }
+      }
+    };
+
+    // 1. Remove order_items linked to this seller's products
+    await safeExec(
+      `DELETE FROM order_items
+       WHERE product_id::text IN (
+         SELECT id::text FROM products WHERE seller_id::text = $1::text
+       )`,
+      [String(sellerId)]
+    );
+
+    // 2. Delete seller's products
+    await safeExec(
+      `DELETE FROM products WHERE seller_id::text = $1::text`,
+      [String(sellerId)]
+    );
+
+    // 3. Delete daily payout logs for this seller
+    await safeExec(
+      `DELETE FROM daily_payout_logs WHERE seller_id = $1`,
+      [sellerId]
+    );
+
+    // 4. Delete referral links where this seller is referrer or referred
+    await safeExec(
+      `DELETE FROM seller_referrals WHERE referrer_id = $1 OR referred_id = $1`,
+      [sellerId]
+    );
+
+    // 5. Delete the seller account itself
+    const deletedSeller = await client.query(
+      `DELETE FROM sellers WHERE id = $1 RETURNING id`,
+      [sellerId]
+    );
+
+    if (deletedSeller.rows.length === 0) {
+      throw new Error("Failed to delete seller record.");
+    }
+
+    await client.query("COMMIT");
+
+    // Optional: Best-effort cleanup of GST document in S3 after DB commit
+    if (sellerRecord.gst_document && BUCKET_NAME) {
+      try {
+        const url = new URL(sellerRecord.gst_document);
+        const key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+        if (key) {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: BUCKET_NAME,
+              Key: key,
+            })
+          );
+        }
+      } catch (s3Err) {
+        console.warn("S3 GST document cleanup warning:", s3Err.message);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Seller account and all associated data have been permanently deleted.",
+    });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("Delete Seller Account Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete seller account.",
+    });
+  } finally {
+    client.release();
   }
 };
