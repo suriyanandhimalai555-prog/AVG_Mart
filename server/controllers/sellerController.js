@@ -8,7 +8,7 @@ import { pool } from '../config/db.js';
 
 // Configure Nodemailer with Elastic Email SMTP
 const transporter = nodemailer.createTransport({
-  host: 'smtp.elasticemail.com',
+  host: 'smtp.gmail.com',
   port: 465,
   secure: true, // SSL required for port 465
   auth: {
@@ -136,22 +136,68 @@ export const getSellerReferralTree = async (req, res) => {
   try {
     const sellerId = req.user.id;
 
-    const directQuery = await pool.query(
-      `SELECT s.id, s.store_name, s.owner_name, s.email, s.phone, s.created_at, s.referral_code
-       FROM seller_referrals r
-       JOIN sellers s ON r.referred_id = s.id
-       WHERE r.referrer_id = $1
-       ORDER BY r.created_at DESC`,
+    const treeQuery = await pool.query(
+      `WITH RECURSIVE referral_tree AS (
+         -- Level 1: Direct referrals of the logged-in seller
+         SELECT
+           s.id,
+           s.store_name,
+           s.owner_name,
+           s.email,
+           s.phone,
+           s.referral_code,
+           r.created_at,
+           1 AS level,
+           r.referrer_id
+         FROM seller_referrals r
+         JOIN sellers s ON r.referred_id = s.id
+         WHERE r.referrer_id = $1
+
+         UNION ALL
+
+         -- Level 2+: Downline referrals of referred sellers
+         SELECT
+           s.id,
+           s.store_name,
+           s.owner_name,
+           s.email,
+           s.phone,
+           s.referral_code,
+           r.created_at,
+           rt.level + 1 AS level,
+           r.referrer_id
+         FROM seller_referrals r
+         JOIN sellers s ON r.referred_id = s.id
+         JOIN referral_tree rt ON r.referrer_id = rt.id
+       )
+       SELECT
+         rt.id,
+         rt.store_name,
+         rt.owner_name,
+         rt.email,
+         rt.phone,
+         rt.referral_code,
+         rt.created_at,
+         rt.level,
+         parent.store_name AS referred_by_store,
+         parent.referral_code AS referred_by_code
+       FROM referral_tree rt
+       LEFT JOIN sellers parent ON rt.referrer_id = parent.id
+       ORDER BY rt.level ASC, rt.created_at DESC`,
       [sellerId]
     );
 
+    const referrals = treeQuery.rows;
+    const totalDirect = referrals.filter((item) => Number(item.level) === 1).length;
+
     res.status(200).json({
       success: true,
-      totalDirect: directQuery.rows.length,
-      referrals: directQuery.rows
+      totalDirect,
+      totalDownline: referrals.length,
+      referrals,
     });
   } catch (error) {
-    console.error("Direct Referrals Error:", error);
+    console.error("Referral Tree Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
