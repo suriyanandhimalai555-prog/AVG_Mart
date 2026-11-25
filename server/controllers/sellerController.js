@@ -136,9 +136,15 @@ export const getSellerReferralTree = async (req, res) => {
   try {
     const sellerId = req.user.id;
 
+    const meResult = await pool.query(
+      `SELECT id, store_name, owner_name, email, phone, referral_code, created_at
+       FROM sellers
+       WHERE id = $1`,
+      [sellerId]
+    );
+
     const treeQuery = await pool.query(
       `WITH RECURSIVE referral_tree AS (
-         -- Level 1: Direct referrals of the logged-in seller
          SELECT
            s.id,
            s.store_name,
@@ -148,14 +154,14 @@ export const getSellerReferralTree = async (req, res) => {
            s.referral_code,
            r.created_at,
            1 AS level,
-           r.referrer_id
+           r.referrer_id,
+           ARRAY[r.referrer_id, s.id] AS path
          FROM seller_referrals r
          JOIN sellers s ON r.referred_id = s.id
          WHERE r.referrer_id = $1
 
          UNION ALL
 
-         -- Level 2+: Downline referrals of referred sellers
          SELECT
            s.id,
            s.store_name,
@@ -165,10 +171,12 @@ export const getSellerReferralTree = async (req, res) => {
            s.referral_code,
            r.created_at,
            rt.level + 1 AS level,
-           r.referrer_id
+           r.referrer_id,
+           rt.path || s.id
          FROM seller_referrals r
          JOIN sellers s ON r.referred_id = s.id
          JOIN referral_tree rt ON r.referrer_id = rt.id
+         WHERE NOT (s.id = ANY(rt.path))
        )
        SELECT
          rt.id,
@@ -179,6 +187,7 @@ export const getSellerReferralTree = async (req, res) => {
          rt.referral_code,
          rt.created_at,
          rt.level,
+         rt.referrer_id,
          parent.store_name AS referred_by_store,
          parent.referral_code AS referred_by_code
        FROM referral_tree rt
@@ -192,6 +201,7 @@ export const getSellerReferralTree = async (req, res) => {
 
     res.status(200).json({
       success: true,
+      rootSeller: meResult.rows[0] || null,
       totalDirect,
       totalDownline: referrals.length,
       referrals,
