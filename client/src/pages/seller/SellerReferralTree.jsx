@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FaUsers,
   FaCopy,
@@ -14,6 +14,7 @@ import {
   FaUndo,
   FaChevronDown,
   FaChevronRight,
+  FaArrowsAlt,
 } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 
@@ -43,8 +44,9 @@ const TreeNode = ({
       {/* Connector line from parent above */}
       {!isRoot && <div className="w-px h-6 bg-white/25" />}
 
-      {/* Node Card */}
+      {/* Node Card (stop pointer propagation so clicking/reading a card doesn't trigger canvas drag) */}
       <div
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={() => onSelect(node)}
         className={`relative w-52 sm:w-56 rounded-2xl p-3.5 transition cursor-pointer select-none border ${
           isRoot
@@ -104,10 +106,8 @@ const TreeNode = ({
       {/* Children Branches */}
       {hasChildren && expanded && (
         <div className="flex flex-col items-center">
-          {/* Vertical stem down from card */}
           <div className="w-px h-6 bg-white/25" />
 
-          {/* Horizontal + Per-child branches */}
           <div className="flex items-start justify-center">
             {children.map((child, idx) => {
               const isFirst = idx === 0;
@@ -116,7 +116,6 @@ const TreeNode = ({
 
               return (
                 <div key={child.id} className="flex flex-col items-center">
-                  {/* Top horizontal bar segments */}
                   <div className="w-full h-px flex">
                     <div
                       className={`flex-1 ${
@@ -161,6 +160,11 @@ const SellerReferralTree = () => {
   const [search, setSearch] = useState("");
   const [zoom, setZoom] = useState(1);
   const [selectedSeller, setSelectedSeller] = useState(null);
+
+  // Drag-to-pan state
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
   useEffect(() => {
     fetchReferralTree();
@@ -213,7 +217,44 @@ const SellerReferralTree = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Convert flat referrals list into a nested parent -> children tree
+  // Pointer drag handlers for moving the tree around the canvas
+  const handlePointerDown = (e) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      panX: pan.x,
+      panY: pan.y,
+    };
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    setPan({
+      x: dragStartRef.current.panX + dx,
+      y: dragStartRef.current.panY + dy,
+    });
+  };
+
+  const handlePointerUp = (e) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const handleResetView = () => {
+    setPan({ x: 0, y: 0 });
+    setZoom(1);
+    setSearch("");
+    setSelectedSeller(null);
+  };
+
   const hierarchicalRoot = useMemo(() => {
     const map = new Map();
 
@@ -278,7 +319,7 @@ const SellerReferralTree = () => {
               </span>
             </div>
             <p className="text-xs text-white/50 mt-1">
-              Visual tree representation of merchants you referred and their downline referrals.
+              Click and drag anywhere on the canvas to move the tree and inspect downline referrals.
             </p>
           </div>
         </div>
@@ -334,26 +375,33 @@ const SellerReferralTree = () => {
         </div>
       </div>
 
-      {/* TREE CANVAS CARD */}
+      {/* INTERACTIVE DRAGGABLE TREE CANVAS */}
       <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden">
         {/* Toolbar */}
         <div className="p-4 md:p-5 border-b border-white/10 bg-black/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="relative w-full sm:w-72">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40">
-              <FaSearch className="text-xs" />
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative w-full sm:w-64">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40">
+                <FaSearch className="text-xs" />
+              </span>
+              <input
+                type="text"
+                placeholder="Highlight store, owner, code..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold text-white placeholder:text-white/30 focus:outline-none focus:border-lime-400"
+              />
+            </div>
+
+            <span className="hidden md:inline-flex items-center gap-1.5 text-[11px] text-white/45 font-medium">
+              <FaArrowsAlt className="text-lime-400" /> Drag canvas to move
             </span>
-            <input
-              type="text"
-              placeholder="Highlight store, owner, code..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold text-white placeholder:text-white/30 focus:outline-none focus:border-lime-400"
-            />
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
-              onClick={() => setZoom((z) => Math.max(0.6, Number((z - 0.1).toFixed(1))))}
+              type="button"
+              onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(1))))}
               className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="Zoom Out"
             >
@@ -363,20 +411,18 @@ const SellerReferralTree = () => {
               {Math.round(zoom * 100)}%
             </span>
             <button
-              onClick={() => setZoom((z) => Math.min(1.4, Number((z + 0.1).toFixed(1))))}
+              type="button"
+              onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(1))))}
               className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="Zoom In"
             >
               <FaSearchPlus />
             </button>
             <button
-              onClick={() => {
-                setZoom(1);
-                setSearch("");
-                setSelectedSeller(null);
-              }}
+              type="button"
+              onClick={handleResetView}
               className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-              title="Reset View"
+              title="Reset Position & Zoom"
             >
               <FaUndo /> Reset
             </button>
@@ -401,6 +447,7 @@ const SellerReferralTree = () => {
               )}
             </div>
             <button
+              type="button"
               onClick={() => setSelectedSeller(null)}
               className="text-[11px] font-bold text-white/60 hover:text-white cursor-pointer"
             >
@@ -409,36 +456,34 @@ const SellerReferralTree = () => {
           </div>
         )}
 
-        {/* Scrollable Hierarchy Tree */}
-        <div className="p-6 md:p-10 overflow-x-auto min-h-[420px] flex justify-center items-start">
+        {/* Pannable Viewport */}
+        <div
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className={`relative h-[520px] md:h-[580px] overflow-hidden select-none touch-none flex justify-center items-start pt-8 ${
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
+        >
           <div
             style={{
-              transform: `scale(${zoom})`,
+              transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
               transformOrigin: "top center",
             }}
-            className="transition-transform duration-150 inline-block"
+            className="inline-block will-change-transform"
           >
-            {hierarchicalRoot.children.length === 0 ? (
-              <div className="flex flex-col items-center">
-                <TreeNode
-                  node={hierarchicalRoot}
-                  searchTerm={search}
-                  selectedSeller={selectedSeller}
-                  onSelect={setSelectedSeller}
-                  isRoot
-                />
-                <p className="mt-8 text-xs text-white/40">
-                  No downline merchants yet. Share your referral link to grow your tree.
-                </p>
-              </div>
-            ) : (
-              <TreeNode
-                node={hierarchicalRoot}
-                searchTerm={search}
-                selectedSeller={selectedSeller}
-                onSelect={setSelectedSeller}
-                isRoot
-              />
+            <TreeNode
+              node={hierarchicalRoot}
+              searchTerm={search}
+              selectedSeller={selectedSeller}
+              onSelect={setSelectedSeller}
+              isRoot
+            />
+            {hierarchicalRoot.children.length === 0 && (
+              <p className="mt-6 text-center text-xs text-white/40">
+                No downline merchants yet. Share your referral link to grow your tree.
+              </p>
             )}
           </div>
         </div>
